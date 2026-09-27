@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Classification">
+ <select id="types" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Type">SELECT code,name,active,sort_order FROM content_types ORDER BY sort_order,code</select>
+ <select id="cohorts" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT id,code,name,active FROM cohorts ORDER BY sort_order,id</select>
+ <select id="topics" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT id,code,name,active FROM topics ORDER BY sort_order,id</select>
+ <select id="allowedTopics" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$AllowedTopic">SELECT type_code,topic_id FROM content_type_topics ORDER BY type_code,topic_id</select>
+ <select id="draftType" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$TypeValue">SELECT t.code,t.name FROM posts p JOIN content_types t ON t.code=p.content_type_code WHERE p.id=#{value}</select>
+ <select id="publishedType" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$TypeValue">SELECT content_type_code AS code,type_name_snapshot AS name FROM post_publications WHERE post_id=#{value}</select>
+ <select id="draftCohorts" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT c.id,c.code,c.name,c.active FROM post_cohorts pc JOIN cohorts c ON c.id=pc.cohort_id WHERE pc.post_id=#{value} ORDER BY c.id</select>
+ <select id="draftTopics" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT t.id,t.code,t.name,t.active FROM post_topics pt JOIN topics t ON t.id=pt.topic_id WHERE pt.post_id=#{value} ORDER BY t.id</select>
+ <select id="publishedCohorts" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT c.id,c.code,pc.name_snapshot AS name,c.active FROM post_publication_cohorts pc JOIN cohorts c ON c.id=pc.cohort_id WHERE pc.post_id=#{value} ORDER BY c.id</select>
+ <select id="publishedTopics" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT t.id,t.code,pt.name_snapshot AS name,t.active FROM post_publication_topics pt JOIN topics t ON t.id=pt.topic_id WHERE pt.post_id=#{value} ORDER BY t.id</select>
+ <update id="type">UPDATE posts SET content_type_code=#{typeCode} WHERE id=#{postId}</update>
+ <delete id="clearCohorts">DELETE FROM post_cohorts WHERE post_id=#{value}</delete>
+ <delete id="clearTopics">DELETE FROM post_topics WHERE post_id=#{value}</delete>
+ <insert id="cohort">INSERT INTO post_cohorts(post_id,cohort_id) VALUES(#{postId},#{termId})</insert>
+ <insert id="topic">INSERT INTO post_topics(post_id,topic_id) VALUES(#{postId},#{termId})</insert>
+ <insert id="publishCohorts">INSERT INTO post_publication_cohorts(post_id,cohort_id,name_snapshot) SELECT pc.post_id,c.id,c.name FROM post_cohorts pc JOIN cohorts c ON c.id=pc.cohort_id WHERE pc.post_id=#{value}</insert>
+ <insert id="publishTopics">INSERT INTO post_publication_topics(post_id,topic_id,name_snapshot) SELECT pt.post_id,t.id,t.name FROM post_topics pt JOIN topics t ON t.id=pt.topic_id WHERE pt.post_id=#{value}</insert>
+</mapper>

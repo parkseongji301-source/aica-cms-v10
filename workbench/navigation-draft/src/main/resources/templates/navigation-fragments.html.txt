@@ -1,0 +1,10 @@
+<!doctype html><html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
+<li th:fragment="treeNode(entry)" th:attr="data-tree-key=${entry.key}">
+  <div class="tree-row" th:classappend="${entry.hidden ? 'menu-hidden' : ''}"><a th:href="${entry.href}" th:classappend="${treeSelection == entry.key ? 'active' : ''}" th:attr="aria-current=${treeSelection == entry.key ? 'page' : null},data-tree-link=${entry.key},data-target-page=${entry.pageId},data-target-category=${entry.categoryId},data-target-kind=${entry.kind}"><span class="tree-symbol" aria-hidden="true" th:text="${entry.kind == 'GROUP' ? '▤' : entry.kind == 'CONTENT' ? '↳' : entry.kind == 'LINK' ? '↗' : '•'}"></span><span th:text="${entry.label}"></span><small th:if="${entry.hidden and entry.kind != 'GROUP'}">메뉴 숨김</small><small th:if="${entry.kind == 'GROUP' and #lists.isEmpty(entry.children)}">연결 전</small><small th:if="${entry.kind == 'CONTENT'}">연결 콘텐츠</small><small th:if="${entry.kind == 'LINK'}">외부 링크</small></a></div>
+  <ul th:unless="${#lists.isEmpty(entry.children)}"><li th:each="child : ${entry.children}" th:replace="~{navigation-fragments :: treeNode(${child})}"></li></ul>
+</li>
+<div th:fragment="workContext" class="work-context" th:if="${contextPage != null}" th:attr="data-context-page=${contextPage.id}">
+  <strong th:text="${contextPage.title}"></strong><a th:href="@{/admin/pages/{id}/edit(id=${contextPage.id})}" th:attr="aria-current=${pageId != null ? 'page' : null}">내용·섹션 편집</a>
+  <span th:unless="${#lists.isEmpty(contentLinks)}">연결 콘텐츠</span><a th:each="link : ${contentLinks}" th:href="${link.href}" th:text="${link.label}" th:attr="aria-current=${pageId == null and categoryId == link.categoryId ? 'page' : null}"></a>
+</div>
+</body></html>

@@ -37,7 +37,7 @@ public class AccountController {
         } catch (BusinessException error) {
             response.setStatus(400);
             model.addAttribute("formError", error.getMessage());
-            model.addAttribute("email", email); model.addAttribute("displayName", displayName);
+            model.addAttribute("selectedRole",role);model.addAttribute("email", email); model.addAttribute("displayName", displayName);
             return form(model);
         }
     }

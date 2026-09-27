@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Versions">
+ <select id="baselineComplete" resultType="long">SELECT COUNT(*) FROM version_baseline_runs WHERE id=1</select>
+ <insert id="markBaseline">INSERT INTO version_baseline_runs(id,created_by) VALUES(1,#{value})</insert>
+ <!-- Identifiers are supplied exclusively by VersionKind, never request strings. Snapshots have no UPDATE statement. -->
+ <sql id="columns">id,${owner} AS target_id,snapshot_schema_version,snapshot_json,reason,source_revision,source_version_id,operation_id,created_by,creator_name,activity_log_id,created_at</sql>
+ <select id="get" resultType="egovframework.backoffice.mvp.version.VersionStore$Entry">SELECT <include refid="columns"/> FROM ${table} WHERE ${owner}=#{targetId} AND id=#{versionId}</select>
+ <select id="list" resultType="egovframework.backoffice.mvp.version.VersionStore$Entry">SELECT <include refid="columns"/> FROM ${table} WHERE ${owner}=#{targetId} ORDER BY id DESC LIMIT 20 OFFSET #{offset}</select>
+ <select id="count" resultType="long">SELECT COUNT(*) FROM ${table} WHERE ${owner}=#{targetId}</select>
+ <select id="reasonCount" resultType="long">SELECT COUNT(*) FROM ${table} WHERE ${owner}=#{targetId} AND reason=#{reason}</select>
+ <select id="operation" resultType="egovframework.backoffice.mvp.version.VersionStore$Entry">SELECT <include refid="columns"/> FROM ${table} WHERE ${owner}=#{targetId} AND operation_id=#{operationId} AND reason=#{reason}</select>
+ <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO ${table}(${owner},snapshot_schema_version,snapshot_json,reason,source_revision,source_version_id,operation_id,created_by,creator_name,activity_log_id)
+ VALUES(#{targetId},1,#{snapshot},#{reason},#{revision},#{source},#{operation},#{actorId},#{actorName},#{activity})</insert>
+ <insert id="media">INSERT INTO ${mediaTable}(version_id,media_id) VALUES(#{versionId},#{mediaId})</insert>
+ <delete id="prune">DELETE FROM ${table} WHERE id IN (SELECT id FROM ${table} WHERE ${owner}=#{targetId} AND reason IN ('MANUAL_DRAFT','RESTORE_BACKUP','RESTORE') ORDER BY id DESC OFFSET #{keep} ROWS)</delete>
+ <delete id="purge">DELETE FROM ${table} WHERE ${owner}=#{targetId}</delete>
+ <select id="mediaIds" resultType="long">SELECT DISTINCT m.media_id FROM ${mediaTable} m JOIN ${table} v ON v.id=m.version_id WHERE v.${owner}=#{targetId} ORDER BY m.media_id</select>
+ <select id="uses" resultType="egovframework.backoffice.mvp.version.VersionStore$MediaUse">SELECT v.${owner} AS target_id,v.id AS version_id,v.reason,v.created_at FROM ${table} v JOIN ${mediaTable} m ON m.version_id=v.id WHERE m.media_id=#{mediaId} ORDER BY v.id DESC</select>
+ <select id="references" resultType="long">SELECT COUNT(*) FROM ${table} v JOIN ${mediaTable} m ON m.version_id=v.id WHERE v.${owner}=#{targetId} AND v.id=#{versionId} AND m.media_id=#{mediaId}</select>
+</mapper>
+

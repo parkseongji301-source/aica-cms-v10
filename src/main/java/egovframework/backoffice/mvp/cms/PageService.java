@@ -1,0 +1,181 @@
+package egovframework.backoffice.mvp.cms;
+import egovframework.backoffice.mvp.common.*;
+import egovframework.backoffice.mvp.version.*;
+import egovframework.backoffice.mvp.security.AccountPrincipal;
+import static egovframework.backoffice.mvp.cms.CmsModels.*;
+import static egovframework.backoffice.mvp.cms.CmsStore.values;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.*;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+@Service
+public class PageService {
+ private final CmsStore store; private final CmsAccess access; private final MediaService media;
+ private final ActivityService audit; private final ObjectMapper json; private final RichTextService rich; private final PageBlockService identities; private final PublishedPostQueryService postQueries;
+ private final VersionHistoryService history;
+ public PageService(CmsStore store,CmsAccess access,MediaService media,ActivityService audit,ObjectMapper json,RichTextService rich,PageBlockService identities,PublishedPostQueryService postQueries,VersionHistoryService history) {
+  this.history=history;
+  this.store=store;this.access=access;this.media=media;this.audit=audit;this.json=json;this.rich=rich;this.identities=identities;this.postQueries=postQueries;
+ }
+ @Transactional(readOnly=true)
+ public List<Page> list(AccountPrincipal actor) {access.manager(actor);return store.all("pages",null);}
+ public record BlockTarget(String kind,String label,long pageId,String blockId,String type,boolean visible) {}
+ public record PageTarget(String kind,String label,long pageId,List<BlockTarget> blocks,String issue) {}
+ @Transactional(readOnly=true)
+ public List<PageTarget> structure(AccountPrincipal actor) {
+  return list(actor).stream().map(page->{
+   try {
+    var blocks=sections(page.sectionsJson());
+    if(blocks==null||blocks.stream().anyMatch(Objects::isNull))throw new BusinessException("블록 형식을 확인하세요.");
+    var counts=new HashMap<String,Integer>();blocks.forEach(s->counts.merge(Objects.toString(s.id(),""),1,Integer::sum));
+    var targets=blocks.stream().map(s->{
+     String id=PageBlockService.hasStableId(s.id())&&counts.get(s.id())==1?s.id():null;
+     String label=s.heading()==null||s.heading().isBlank()?PageComponentRegistry.definitions().stream().filter(d->d.type().equals(s.type())).map(PageComponentRegistry.Definition::label).findFirst().orElse(s.type()):s.heading();
+     return new BlockTarget("block",label,page.id(),id,s.type(),s.visible());
+    }).toList();
+    return new PageTarget("page",page.title(),page.id(),targets,targets.stream().anyMatch(t->t.blockId()==null)?"ID가 없거나 중복된 블록은 직접 이동할 수 없습니다.":null);
+   } catch(BusinessException error) {
+    return new PageTarget("page",page.title(),page.id(),List.of(),"블록 구성을 읽을 수 없습니다. 페이지에서 확인하세요.");
+   }
+  }).toList();
+ }
+ @Transactional(readOnly=true)
+ public Page get(AccountPrincipal actor,long id) {access.manager(actor);return required(id);}
+ public List<PageComponentRegistry.Definition> componentDefinitions(AccountPrincipal actor) {
+  access.manager(actor);return PageComponentRegistry.definitions();
+ }
+ @Transactional(readOnly=true)
+ public List<SelectedPost> selectedPosts(AccountPrincipal actor,List<Long> ids) {
+  access.manager(actor);return postQueries.selectedPosts(ids);
+ }
+ private Page required(long id) {
+  Page page=store.one("page",id);
+  if(page==null) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"페이지를 찾을 수 없습니다.");
+  return page;
+ }
+ public List<Section> sections(String text) {
+  try {return json.readerFor(new TypeReference<List<Section>>(){}).with(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(text);}
+  catch(Exception error) {throw new BusinessException("섹션 구성을 읽을 수 없습니다.");}
+ }
+ private List<Section> validated(AccountPrincipal actor,String source,boolean publishing,boolean newPage) {
+  if(source==null || source.length()>1000000) throw new BusinessException("섹션 구성이 너무 큽니다.");
+  var raw=PageBlockService.metadata(sections(source),newPage);
+  if(raw==null || raw.size()>30) throw new BusinessException("섹션은 최대 30개까지 추가할 수 있습니다.");
+  var result=new ArrayList<Section>();
+  for(var s:raw) {
+   var definition=PageComponentRegistry.required(s.type());
+   Long imageId=definition.fields().contains("imageId")?s.imageId():null;
+   Long categoryId=definition.fields().contains("categoryId")?s.categoryId():null;
+   if(imageId!=null) { media.validate(actor,List.of(imageId)); if(!media.required(imageId).mime().startsWith("image/")) throw new BusinessException("이미지 파일을 선택하세요."); }
+   if(publishing && s.type().equals("IMAGE") && imageId==null) throw new BusinessException("이미지 섹션에 이미지를 선택하세요.");
+   if(categoryId!=null && store.one("category",categoryId)==null) throw new BusinessException("카테고리를 다시 선택하세요.");
+   String link=definition.fields().contains("link")?CmsRules.url(s.link(),publishing && s.type().equals("CTA")):"";
+   var doc=rich.validate(actor,s.bodyDoc());
+   result.add(new Section(s.type(),CmsRules.optional(s.heading(),200,"섹션 제목"),doc.json()==null?CmsRules.optional(s.body(),20000,"섹션 내용"):doc.text(),
+       imageId,categoryId,link,CmsRules.optional(s.label(),80,"버튼 이름"),s.visible(),doc.json(),s.id(),s.schemaVersion(),s.variation(),s.sourceMode(),postQueries.validateBlock(s),postQueries.validateManual(s.manual())));
+  }
+  return result;
+ }
+ @Transactional(readOnly=true)
+ public List<Section> previewSections(AccountPrincipal actor,String source) {
+  access.manager(actor);return validated(actor,source,false,false);
+ }
+ @Transactional
+ public long save(AccountPrincipal principal,Long id,Long revision,String title,String slug,String sectionsJson,String action) {
+  return saveInternal(principal,id,revision,title,slug,sectionsJson,action,SaveIntent.LEGACY,false);
+ }
+ @Transactional
+ public long save(AccountPrincipal principal,Long id,Long revision,String title,String slug,String sectionsJson,String action,SaveIntent intent) {
+  return saveInternal(principal,id,revision,title,slug,sectionsJson,action,intent,false);
+ }
+ /** Complete history snapshots intentionally replace fields; ordinary client omission guards remain in effect. */
+ @Transactional
+ public void restoreDraft(AccountPrincipal principal,long id,long revision,String title,String sectionsJson) {
+  saveInternal(principal,id,revision,title,required(id).slug(),sectionsJson,"save",SaveIntent.LEGACY,true);
+ }
+ private long saveInternal(AccountPrincipal principal,Long id,Long revision,String title,String slug,String sectionsJson,String action,SaveIntent intent,boolean restoring) {
+  store.lock();var actor=access.manager(principal);
+  if(!Set.of("save","publish").contains(action)) throw new BusinessException("저장 방식을 확인하세요.");
+  var existing=id==null?null:required(id);
+  if(existing==null) access.structure(principal);
+  if(existing!=null && revision==null) throw new BusinessException("저장 버전을 확인할 수 없습니다. 다시 열어 주세요.");
+  if(existing!=null) CmsRules.revision(existing.revision(),revision);
+  String name=InputRules.text(title,200,"페이지 제목");
+  String path=(slug==null || slug.isBlank()) ? (existing==null ? "page-"+UUID.randomUUID().toString().replace("-","") : existing.slug()) : InputRules.text(slug,100,"페이지 주소").toLowerCase(Locale.ROOT);
+  if(existing!=null && !existing.slug().equals(path)) access.structure(principal);
+  if(!path.matches("[a-z0-9]+(?:-[a-z0-9]+)*")) throw new BusinessException("페이지 주소는 영문 소문자·숫자·하이픈으로 입력하세요.");
+  var blocks=validated(principal,sectionsJson,action.equals("publish"),existing==null);
+  var previous=existing==null?List.<Section>of():sections(existing.sectionsJson());
+  for(var block:blocks) {
+   var old=previous.stream().filter(s->s.id().equals(block.id())).findFirst().orElse(null);
+   if(!restoring && old!=null && old.query()!=null && "POSTS".equals(block.type()) && block.sourceMode()==null)
+    throw new BusinessException("콘텐츠 연결 조건이 누락되었습니다. 페이지를 다시 열거나 React 관리자에서 편집하세요.");
+  }
+  for(var block:blocks) {
+   var old=previous.stream().filter(s->s.id().equals(block.id())).findFirst().orElse(null);
+   if(!restoring && old!=null && old.manual()!=null && "POSTS".equals(block.type()) && block.manual()==null)
+    throw new BusinessException("직접 선택 목록이 누락되었습니다. 다시 열어 주세요. 비우려면 선택 항목을 직접 해제하세요.");
+  }
+  identities.validate(id,previous,blocks);
+  if(existing!=null && action.equals("save") && intent==SaveIntent.MANUAL_DRAFT && existing.title().equals(name) && existing.slug().equals(path) && previous.equals(blocks)){
+   history.capture(actor,VersionKind.PAGE,id,"MANUAL_DRAFT",null,null,false);return id;
+  }
+  if(action.equals("publish") && blocks.stream().noneMatch(Section::visible)) throw new BusinessException("발행하려면 표시할 섹션을 하나 이상 추가하세요.");
+  try {
+   String document=json.writeValueAsString(blocks);
+   var values=values("id",id,"title",name,"slug",path,"sectionsJson",document,"authorId",actor.id());
+   if(id==null) id=store.create("createPage",values); else store.change("editPage",values);
+   identities.synchronize(id,previous,blocks);
+   attach(id,blocks,false);
+   if(action.equals("publish")) {
+    store.change("clearPagePublication",id);store.change("publishPage",id);
+    attach(id,blocks,true); store.change("pageVisibility",values("id",id,"status","PUBLISHED"));
+   }
+   audit.record(actor,action.equals("publish")?"페이지 발행":"페이지 임시저장","페이지 #"+id,name);
+   if(action.equals("publish"))history.capture(actor,VersionKind.PAGE,id,"PUBLISH",null,null,true);
+   else if(intent==SaveIntent.MANUAL_DRAFT)history.capture(actor,VersionKind.PAGE,id,"MANUAL_DRAFT",null,null,false);
+   return id;
+  } catch(DuplicateKeyException error) {throw new BusinessException("이미 사용 중인 페이지 주소입니다. 다른 주소를 입력하세요.");}
+    catch(com.fasterxml.jackson.core.JsonProcessingException error) {throw new BusinessException("섹션을 저장할 수 없습니다.");}
+ }
+ private void attach(long id,List<Section> blocks,boolean published) {
+  store.change("clearPageMedia",values("pageId",id,"published",published));
+  for(long image:blocks.stream().filter(s->!published||s.visible()).flatMap(s->{ var ids=new ArrayList<Long>(rich.mediaIds(s.bodyDoc())); if(s.imageId()!=null)ids.add(s.imageId()); return ids.stream(); }).distinct().toList())
+   store.change("attachPageMedia",values("pageId",id,"mediaId",image,"published",published));
+ }
+ @Transactional
+ public Page saveDocument(AccountPrincipal actor,Long id,Long revision,String title,String slug,String sectionsJson,String action) {
+  return required(save(actor,id,revision,title,slug,sectionsJson,action));
+ }
+ @Transactional
+ public Page saveDocument(AccountPrincipal actor,Long id,Long revision,String title,String slug,String sectionsJson,String action,SaveIntent intent) {
+  return required(save(actor,id,revision,title,slug,sectionsJson,action,intent));
+ }
+ @Transactional
+ public void unpublish(AccountPrincipal principal,long id,Long revision) {
+  store.lock();var actor=access.manager(principal);var page=required(id);CmsRules.revision(page.revision(),revision);
+  store.change("withdrawPage",id);
+  audit.record(actor,"페이지 비공개","페이지 #"+id,page.title());
+ }
+ @Transactional
+ public void delete(AccountPrincipal principal,long id,Long revision) {
+  access.permanentDelete(principal);
+  store.lock();var actor=access.manager(principal);var page=required(id);CmsRules.revision(page.revision(),revision);
+  if(store.<Long>one("pageUsage",id)>0) throw new BusinessException("메뉴나 홈페이지 첫 화면에서 사용 중입니다. 연결을 해제한 후 삭제하세요.");
+  store.change("deletePage",id);audit.record(actor,"페이지 삭제","페이지 #"+id,page.title());
+ }
+ @Transactional(readOnly=true)
+ public PublishedPage publication(AccountPrincipal actor,long id) {
+  get(actor,id);PublishedPage snapshot=store.one("anyPagePublication",id);
+  if(snapshot==null)throw new ResponseStatusException(HttpStatus.NOT_FOUND,"발행본이 없습니다.");
+  return snapshot;
+ }
+ public List<SectionView> views(String document) {
+  return sections(document).stream().filter(Section::visible).map(s->{var result=postQueries.find(s);return new SectionView(s,result.items(),result.total());}).toList();
+ }
+}
+

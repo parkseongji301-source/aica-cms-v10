@@ -3,6 +3,10 @@ spring:
     name: aica-backoffice
   profiles:
     default: dev
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   thymeleaf:
     cache: true
 server:
@@ -19,6 +23,11 @@ server:
     include-stacktrace: never
     include-binding-errors: never
 backoffice:
+  versions:
+    post-draft-limit: ${BACKOFFICE_POST_DRAFT_VERSIONS:20}
+    page-draft-limit: ${BACKOFFICE_PAGE_DRAFT_VERSIONS:20}
+    template-limit: ${BACKOFFICE_TEMPLATE_VERSIONS:20}
+  time-zone: ${BACKOFFICE_TIME_ZONE:Asia/Seoul}
   bootstrap:
     enabled: ${BACKOFFICE_BOOTSTRAP_ENABLED:false}
     email: ${BACKOFFICE_BOOTSTRAP_EMAIL:}

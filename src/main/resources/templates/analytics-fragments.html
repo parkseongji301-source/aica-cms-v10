@@ -1,0 +1,16 @@
+<!doctype html><html lang="ko" xmlns:th="http://www.thymeleaf.org"><body>
+<div th:fragment="chart" class="traffic-chart">
+  <div class="chart-meta"><span><i class="legend-dot"></i>방문자</span><span th:text="${#temporals.format(traffic.start, 'MM.dd')} + ' – ' + ${#temporals.format(traffic.end, 'MM.dd')}"></span></div>
+  <svg class="line-chart" viewBox="0 0 660 200" role="img" aria-label="예시 데이터: 기간별 방문자 추이">
+    <g class="chart-grid"><path d="M30 36H630M30 78H630M30 120H630M30 162H630"/></g>
+    <polygon class="chart-area" th:attr="points=${traffic.areaPoints()}"></polygon>
+    <polyline class="chart-line" th:attr="points=${traffic.chartPoints()}"></polyline>
+    <g th:each="day, state : ${traffic.days}">
+      <circle class="chart-point" r="4" th:attr="cx=${30 + state.index * 600 / (days - 1)},cy=${162 - day.visitors * 126 / traffic.chartMax()}"><title th:text="${day.day} + ': ' + ${day.visitors} + '명 (예시)'"></title></circle>
+      <text class="chart-label" text-anchor="middle" th:if="${days == 7 || state.index % 5 == 0 || state.last}" th:attr="x=${30 + state.index * 600 / (days - 1)},y=190" th:text="${#temporals.format(day.day, 'MM.dd')}"></text>
+    </g>
+  </svg>
+  <details class="chart-data"><summary>일별 수치 보기</summary><div class="table-wrap"><table><thead><tr><th>날짜</th><th>방문자 (예시)</th><th>조회수 (예시)</th></tr></thead><tbody><tr th:each="day : ${traffic.days}"><td th:text="${day.day}"></td><td th:text="${day.visitors}"></td><td th:text="${day.views}"></td></tr></tbody></table></div></details>
+</div>
+<div th:fragment="sources" class="source-list"><div class="source-row" th:each="source, state : ${traffic.sources}"><div class="source-label"><span><i class="legend-dot" th:classappend="'source-' + ${state.index}"></i><span th:text="${source.label}"></span></span><strong th:text="${#numbers.formatDecimal(source.views * 100.0 / traffic.views, 1, 0)} + '%'"></strong></div><progress th:value="${source.views}" th:max="${traffic.views}" th:class="'source-' + ${state.index}" th:attr="aria-label=${source.label} + ' 유입 비율 (예시)'"></progress></div><p class="source-footnote">페이지 조회 기준 · 예시 데이터</p></div>
+</body></html>

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AccountService accounts;
     public AuthController(AccountService accounts) { this.accounts = accounts; }
-    @GetMapping("/") public String home() { return "redirect:/admin/posts"; }
+    @GetMapping("/") public String home() { return "redirect:/admin"; }
     @GetMapping("/login") public String login() { return "auth/login"; }
     @GetMapping("/account/password") public String password() { return "auth/password"; }
 

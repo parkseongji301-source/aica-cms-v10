@@ -1,0 +1,6 @@
+/* Developer-registered HERO centered variation; shared by React and legacy previews. */
+.preview-section.type-hero.variation-centered{padding:36px 24px;text-align:center;background:#edf3ff;border-top:3px solid #416cf5;border-radius:8px}
+.preview-section.type-hero.variation-centered>h2{max-width:30rem;margin-left:auto;margin-right:auto;line-height:1.4}
+.preview-section.type-hero.variation-centered>.rich-content,.preview-section.type-hero.variation-centered>[data-body]{max-width:30rem;margin-left:auto;margin-right:auto;line-height:1.8}
+.preview-section.type-hero.variation-centered>.preview-button,.preview-section.type-hero.variation-centered>.preview-cta{margin-top:16px}
+@media(max-width:600px){.preview-section.type-hero.variation-centered{padding:26px 16px}}

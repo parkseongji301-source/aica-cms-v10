@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Cms">
+ <select id="lock" resultType="int">SELECT id FROM cms_guard WHERE id=1 FOR UPDATE</select>
+ <insert id="audit">INSERT INTO activity_log(actor_id,actor_name,action,target,detail) VALUES(#{actorId},#{actorName},#{action},#{target},#{detail})</insert>
+ <select id="activities" resultType="egovframework.backoffice.mvp.cms.CmsModels$Activity">
+ SELECT * FROM activity_log <where><if test="drafts != null and !drafts">action NOT IN ('콘텐츠 임시저장','페이지 임시저장')</if><if test="search != null">AND (actor_name LIKE #{search} ESCAPE '!' OR action LIKE #{search} ESCAPE '!' OR target LIKE #{search} ESCAPE '!' OR detail LIKE #{search} ESCAPE '!')</if></where>
+ ORDER BY id DESC LIMIT 30 OFFSET #{offset}
+ </select>
+ <select id="activityCount" resultType="long">SELECT COUNT(*) FROM activity_log <where><if test="drafts != null and !drafts">action NOT IN ('콘텐츠 임시저장','페이지 임시저장')</if><if test="search != null">AND (actor_name LIKE #{search} ESCAPE '!' OR action LIKE #{search} ESCAPE '!' OR target LIKE #{search} ESCAPE '!' OR detail LIKE #{search} ESCAPE '!')</if></where></select>
+ <select id="categories" resultType="egovframework.backoffice.mvp.cms.CmsModels$Category">SELECT * FROM categories ORDER BY sort_order,id</select>
+ <select id="category" resultType="egovframework.backoffice.mvp.cms.CmsModels$Category">SELECT * FROM categories WHERE id=#{value}</select>
+ <insert id="createCategory" useGeneratedKeys="true" keyProperty="id">INSERT INTO categories(name,sort_order) VALUES(#{name},(SELECT COALESCE(MAX(sort_order),0)+1 FROM categories))</insert>
+ <update id="editCategory">UPDATE categories SET name=#{name} WHERE id=#{id}</update>
+ <delete id="deleteCategory">DELETE FROM categories WHERE id=#{value}</delete>
+ <select id="categoryUsage" resultType="long">
+ SELECT (SELECT COUNT(*) FROM posts WHERE category_id=#{value}) +
+ (SELECT COUNT(*) FROM post_publications WHERE category_id=#{value}) +
+ (SELECT COUNT(*) FROM site_menus WHERE kind='CATEGORY' AND target_id=#{value})
+ </select>
+ <sql id="mediaColumns">m.id,m.name,m.alt,m.mime,m.width,m.height,m.byte_size,m.owner_id,u.display_name AS owner_name,m.created_at</sql>
+ <select id="media" resultType="egovframework.backoffice.mvp.cms.CmsModels$Media">
+ SELECT <include refid="mediaColumns"/> FROM media m JOIN users u ON u.id=m.owner_id WHERE m.id=#{value}
+ </select>
+ <select id="mediaList" resultType="egovframework.backoffice.mvp.cms.CmsModels$Media">
+ SELECT <include refid="mediaColumns"/> FROM media m JOIN users u ON u.id=m.owner_id
+ <where><if test="ownerId != null">m.owner_id=#{ownerId}</if><if test="search != null">AND (LOWER(m.name) LIKE #{search} ESCAPE '!' OR LOWER(m.alt) LIKE #{search} ESCAPE '!')</if></where>
+ ORDER BY m.id DESC
+ </select>
+ <select id="mediaFile" resultType="egovframework.backoffice.mvp.cms.CmsModels$MediaFile">SELECT mime,data FROM media WHERE id=#{value}</select>
+ <insert id="createMedia" useGeneratedKeys="true" keyProperty="id">
+ INSERT INTO media(name,alt,mime,width,height,byte_size,data,owner_id) VALUES(#{name},#{alt},#{mime},#{width},#{height},#{byteSize},#{data},#{ownerId})
+ </insert>
+ <update id="editMedia">UPDATE media SET name=#{name},alt=#{alt} WHERE id=#{id}</update>
+ <delete id="deleteMedia">DELETE FROM media WHERE id=#{value}</delete>
+ <select id="mediaUsage" resultType="long">
+ SELECT (SELECT COUNT(*) FROM post_media WHERE media_id=#{value})+
+ (SELECT COUNT(*) FROM post_publication_media WHERE media_id=#{value})+
+ (SELECT COUNT(*) FROM page_media WHERE media_id=#{value})+
+ (SELECT COUNT(*) FROM site_settings WHERE setting_key='logoId' AND setting_value=CAST(#{value} AS VARCHAR))
+ </select>
+ <select id="mediaPublic" resultType="long">
+ SELECT (SELECT COUNT(*) FROM post_publication_media pm JOIN posts p ON p.id=pm.post_id WHERE pm.media_id=#{value} AND p.deleted_at IS NULL AND p.status='PUBLISHED')+
+ (SELECT COUNT(*) FROM page_media pm JOIN site_pages p ON p.id=pm.page_id WHERE pm.media_id=#{value} AND pm.published=TRUE AND p.status='PUBLISHED')+
+ (SELECT COUNT(*) FROM site_settings WHERE setting_key='logoId' AND setting_value=CAST(#{value} AS VARCHAR))
+ </select>
+ <select id="postMedia" resultType="egovframework.backoffice.mvp.cms.CmsModels$Media">
+ SELECT <include refid="mediaColumns"/> FROM media m JOIN users u ON u.id=m.owner_id JOIN post_media pm ON pm.media_id=m.id WHERE pm.post_id=#{value} ORDER BY pm.sort_order
+ </select>
+ <select id="publishedPostMedia" resultType="egovframework.backoffice.mvp.cms.CmsModels$Media">
+ SELECT <include refid="mediaColumns"/> FROM media m JOIN users u ON u.id=m.owner_id JOIN post_publication_media pm ON pm.media_id=m.id WHERE pm.post_id=#{value} ORDER BY pm.sort_order
+ </select>
+ <delete id="clearPostMedia">DELETE FROM post_media WHERE post_id=#{value}</delete>
+ <insert id="attachPostMedia">INSERT INTO post_media(post_id,media_id,sort_order) VALUES(#{postId},#{mediaId},#{sortOrder})</insert>
+ <update id="postRichContent">UPDATE posts SET rich_content=#{richContent} WHERE id=#{id}</update>
+ <update id="postMetadata">UPDATE posts SET category_id=#{categoryId} WHERE id=#{id}</update>
+ <update id="postVisibility">UPDATE posts SET status=#{status} WHERE id=#{id}</update>
+ <delete id="clearPostPublicationMedia">DELETE FROM post_publication_media WHERE post_id=#{value}</delete>
+ <delete id="clearPostPublication">DELETE FROM post_publications WHERE post_id=#{value}</delete>
+ <insert id="publishPost">INSERT INTO post_publications(post_id,title,content,category_id,revision,rich_content) SELECT id,title,content,category_id,revision,rich_content FROM posts WHERE id=#{value}</insert>
+ <insert id="publishPostMedia">INSERT INTO post_publication_media(post_id,media_id,sort_order) SELECT post_id,media_id,sort_order FROM post_media WHERE post_id=#{value}</insert>
+ <select id="publishedRevision" resultType="long">SELECT revision FROM post_publications WHERE post_id=#{value}</select>
+ <sql id="publicPostColumns">p.id,pp.title,pp.content,pp.category_id,c.name AS category_name,pp.published_at, pp.rich_content</sql>
+ <select id="publicPost" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublicPost">
+ SELECT <include refid="publicPostColumns"/> FROM posts p JOIN post_publications pp ON pp.post_id=p.id LEFT JOIN categories c ON c.id=pp.category_id
+ WHERE p.id=#{value} AND p.status='PUBLISHED' AND p.deleted_at IS NULL
+ </select>
+ <select id="publicPosts" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublicPost">
+ SELECT <include refid="publicPostColumns"/> FROM posts p JOIN post_publications pp ON pp.post_id=p.id LEFT JOIN categories c ON c.id=pp.category_id
+ WHERE p.status='PUBLISHED' AND p.deleted_at IS NULL <if test="categoryId != null">AND pp.category_id=#{categoryId}</if>
+ ORDER BY pp.published_at DESC,p.id DESC LIMIT #{limit} OFFSET #{offset}
+ </select>
+ <select id="publicPostCount" resultType="long">
+ SELECT COUNT(*) FROM posts p JOIN post_publications pp ON pp.post_id=p.id WHERE p.status='PUBLISHED' AND p.deleted_at IS NULL <if test="categoryId != null">AND pp.category_id=#{categoryId}</if>
+ </select>
+ <sql id="pageColumns">p.id,p.title,p.slug,p.sections_json,p.status,p.revision,pp.revision AS published_revision,p.author_id,p.updated_at</sql>
+ <select id="pages" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id ORDER BY p.id DESC</select>
+ <select id="page" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id WHERE p.id=#{value}</select>
+ <insert id="createPage" useGeneratedKeys="true" keyProperty="id">INSERT INTO site_pages(title,slug,sections_json,author_id) VALUES(#{title},#{slug},#{sectionsJson},#{authorId})</insert>
+ <update id="editPage">UPDATE site_pages SET title=#{title},slug=#{slug},sections_json=#{sectionsJson},revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
+ <update id="pageVisibility">UPDATE site_pages SET status=#{status},updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
+ <delete id="deletePage">DELETE FROM site_pages WHERE id=#{value}</delete>
+ <delete id="clearPagePublication">DELETE FROM page_publications WHERE page_id=#{value}</delete>
+ <insert id="publishPage">INSERT INTO page_publications(page_id,title,slug,sections_json,revision) SELECT id,title,slug,sections_json,revision FROM site_pages WHERE id=#{value}</insert>
+ <delete id="clearPageMedia">DELETE FROM page_media WHERE page_id=#{pageId} AND published=#{published}</delete>
+ <insert id="attachPageMedia">INSERT INTO page_media(page_id,media_id,published) VALUES(#{pageId},#{mediaId},#{published})</insert>
+ <select id="publicPage" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublishedPage">
+ SELECT pp.* FROM page_publications pp JOIN site_pages p ON p.id=pp.page_id WHERE pp.slug=#{value} AND p.status='PUBLISHED'
+ </select>
+ <select id="publicPageById" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublishedPage">
+ SELECT pp.* FROM page_publications pp JOIN site_pages p ON p.id=pp.page_id WHERE pp.page_id=#{value} AND p.status='PUBLISHED'
+ </select>
+ <select id="pageUsage" resultType="long">
+ SELECT (SELECT COUNT(*) FROM site_menus WHERE kind='PAGE' AND target_id=#{value})+
+ (SELECT COUNT(*) FROM site_settings WHERE setting_key='homePageId' AND setting_value=CAST(#{value} AS VARCHAR))
+ </select>
+ <sql id="menuView">SELECT m.id,CASE WHEN m.kind='CATEGORY' THEN c.name WHEN m.kind='PAGE' THEN p.title ELSE m.label END AS label,m.kind,m.target_id,m.url,m.sort_order,m.visible,m.parent_id FROM site_menus m LEFT JOIN categories c ON m.kind='CATEGORY' AND c.id=m.target_id LEFT JOIN site_pages p ON m.kind='PAGE' AND p.id=m.target_id</sql>
+ <select id="menus" resultType="egovframework.backoffice.mvp.cms.CmsModels$Menu"><include refid="menuView"/> ORDER BY m.sort_order,m.id</select>
+ <select id="menu" resultType="egovframework.backoffice.mvp.cms.CmsModels$Menu"><include refid="menuView"/> WHERE m.id=#{value}</select>
+ <insert id="createMenu" useGeneratedKeys="true" keyProperty="id">INSERT INTO site_menus(label,kind,target_id,url,visible,parent_id,sort_order) VALUES(#{label},#{kind},#{targetId},#{url},#{visible},#{parentId},(SELECT COALESCE(MAX(sort_order),0)+1 FROM site_menus))</insert>
+ <update id="editMenu">UPDATE site_menus SET label=#{label},kind=#{kind},target_id=#{targetId},url=#{url},visible=#{visible},parent_id=#{parentId} WHERE id=#{id}</update>
+ <delete id="deleteMenu">DELETE FROM site_menus WHERE id=#{value}</delete>
+ <select id="links" resultType="egovframework.backoffice.mvp.cms.CmsModels$Link">SELECT * FROM site_links ORDER BY sort_order,id</select>
+ <select id="link" resultType="egovframework.backoffice.mvp.cms.CmsModels$Link">SELECT * FROM site_links WHERE id=#{value}</select>
+ <insert id="createLink" useGeneratedKeys="true" keyProperty="id">INSERT INTO site_links(label,url,sort_order) VALUES(#{label},#{url},(SELECT COALESCE(MAX(sort_order),0)+1 FROM site_links))</insert>
+ <update id="editLink">UPDATE site_links SET label=#{label},url=#{url} WHERE id=#{id}</update>
+ <delete id="deleteLink">DELETE FROM site_links WHERE id=#{value}</delete>
+ <select id="settings" resultType="egovframework.backoffice.mvp.cms.CmsModels$Setting">SELECT * FROM site_settings</select>
+ <update id="setting">UPDATE site_settings SET setting_value=#{value} WHERE setting_key=#{key}</update>
+ <update id="orderCategory">UPDATE categories SET sort_order=#{position} WHERE id=#{id}</update>
+ <update id="orderMenu">UPDATE site_menus SET sort_order=#{position} WHERE id=#{id}</update>
+ <update id="orderLink">UPDATE site_links SET sort_order=#{position} WHERE id=#{id}</update>
+ <select id="anyPagePublication" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublishedPage">SELECT * FROM page_publications WHERE page_id=#{value}</select>
+ <select id="categoryPostUses" resultType="egovframework.backoffice.mvp.cms.UsageService$Usage">
+ SELECT DISTINCT '글 · ' || p.title AS label, '/admin/posts/' || p.id || '/edit' AS href FROM posts p LEFT JOIN post_publications pp ON pp.post_id=p.id
+ WHERE p.deleted_at IS NULL AND (p.category_id=#{id} OR pp.category_id=#{id})
+ </select>
+ <select id="mediaPostUses" resultType="egovframework.backoffice.mvp.cms.UsageService$Usage">
+ SELECT DISTINCT '글 · ' || p.title AS label, '/admin/posts/' || p.id || '/edit' AS href FROM posts p
+ WHERE p.deleted_at IS NULL <if test="owner != null">AND p.author_id=#{owner}</if> AND (p.id IN (SELECT post_id FROM post_media WHERE media_id=#{id}) OR p.id IN (SELECT post_id FROM post_publication_media WHERE media_id=#{id}))
+ </select>
+ <select id="mediaPageUses" resultType="egovframework.backoffice.mvp.cms.UsageService$Usage">
+ SELECT DISTINCT '페이지 · ' || p.title AS label, '/admin/pages/' || p.id || '/edit' AS href FROM site_pages p JOIN page_media pm ON pm.page_id=p.id WHERE pm.media_id=#{value}
+ </select>
+</mapper>
+

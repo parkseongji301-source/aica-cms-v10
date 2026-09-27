@@ -1,18 +1,15 @@
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments :: head('로그인')}"></head>
-<body><main class="narrow">
-  <h1>백오피스 로그인</h1>
-  <p class="muted">관리자가 발급한 계정으로 로그인하세요.</p>
-  <p class="error" role="alert" th:if="${param.error}">이메일 또는 비밀번호를 확인하세요. 비활성 계정은 로그인할 수 없습니다.</p>
-  <p class="notice" th:if="${param.logout}">로그아웃했습니다.</p>
-  <p class="notice" th:if="${param.changed}">비밀번호를 변경했습니다. 새 비밀번호로 로그인하세요.</p>
-  <p class="notice" th:if="${param.expired}">계정 정보가 변경되어 로그아웃되었습니다. 다시 로그인하세요.</p>
-  <form th:action="@{/login}" method="post">
-    <label for="username">이메일</label>
-    <input id="username" name="username" type="email" required maxlength="254" autocomplete="username">
-    <label for="password">비밀번호</label>
-    <input id="password" name="password" type="password" required autocomplete="current-password">
-    <button type="submit">로그인</button>
-  </form>
-</main></body></html>
+<body class="login-layout">
+  <section class="login-brand-panel"><a class="brand" th:href="@{/login}"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span class="brand-word">AICA<small>인공지능 사관학교</small></span></a><div class="login-message"><p class="eyebrow">CONNECT THE FUTURE</p><h2>가능성을 연결하고,<br>AI의 내일을 만듭니다.</h2><p>새로운 배움과 도전이 시작되는 곳.<br>인공지능 사관학교의 이야기를 함께 만들어 갑니다.</p></div><div class="login-orbit" aria-hidden="true"></div><small>ARTIFICIAL INTELLIGENCE CAMPUS</small></section>
+  <main class="login-main"><div class="login-box"><p class="eyebrow">ADMINISTRATION</p><h1>관리센터 로그인</h1><p class="page-description">관리자가 발급한 계정으로 로그인하세요.</p>
+    <p class="error" role="alert" th:if="${param.error}">이메일 또는 비밀번호를 확인하세요. 비활성 계정은 로그인할 수 없습니다.</p>
+    <p class="notice" role="status" th:if="${param.logout}">로그아웃했습니다.</p>
+    <p class="notice" role="status" th:if="${param.changed}">비밀번호를 변경했습니다. 새 비밀번호로 로그인하세요.</p>
+    <p class="notice" role="status" th:if="${param.expired}">계정 정보가 변경되어 로그아웃되었습니다. 다시 로그인하세요.</p>
+    <form th:action="@{/login}" method="post"><label for="username" th:text="${previewMode ? '아이디' : '이메일'}">이메일</label><input id="username" name="username" th:type="${previewMode ? 'text' : 'email'}" required maxlength="254" autocomplete="username" th:placeholder="${previewMode ? '아이디를 입력하세요' : '이메일을 입력하세요'}"><label for="password">비밀번호</label><input id="password" name="password" type="password" required autocomplete="current-password" placeholder="비밀번호를 입력하세요"><button type="submit">로그인</button></form>
+    <p class="notice" th:if="${previewMode}">개발용 계정: 아이디 1234 / 비밀번호 1234</p>
+    <p class="login-footnote">계정 발급 및 접속 관련 문의는<br>사관학교 운영 담당자에게 문의해 주세요.</p>
+  </div></main>
+</body></html>

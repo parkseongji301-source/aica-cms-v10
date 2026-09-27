@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PageBlockMapper">
+ <select id="find" resultType="egovframework.backoffice.mvp.cms.PageBlockService$Identity">SELECT block_id,page_id,retired FROM page_block_identities WHERE block_id=#{value}</select>
+ <insert id="register">INSERT INTO page_block_identities(block_id,page_id,retired) VALUES(#{blockId},#{pageId},#{retired})</insert>
+ <update id="retire">UPDATE page_block_identities SET retired=TRUE WHERE block_id=#{value}</update>
+</mapper>

@@ -9,3 +9,14 @@
 .env
 .env.*
 !.env.example
+
+/frontend/node_modules/
+/src/main/resources/static/next-app/
+
+# Local database files and Python execution caches are not source artifacts.
+*.mv.db
+*.h2.db
+*.trace.db
+*.lock.db
+__pycache__/
+*.py[cod]

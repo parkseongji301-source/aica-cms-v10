@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PageTemplates">
+ <sql id="columns">t.id,t.name,t.description,t.active,t.blocks_json,t.revision,t.created_by,t.updated_by,t.created_at,t.updated_at,c.display_name AS creator_name,u.display_name AS updater_name</sql>
+ <sql id="from">FROM page_templates t JOIN users c ON c.id=t.created_by JOIN users u ON u.id=t.updated_by</sql>
+ <select id="list" resultType="egovframework.backoffice.mvp.cms.PageTemplateService$Stored">SELECT <include refid="columns"/> <include refid="from"/> ORDER BY t.updated_at DESC,t.id DESC</select>
+ <select id="get" resultType="egovframework.backoffice.mvp.cms.PageTemplateService$Stored">SELECT <include refid="columns"/> <include refid="from"/> WHERE t.id=#{id}</select>
+ <insert id="create" useGeneratedKeys="true" keyProperty="id">INSERT INTO page_templates(name,description,active,blocks_json,created_by,updated_by) VALUES(#{name},#{description},#{active},#{blocksJson},#{actorId},#{actorId})</insert>
+ <update id="edit">UPDATE page_templates SET name=#{name},description=#{description},active=#{active},blocks_json=#{blocksJson},updated_by=#{actorId},updated_at=CURRENT_TIMESTAMP,revision=revision+1 WHERE id=#{id}</update>
+</mapper>

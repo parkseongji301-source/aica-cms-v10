@@ -1,0 +1,56 @@
+package egovframework.backoffice.mvp.common;
+
+import egovframework.backoffice.mvp.cms.*;
+import egovframework.backoffice.mvp.cms.CmsModels.Page;
+import egovframework.backoffice.mvp.security.*;
+import jakarta.servlet.http.*;
+import java.util.*;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.servlet.*;
+import org.springframework.web.servlet.config.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
+
+@Configuration
+public class NavigationConfiguration implements WebMvcConfigurer {
+    private final NavigationService navigation;private final SiteService site;private final AccessPolicy policy;
+    public NavigationConfiguration(NavigationService navigation,SiteService site,AccessPolicy policy) {this.navigation=navigation;this.site=site;this.policy=policy;}
+    @Override public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new HandlerInterceptor() {
+            @Override public void postHandle(HttpServletRequest request,HttpServletResponse response,Object handler,ModelAndView view) {
+                if(view==null || view.getViewName()==null || view.getViewName().startsWith("redirect:") || !request.getMethod().equals("GET") && view.getModel().isEmpty())return;
+                var auth=SecurityContextHolder.getContext().getAuthentication();
+                if(auth==null || !(auth.getPrincipal() instanceof AccountPrincipal actor))return;
+                var model=view.getModel();
+                boolean allowed=policy.canManageAllPosts(actor.getRole())&&!actor.isPasswordChangeRequired();
+                model.put("canBrowseStructure",allowed);
+                model.put("navMode","structure".equals(request.getParameter("nav"))&&allowed?"structure":"manage");
+                model.put("treeSelection","");
+                if(!allowed)return;
+                var tree=navigation.tree(actor);model.put("siteTree",tree);
+                Long pageId=number(model.get("pageId"));Long category=number(model.get("categoryId"));
+                Long origin=number(request.getParameter("originPage"));
+                if(origin==null && request.getParameter("from")!=null) {
+                    try {origin=number(UriComponentsBuilder.fromUriString(ListLocation.posts(request.getParameter("from"))).build().getQueryParams().getFirst("originPage"));}catch(IllegalArgumentException ignored){}
+                }
+                Page context=null;
+                for(Page page:tree.pages()) {
+                    if(Objects.equals(page.id(),pageId))context=page;
+                    else if(Objects.equals(page.id(),origin) && request.getServletPath().startsWith("/admin/posts") && navigation.contents(page,site.categories()).stream().anyMatch(c->c.categoryId()==null||Objects.equals(c.categoryId(),category)))context=page;
+                }
+                if(context!=null) {
+                    model.put("contextPage",context);model.put("contentLinks",navigation.contents(context,site.categories()));
+                    model.put("navOriginPage",context.id());
+                }
+                final Page current=context;final String path=request.getServletPath();
+                var matches=navigation.flatten(tree).stream().filter(n->{
+                    if(pageId!=null)return n.kind().equals("PAGE")&&Objects.equals(n.pageId(),pageId);
+                    if(path.startsWith("/admin/posts") && (model.containsKey("categoryId")||model.containsKey("postId")))return (n.kind().equals("CATEGORY")||n.kind().equals("CONTENT")) && Objects.equals(n.categoryId(),category) && (current==null?n.pageId()==null:Objects.equals(n.pageId(),current.id()));
+                    return path.equals("/admin/menus")&&Objects.equals(n.key(),"menu-"+request.getParameter("edit"));
+                }).toList();
+                if(!matches.isEmpty())model.put("treeSelection",matches.stream().filter(n->n.key().equals(request.getParameter("node"))).findFirst().orElse(matches.get(0)).key());
+            }
+        }).addPathPatterns("/admin/**","/admin","/account/password");
+    }
+    private static Long number(Object value) {try{return value==null?null:Long.valueOf(value.toString());}catch(NumberFormatException ignored){return null;}}
+}

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments :: head('임시 비밀번호 발급')}"></head>
-<body><header th:replace="~{fragments :: header}"></header><main class="narrow">
+<body class="admin-layout"><header th:replace="~{fragments :: header}"></header><main class="narrow" id="main-content">
   <h1>임시 비밀번호 발급</h1>
   <p>계정: <strong th:text="${credential.email}"></strong></p>
   <p>아래 비밀번호를 계정 사용자에게 전달하세요. 페이지를 다시 열면 표시되지 않습니다.</p>

@@ -1,40 +1,22 @@
-# AICA Backoffice MVP
+# AICA CMS V10
 
-세션 로그인, 관리자 계정 발급, 3개 초기 역할, 기본 게시물 CRUD가 연결된 백오피스입니다. 최종 IA·시안·운영 정책은 미확정이며 범용 CMS를 구현하지 않았습니다.
+콘텐츠·페이지·블록을 관리하는 Spring/React 백오피스와 발행본 전용 공개 API입니다. 원본 V10 전환은 완료됐으며 실제 공개 홈페이지는 아직 없습니다. 현재 기능/schema는 동결 상태입니다.
 
-Java 17 / Spring Boot 3.4.5 / Spring Framework 6.2.6 / Spring Security 6.4.5 / Tomcat 10.1.40 / MyBatis / Thymeleaf를 사용합니다. RTE 4.3.0은 Stage 0에서 검증한 서비스·데이터 접근 모듈만 사용합니다.
+## 문서 시작점
 
-## 실행
+**[5D 운영·사용·인수인계 문서 모음](docs/5D/README.md)**에서 담당 역할에 맞는 가이드를 선택하세요. 5D-1 운영 데이터/IA 후보와 5D-2의 11개 가이드를 한 폴더로 모았습니다.
 
-프로젝트 루트에서 실행합니다. 동료 환경에서는 JDK 17과 `JAVA_HOME`이 필요합니다. Maven은 Wrapper가 준비합니다.
+- 처음 사용하는 운영자: [사용자 가이드](docs/5D/5D-2/01_USER_GUIDE.md), [역할·권한](docs/5D/5D-2/02_ROLES_AND_PERMISSIONS.md)
+- 운영 담당자: [CMS 운영](docs/5D/5D-2/03_CMS_OPERATIONS.md), [운영 데이터·IA](docs/5D/5D-2/10_OPERATING_DATA_AND_IA.md)
+- 인수 개발자: [개발자 인수인계](docs/5D/5D-2/04_DEVELOPER_HANDOVER.md), [배포·실행](docs/5D/5D-2/07_DEPLOYMENT_AND_RUNTIME.md), [백업·복구](docs/5D/5D-2/08_BACKUP_AND_RECOVERY.md), [migration](docs/5D/5D-2/09_DATABASE_MIGRATIONS.md)
+- 납품 범위/최종 검수: [제한사항과 A/B 범위 결정](docs/5D/5D-2/11_LIMITATIONS_AND_ACCEPTANCE.md)
 
-```powershell
-.\scripts\mvn-local.ps1 -B -ntp -Pegov43-probe clean verify
-.\scripts\run-dev.ps1 -Bootstrap
-```
+현재 이 PC 접속: [React 관리자](http://127.0.0.1:8095/admin-next?view=manage). 로그인 자격증명은 별도로 인계합니다.
 
-초기 관리자 이메일과 비밀번호를 입력한 뒤 <http://127.0.0.1:8080/login>에 접속합니다. 첫 로그인 후 비밀번호를 변경하고 다시 로그인합니다. 이미 계정이 있는 DB에서는 초기화가 계정을 덮어쓰지 않습니다.
+## 실행 전에
 
-다음 실행부터는 `.\scripts\run-dev.ps1`만 사용합니다. 종료는 `Ctrl+C`입니다. 개발 DB는 `.local-data/`의 H2 파일이며 재시작 후 데이터가 유지됩니다. 운영 DB 선택을 확정한 것은 아닙니다.
+현재 원본 V10에는 승인된 `serve` 경로와 validate-only를 사용합니다. 파일 DB writer의 **AUTO_COMPACT_FILL_RATE=0은 필수**입니다. 과거 `run-local.ps1`은 V3 실행 경로이므로 원본 V10에 사용하지 마세요. 정확한 명령·경로·종료 절차는 배포·실행 가이드에 있습니다.
 
-## 초기 권한
+## 이전 단계 기록
 
-| 역할 | 계정 관리 | 게시물 관리 |
-| --- | --- | --- |
-| SUPER_ADMIN | 생성·목록·비활성화·초기화·별도 역할 변경 | 전체 |
-| ADMIN | 불가 | 전체 |
-| SUPPORTER | 불가 | 본인 |
-
-신규 계정은 ADMIN 또는 SUPPORTER만 선택합니다. SUPER_ADMIN 승격은 별도 역할 변경 절차를 사용합니다. 세부 권한은 고객 확정사항이 아닌 초기안입니다.
-
-## 문서
-
-- [실행 방법·테스트 결과·변경 파일·미확정 사항](docs/MVP_DELIVERY.md)
-- [처음 읽는 개발자를 위한 폴더·로그인·권한·저장 흐름 설명](docs/MVP_GUIDE.md)
-- [개발 범위와 정책 제안](read.md)
-- [보존된 Stage 0 검증 기록](docs/STAGE0_VERIFICATION.md)
-- [동료의 원본 설계](docs/reference/README.md), [최초 비교 문서](docs/reference/README_COMPARISON.md)
-
-전체 검증 명령은 Stage 0 7건과 MVP 7건, 총 14건을 실행합니다. Stage 0 기동 확인 화면은 `stage0` Spring 프로필에서만 사용합니다.
-
-`.tools`, `.cache`, `target`, `.local-data`, 실제 비밀값이 담긴 `.env`는 저장소에 포함하지 않습니다. 감사 로그·로그인 실패 잠금·콘텐츠 추가 필드·기존 시스템 통합·운영 배포는 후속 범위입니다.
+[5C-2 최종 전환 결과](docs/PHASE5C2_RETRY_RESULTS.md), [공개 API 상세 계약](docs/PUBLIC_API_V1.md), [Stage 0 검증](docs/STAGE0_VERIFICATION.md), [초기 설계 자료](docs/reference/README.md)는 보존합니다. 이전 단계 문서의 V3/사본 포트·옛 권한·초기 실행 절차는 당시 기록이며 현재 운영 기준이 아닙니다.

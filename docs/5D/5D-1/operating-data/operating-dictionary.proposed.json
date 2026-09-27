@@ -1,0 +1,291 @@
+{
+  "documentVersion": 1,
+  "status": "PROPOSED_NOT_APPROVED_NOT_APPLIED",
+  "executable": false,
+  "requiresSeparateApplicationApproval": true,
+  "targetSchemaVersion": 10,
+  "sourceObservedAt": "2026-09-27T23:49:46.227775+09:00",
+  "dataKind": "OPERATING_CANDIDATE_NOT_FIXTURE",
+  "contentTypes": {
+    "operation": "ASSERT_ONLY_NO_INSERT_OR_UPDATE",
+    "expected": [
+      {
+        "code": "GENERAL",
+        "name": "일반",
+        "active": true,
+        "sortOrder": 0
+      },
+      {
+        "code": "REVIEW",
+        "name": "후기",
+        "active": true,
+        "sortOrder": 1
+      },
+      {
+        "code": "RESTAURANT",
+        "name": "맛집",
+        "active": true,
+        "sortOrder": 2
+      },
+      {
+        "code": "INTERVIEW",
+        "name": "인터뷰",
+        "active": true,
+        "sortOrder": 3
+      },
+      {
+        "code": "FAQ",
+        "name": "FAQ",
+        "active": true,
+        "sortOrder": 4
+      }
+    ]
+  },
+  "cohorts": {
+    "table": "cohorts",
+    "columns": {
+      "code": "code",
+      "name": "name",
+      "sortOrder": "sort_order",
+      "active": "active"
+    },
+    "allowedContentTypeCodes": [
+      "GENERAL",
+      "REVIEW",
+      "RESTAURANT",
+      "INTERVIEW",
+      "FAQ"
+    ],
+    "typeRestrictionStorage": null,
+    "typeRestrictionNote": "V10 has no cohort-by-type restriction table; all five types can optionally select cohorts. FAQ/RESTAURANT have no mandatory cohort. This is current capability, not a new restriction.",
+    "records": [
+      {
+        "code": "COHORT_06",
+        "name": "6기",
+        "sortOrder": 6,
+        "active": true
+      },
+      {
+        "code": "COHORT_07",
+        "name": "7기",
+        "sortOrder": 7,
+        "active": true
+      }
+    ]
+  },
+  "topics": {
+    "table": "topics",
+    "columns": {
+      "code": "code",
+      "name": "name",
+      "description": "description",
+      "sortOrder": "sort_order",
+      "active": "active"
+    },
+    "records": [
+      {
+        "code": "REVIEW_LIFE",
+        "name": "생활",
+        "description": "후기 콘텐츠의 생활 경험",
+        "sortOrder": 0,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "REVIEW"
+        ]
+      },
+      {
+        "code": "REVIEW_CLASS",
+        "name": "수업",
+        "description": "후기 콘텐츠의 수업 경험",
+        "sortOrder": 1,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "REVIEW"
+        ]
+      },
+      {
+        "code": "REVIEW_PROJECT",
+        "name": "프로젝트",
+        "description": "후기 콘텐츠의 프로젝트 경험",
+        "sortOrder": 2,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "REVIEW"
+        ]
+      },
+      {
+        "code": "FAQ_PREPARATION",
+        "name": "준비사항",
+        "description": "FAQ 준비사항",
+        "sortOrder": 10,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "FAQ"
+        ]
+      },
+      {
+        "code": "FAQ_APPLICATION",
+        "name": "지원·선발",
+        "description": "FAQ 지원 및 선발",
+        "sortOrder": 11,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "FAQ"
+        ]
+      },
+      {
+        "code": "FAQ_CLASS",
+        "name": "수업",
+        "description": "FAQ 수업",
+        "sortOrder": 12,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "FAQ"
+        ]
+      },
+      {
+        "code": "FAQ_LIFE",
+        "name": "생활",
+        "description": "FAQ 생활 안내",
+        "sortOrder": 13,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "FAQ"
+        ]
+      },
+      {
+        "code": "FAQ_EMPLOYMENT",
+        "name": "취업",
+        "description": "FAQ 취업",
+        "sortOrder": 14,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "FAQ"
+        ]
+      },
+      {
+        "code": "FAQ_ALLOWANCE",
+        "name": "지원금",
+        "description": "FAQ 지원금",
+        "sortOrder": 15,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "FAQ"
+        ]
+      },
+      {
+        "code": "FAQ_PROJECT",
+        "name": "프로젝트",
+        "description": "FAQ 프로젝트",
+        "sortOrder": 16,
+        "active": true,
+        "allowedContentTypeCodes": [
+          "FAQ"
+        ]
+      }
+    ]
+  },
+  "allowedTopicLinks": {
+    "table": "content_type_topics",
+    "records": [
+      {
+        "typeCode": "REVIEW",
+        "topicCode": "REVIEW_LIFE"
+      },
+      {
+        "typeCode": "REVIEW",
+        "topicCode": "REVIEW_CLASS"
+      },
+      {
+        "typeCode": "REVIEW",
+        "topicCode": "REVIEW_PROJECT"
+      },
+      {
+        "typeCode": "FAQ",
+        "topicCode": "FAQ_PREPARATION"
+      },
+      {
+        "typeCode": "FAQ",
+        "topicCode": "FAQ_APPLICATION"
+      },
+      {
+        "typeCode": "FAQ",
+        "topicCode": "FAQ_CLASS"
+      },
+      {
+        "typeCode": "FAQ",
+        "topicCode": "FAQ_LIFE"
+      },
+      {
+        "typeCode": "FAQ",
+        "topicCode": "FAQ_EMPLOYMENT"
+      },
+      {
+        "typeCode": "FAQ",
+        "topicCode": "FAQ_ALLOWANCE"
+      },
+      {
+        "typeCode": "FAQ",
+        "topicCode": "FAQ_PROJECT"
+      }
+    ],
+    "resolveTopicId": "SELECT id FROM topics WHERE code = :topicCode, in the target environment",
+    "sameNameMerging": false
+  },
+  "applicationContract": {
+    "identity": "code, never display name or fixture numeric ID",
+    "missingCode": "insert without id; database allocates id",
+    "identicalExistingRecord": "no-op, including no UPDATE",
+    "conflictingExistingRecord": "STOP; do not rename, reactivate, reorder, overwrite, or delete automatically",
+    "missingAllowedLink": "insert type_code plus target-environment resolved topic_id",
+    "existingAllowedLink": "no-op",
+    "unexpectedAllowedLinksForCandidateTopics": "STOP; do not silently remove or accept",
+    "scopeExpectations": {
+      "REVIEW": [
+        "REVIEW_LIFE",
+        "REVIEW_CLASS",
+        "REVIEW_PROJECT"
+      ],
+      "FAQ": [
+        "FAQ_PREPARATION",
+        "FAQ_APPLICATION",
+        "FAQ_CLASS",
+        "FAQ_LIFE",
+        "FAQ_EMPLOYMENT",
+        "FAQ_ALLOWANCE",
+        "FAQ_PROJECT"
+      ]
+    },
+    "unexpectedAdditionalAllowedTopicsWithinScope": "STOP for review; no automatic unlink",
+    "allowedTypeNameChanges": "not part of this batch",
+    "transaction": "one transaction for all 22 intended rows; rollback on mismatch",
+    "newNumericIds": "never supplied by this document",
+    "deleteOrReclassifyExistingContent": false,
+    "approvalArtifact": "reviewed diff and separate approval, not this status flag"
+  },
+  "expectedChangesOnObservedEmptyDictionary": {
+    "cohortsInsert": 2,
+    "topicsInsert": 10,
+    "contentTypeTopicsInsert": 10,
+    "updates": 0,
+    "deletes": 0,
+    "postsChanges": 0,
+    "publicationChanges": 0,
+    "pageChanges": 0,
+    "menuChanges": 0,
+    "schemaChanges": 0
+  },
+  "notIncluded": [
+    "COHORT_03",
+    "COHORT_04",
+    "COHORT_05",
+    "combined cohort 3~5",
+    "COHORT_08 or later",
+    "2027 as a cohort",
+    "RESTAURANT topics",
+    "INTERVIEW topics/video discriminator",
+    "IA groups as topics",
+    "sample content",
+    "page or menu creation"
+  ]
+}

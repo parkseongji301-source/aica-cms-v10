@@ -1,13 +1,12 @@
 <!doctype html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head('게시물 상세')}"></head>
-<body><header th:replace="~{fragments :: header}"></header><main>
-  <h1 th:text="${post.title}"></h1>
-  <p class="meta">작성자 <span th:text="${post.authorName}"></span> · 등록 <span th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm')}"></span> · 수정 <span th:text="${#temporals.format(post.updatedAt, 'yyyy-MM-dd HH:mm')}"></span></p>
-  <div class="content" th:text="${post.content}"></div>
-  <div class="actions">
-    <a class="button" th:href="@{/admin/posts/{id}/edit(id=${post.id})}">게시물 수정</a>
-    <form th:action="@{/admin/posts/{id}/delete(id=${post.id})}" method="post"><button class="danger" type="submit">게시물 삭제</button></form>
-    <a th:href="@{/admin/posts}">목록으로</a>
-  </div>
-</main></body></html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments :: head('글 상세')}"></head>
+<body class="admin-layout"><div th:replace="~{fragments :: header}"></div><main class="workspace" id="main-content">
+<div class="page-heading"><div><h1>글 상세</h1></div></div>
+<div th:replace="~{fragments :: messages}"></div>
+<article class="panel article-panel"><div class="section-heading"><span class="status-pill" th:classappend="${post.status}" th:text="${post.status == 'PUBLISHED' ? '발행됨' : post.status == 'PRIVATE' ? '비공개' : '임시저장'}"></span><a class="text-link" th:if="${post.status == 'PUBLISHED'}" th:href="@{/admin/posts/{id}/publication(id=${post.id})}" target="_blank" rel="noopener">발행본 확인 ↗</a></div>
+<p class="notice" th:if="${pending}">아직 발행하지 않은 수정 내용이 있습니다. 아래는 최신 저장본입니다.</p>
+<h1 th:text="${post.title}"></h1><p class="meta"><span>작성자 <b th:text="${post.authorName}"></b></span><span>· 수정 <span th:text="${#temporals.format(post.updatedAt, 'yyyy.MM.dd HH:mm')}"></span></span></p>
+<div class="rich-content" th:utext="${@richText.html(post.richContent,post.content)}"></div><div class="article-images" th:if="${post.richContent == null}"><figure th:each="m : ${images}"><img th:if="${#strings.startsWith(m.mime,'image/')}" th:src="@{/admin/media/{id}/file(id=${m.id})}" th:alt="${m.alt}"><a th:unless="${#strings.startsWith(m.mime,'image/')}" th:href="@{/admin/media/{id}/file(id=${m.id})}" th:text="${m.name}"></a><figcaption th:text="${m.alt}"></figcaption></figure></div>
+<div class="article-actions"><a class="button" th:href="@{/admin/posts/{id}/edit(id=${post.id})}">글 수정</a>
+<form th:if="${canPublish and post.status == 'PUBLISHED'}" th:action="@{/admin/posts/{id}/unpublish(id=${post.id})}" method="post" data-confirm="이 콘텐츠를 비공개 상태로 전환할까요?"><input type="hidden" name="revision" th:value="${post.revision}"><button class="secondary">공개 중단</button></form>
+<a th:if="${canDeletePermanent}" class="button danger" th:href="@{/admin/posts/{id}/delete-confirm(id=${post.id})}">영구 삭제 검토</a></div></article><footer th:replace="~{fragments :: footer}"></footer></main></body></html>

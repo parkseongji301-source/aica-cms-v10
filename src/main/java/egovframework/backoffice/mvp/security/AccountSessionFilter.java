@@ -21,14 +21,16 @@ public class AccountSessionFilter extends OncePerRequestFilter {
                 var session = request.getSession(false);
                 if (session != null) session.invalidate();
                 SecurityContextHolder.clearContext();
-                response.sendRedirect(request.getContextPath() + "/login?expired");
+                if(ApiSecurityResponse.isNextApi(request))ApiSecurityResponse.write(response,401,"SESSION_EXPIRED");
+                else response.sendRedirect(request.getContextPath() + "/login?expired");
                 return;
             }
             String path = request.getServletPath();
             boolean permitted = path.equals("/account/password") || path.equals("/logout")
-                    || path.equals("/login") || path.equals("/error") || path.startsWith("/css/");
+                    || path.equals("/login") || path.equals("/error") || path.startsWith("/css/") || path.startsWith("/js/");
             if (current.passwordChangeRequired() && !permitted) {
-                if ("GET".equals(request.getMethod()))
+                if(ApiSecurityResponse.isNextApi(request))ApiSecurityResponse.write(response,403,"PASSWORD_CHANGE_REQUIRED");
+                else if ("GET".equals(request.getMethod()))
                     response.sendRedirect(request.getContextPath() + "/account/password");
                 else response.sendError(HttpServletResponse.SC_FORBIDDEN);
                 return;

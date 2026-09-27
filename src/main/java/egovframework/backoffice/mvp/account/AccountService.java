@@ -16,10 +16,11 @@ public class AccountService extends EgovAbstractServiceImpl {
     private final CurrentAccount current;
     private final AccessPolicy policy;
     private final PasswordEncoder encoder;
+    private final egovframework.backoffice.mvp.cms.ActivityService audit;
     private final SecureRandom random = new SecureRandom();
 
-    public AccountService(AccountMapper accounts, CurrentAccount current, AccessPolicy policy, PasswordEncoder encoder) {
-        this.accounts = accounts; this.current = current; this.policy = policy; this.encoder = encoder;
+    public AccountService(AccountMapper accounts, CurrentAccount current, AccessPolicy policy, PasswordEncoder encoder, egovframework.backoffice.mvp.cms.ActivityService audit) {
+        this.accounts = accounts; this.current = current; this.policy = policy; this.encoder = encoder; this.audit = audit;
     }
     @Transactional(readOnly = true)
     public List<Account> list(AccountPrincipal principal) {
@@ -50,6 +51,7 @@ public class AccountService extends EgovAbstractServiceImpl {
         String password = temporaryPassword();
         try {
             long id = accounts.create(normalized, displayName, encoder.encode(password), role);
+            audit.record(current.require(principal,false),"계정 발급","계정 #"+id,displayName+" / "+role.name());
             return new IssuedCredential(id, normalized, password);
         } catch (DuplicateKeyException duplicate) {
             throw new BusinessException(processException("account.duplicate").getMessage());
@@ -64,6 +66,7 @@ public class AccountService extends EgovAbstractServiceImpl {
         var target = target(id);
         protectLastSuper(target);
         accounts.deactivate(id);
+        audit.record(actor,"계정 비활성화","계정 #"+id,target.displayName());
     }
     @Transactional
     public void changeRole(AccountPrincipal principal, long id, Role role) {
@@ -76,6 +79,7 @@ public class AccountService extends EgovAbstractServiceImpl {
         if (target.role() == role) return;
         if (role != Role.SUPER_ADMIN) protectLastSuper(target);
         accounts.changeRole(id, role);
+        audit.record(actor,"계정 역할 변경","계정 #"+id,target.role()+" → "+role);
     }
     @Transactional
     public IssuedCredential resetPassword(AccountPrincipal principal, long id) {
@@ -87,6 +91,7 @@ public class AccountService extends EgovAbstractServiceImpl {
         if (!target.active()) throw new BusinessException("비활성 계정의 비밀번호는 초기화할 수 없습니다.");
         String password = temporaryPassword();
         accounts.changePassword(id, encoder.encode(password), true);
+        audit.record(actor,"비밀번호 초기화","계정 #"+id,"임시 비밀번호 발급");
         return new IssuedCredential(id, target.email(), password);
     }
     @Transactional
@@ -100,6 +105,7 @@ public class AccountService extends EgovAbstractServiceImpl {
         if (encoder.matches(password, actor.passwordHash()))
             throw new BusinessException("현재 비밀번호와 다른 새 비밀번호를 입력하세요.");
         accounts.changePassword(actor.id(), encoder.encode(password), false);
+        audit.record(actor,"본인 비밀번호 변경","계정 #"+actor.id(),"");
     }
     private Account target(long id) {
         var target = accounts.findById(id);

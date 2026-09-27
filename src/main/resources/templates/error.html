@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments :: head('요청 처리 안내')}"></head>
-<body><header th:replace="~{fragments :: header}"></header><main class="narrow">
+<body th:class="${currentUser != null ? 'admin-layout' : 'public-error'}"><header th:replace="~{fragments :: header}"></header><main class="narrow" id="main-content">
   <h1 th:text="${errorTitle ?: '요청을 처리할 수 없습니다'}"></h1>
   <p th:if="${status != null}" th:text="'응답 코드: ' + ${status}"></p>
   <p th:text="${errorMessage ?: '접근 권한과 입력 내용을 확인한 뒤 다시 시도하세요.'}"></p>

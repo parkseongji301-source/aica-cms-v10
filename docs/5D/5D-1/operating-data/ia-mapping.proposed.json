@@ -1,0 +1,763 @@
+{
+  "documentVersion": 1,
+  "status": "PROPOSED_NOT_APPLIED",
+  "executable": false,
+  "notConsumedByV10Runtime": true,
+  "note": "This is a review document, not an IA database or runtime config. Null targets must not be synthesized from text/order. Re-check existing IDs at application time.",
+  "sourceObservedAt": "2026-09-27T23:49:46.227775+09:00",
+  "existingTargets": [
+    {
+      "kind": "page",
+      "label": "인사교 소개",
+      "pageId": 65,
+      "slug": "about",
+      "revision": 5
+    },
+    {
+      "kind": "block",
+      "label": "테스트",
+      "pageId": 65,
+      "blockId": "block_44c17a08-32c1-4bdd-a42c-a4266a9ad033",
+      "type": "HERO",
+      "visible": true
+    },
+    {
+      "kind": "page",
+      "label": "홈",
+      "pageId": 1,
+      "slug": "home",
+      "revision": 1
+    },
+    {
+      "kind": "block",
+      "label": "가능성을 연결하고, AI의 내일을 만듭니다.",
+      "pageId": 1,
+      "blockId": "block_113f930f-0a78-41db-8f74-3b5fc5a5d484",
+      "type": "HERO",
+      "visible": true
+    },
+    {
+      "kind": "block",
+      "label": "사관학교 소식",
+      "pageId": 1,
+      "blockId": "block_e96cd216-6d06-46d6-805f-97d9cc927832",
+      "type": "POSTS",
+      "visible": true
+    }
+  ],
+  "existingMenus": [
+    {
+      "id": 1,
+      "label": "홈",
+      "kind": "PAGE",
+      "targetId": 1,
+      "url": "",
+      "sortOrder": 1,
+      "visible": true
+    },
+    {
+      "id": 2,
+      "label": "인사교 소개",
+      "kind": "PAGE",
+      "targetId": 65,
+      "url": "",
+      "sortOrder": 2,
+      "visible": true
+    }
+  ],
+  "limitations": [
+    "V10 menus are flat PAGE/CATEGORY/LINK; no parent_id, block_id or taxonomy filter target.",
+    "Page outline derives flat blocks from page sections_json; no arbitrary IA grouping store.",
+    "Only REVIEW/FAQ/RESTAURANT ContentTree locations are registered in code.",
+    "Dictionary seeds do not add visitor routes, pages, blocks, or content.",
+    "POSTS query accepts one type; management list supports multiple types.",
+    "Full visitor frontend is not yet available."
+  ],
+  "proposedMappings": [
+    {
+      "path": "HOME",
+      "recommendedKind": "page",
+      "scope": "existing-page",
+      "status": "EXISTING",
+      "currentTarget": {
+        "pageId": 1
+      },
+      "filterCodes": null,
+      "menuRecommendation": "기존 PAGE 메뉴 1 유지",
+      "note": "현재 페이지와 두 블록 유지. 후기/FAQ 목록으로 임의 재해석하지 않음."
+    },
+    {
+      "path": "인사교 알아보기",
+      "recommendedKind": "page",
+      "scope": "existing-page-candidate",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": {
+        "pageId": 65,
+        "mappingApproved": false
+      },
+      "filterCodes": null,
+      "menuRecommendation": "상위 메뉴 후보; 기존 PAGE 메뉴 2 재사용 여부 결정",
+      "note": "페이지 65 재사용 후보. 최종 이름/범위 승인 전 현재 인사교 소개 제목을 유지."
+    },
+    {
+      "path": "인사교 알아보기 > 2027 인사교",
+      "recommendedKind": "block",
+      "scope": "about-65-after-content-approval",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "연도별 소개 영역 후보. 2027을 기수로 변환하지 않음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI",
+      "recommendedKind": null,
+      "scope": "conceptual-group",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "탐색/지면상의 묶음. V10에 별도 계층 그룹 행이나 nested block을 만들지 않음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 무엇을 배우는지",
+      "recommendedKind": "block",
+      "scope": "about-65-after-content-approval",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "TEXT 중심 설명 블록 후보. 현재 해당 block ID 없음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 무엇을 배우는지 > 공통 교과목",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "상위 설명 블록의 소제목/본문으로 우선 관리. 별도 페이지/topic/블록 생성 확정 아님."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 무엇을 배우는지 > 교육 시간",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "상위 설명 블록의 소제목/본문으로 우선 관리. 별도 페이지/topic/블록 생성 확정 아님."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 무엇을 배우는지 > 운영 방식",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "상위 설명 블록의 소제목/본문으로 우선 관리. 별도 페이지/topic/블록 생성 확정 아님."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 무엇을 배우는지 > 기관 소개",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "상위 설명 블록의 소제목/본문으로 우선 관리. 별도 페이지/topic/블록 생성 확정 아님."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 어떤 걸 하는지",
+      "recommendedKind": "block",
+      "scope": "about-65-after-content-approval",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "활동 소개 TEXT/IMAGE 영역 후보. 운영 상세 필터를 만들지 않음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 어떤 걸 하는지 > 특강",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "활동 설명의 소제목/본문. 콘텐츠가 실제로 준비되면 승인된 기존 원본의 manual 참조 검토; 자동 주제 생성 없음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 어떤 걸 하는지 > 현장학습",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "활동 설명의 소제목/본문. 콘텐츠가 실제로 준비되면 승인된 기존 원본의 manual 참조 검토; 자동 주제 생성 없음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 어떤 걸 하는지 > 프로젝트",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "활동 설명의 소제목/본문. 콘텐츠가 실제로 준비되면 승인된 기존 원본의 manual 참조 검토; 자동 주제 생성 없음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 어떤 걸 하는지 > 취업박람회 참여",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "활동 설명의 소제목/본문. 콘텐츠가 실제로 준비되면 승인된 기존 원본의 manual 참조 검토; 자동 주제 생성 없음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 어떤 걸 하는지 > 수료식",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "활동 설명의 소제목/본문. 콘텐츠가 실제로 준비되면 승인된 기존 원본의 manual 참조 검토; 자동 주제 생성 없음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 어떤 걸 하는지 > 기타활동",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "활동 설명의 소제목/본문. 콘텐츠가 실제로 준비되면 승인된 기존 원본의 manual 참조 검토; 자동 주제 생성 없음."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 취업 서포터 활동",
+      "recommendedKind": "block",
+      "scope": "about-65-after-content-approval",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "취업 지원 프로그램 소개 블록 후보. 계정 역할 SUPPORTER와 다른 개념."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 취업 서포터 활동 > 취·창업 라운지",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "상위 설명 블록의 소제목/본문으로 관리하는 최소안."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 취업 서포터 활동 > 이력서·자소서 컨설팅",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "상위 설명 블록의 소제목/본문으로 관리하는 최소안."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 취업 서포터 활동 > 모의 면접",
+      "recommendedKind": "block",
+      "scope": "within-parent-block",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "상위 설명 블록의 소제목/본문으로 관리하는 최소안."
+    },
+    {
+      "path": "인사교 알아보기 > 인사교 TMI > 관련 기업",
+      "recommendedKind": "block",
+      "scope": "about-65-after-content-approval",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "TEXT/IMAGE 최소안은 가능하나 기업 목록/로고/관계 데이터 형식은 결정 필요."
+    },
+    {
+      "path": "선배들의 SSUL",
+      "recommendedKind": null,
+      "scope": "conceptual-group",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "상위 방문자 메뉴 후보; 실제 target/route 미정",
+      "note": "후기/스토리/인터뷰를 묶는 탐색 위치. 별도 page/topic 생성을 요구하지 않음."
+    },
+    {
+      "path": "선배들의 SSUL > 기수별 스토리",
+      "recommendedKind": "content-list",
+      "scope": "future-navigation",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "기수별 목록 후보. 포함 유형 범위를 먼저 결정; V10 고정 트리에 아직 없음."
+    },
+    {
+      "path": "선배들의 SSUL > 기수별 스토리 > 7기",
+      "recommendedKind": "content-list",
+      "scope": "filter-candidate",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": {
+        "cohortCodes": [
+          "COHORT_07"
+        ],
+        "typeCodes": null,
+        "topicCodes": []
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "기수 조건으로 목록 조회 가능. 대상 콘텐츠 유형 범위와 고정 탐색 연결은 미확정."
+    },
+    {
+      "path": "선배들의 SSUL > 기수별 스토리 > 6기",
+      "recommendedKind": "content-list",
+      "scope": "filter-candidate",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": {
+        "cohortCodes": [
+          "COHORT_06"
+        ],
+        "typeCodes": null,
+        "topicCodes": []
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "기수 조건으로 목록 조회 가능. 대상 콘텐츠 유형 범위와 고정 탐색 연결은 미확정."
+    },
+    {
+      "path": "선배들의 SSUL > 기수별 스토리 > 3~5기",
+      "recommendedKind": "content-list",
+      "scope": "filter-candidate",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "묶음은 탐색 위치 후보일 뿐 실제 cohort 등록 방식은 미정. 어떤 cohort code도 생성하지 않음."
+    },
+    {
+      "path": "선배들의 SSUL > 후기",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "EXISTING_TYPE_ROUTE",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "REVIEW"
+        ],
+        "cohortCodes": [],
+        "topicCodes": []
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "등록형 REVIEW 전체 목록과 동일 ContentEditor 사용. 별도 후기 페이지/저장소 생성 없음."
+    },
+    {
+      "path": "선배들의 SSUL > 후기 > 생활",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "REVIEW"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "REVIEW_LIFE"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 등록 후 코드로 실제 topic ID를 해석하여 기존 목록에 필터 적용."
+    },
+    {
+      "path": "선배들의 SSUL > 후기 > 수업",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "REVIEW"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "REVIEW_CLASS"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 등록 후 코드로 실제 topic ID를 해석하여 기존 목록에 필터 적용."
+    },
+    {
+      "path": "선배들의 SSUL > 후기 > 프로젝트",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "REVIEW"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "REVIEW_PROJECT"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 등록 후 코드로 실제 topic ID를 해석하여 기존 목록에 필터 적용."
+    },
+    {
+      "path": "선배들의 SSUL > 인터뷰",
+      "recommendedKind": "content-list",
+      "scope": "filter-available-tree-not-registered",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "INTERVIEW"
+        ],
+        "cohortCodes": [],
+        "topicCodes": []
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "관리 콘텐츠 목록의 INTERVIEW 필터 재사용 가능. 고정 사이트 구조 트리에는 INTERVIEW 진입점이 없음."
+    },
+    {
+      "path": "선배들의 SSUL > 인터뷰 > 인터뷰 글",
+      "recommendedKind": "content-list",
+      "scope": "format-split-deferred",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "INTERVIEW"
+        ],
+        "cohortCodes": [],
+        "topicCodes": []
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "현재 동일 INTERVIEW 유형에서 글/영상 구분 필드가 없어 자동 분리 불가. 분리 필요성/영상 구조화 요구 확인까지 보류."
+    },
+    {
+      "path": "선배들의 SSUL > 인터뷰 > 동영상",
+      "recommendedKind": "content-list",
+      "scope": "format-split-deferred",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "INTERVIEW"
+        ],
+        "cohortCodes": [],
+        "topicCodes": []
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "현재 동일 INTERVIEW 유형에서 글/영상 구분 필드가 없어 자동 분리 불가. 분리 필요성/영상 구조화 요구 확인까지 보류."
+    },
+    {
+      "path": "인사교 Real Life",
+      "recommendedKind": "page",
+      "scope": "future-page-candidate",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "상위 방문자 메뉴 후보; page/route 승인 전 생성 없음",
+      "note": "생활 안내를 한 페이지와 설명 블록으로 묶는 후보. 실제 페이지/slug는 아직 없음."
+    },
+    {
+      "path": "인사교 Real Life > 내부 시설",
+      "recommendedKind": "block",
+      "scope": "future-real-life-page",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "TEXT/IMAGE 소개 영역 후보. 초기 인프라 묶음의 내부시설과 중복 여부 결정."
+    },
+    {
+      "path": "인사교 Real Life > 인사교 꿀팁",
+      "recommendedKind": null,
+      "scope": "conceptual-group",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "탐색/지면상 묶음. topic으로 등록하지 않음."
+    },
+    {
+      "path": "인사교 Real Life > 인사교 꿀팁 > 주거",
+      "recommendedKind": "block",
+      "scope": "future-real-life-page",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "최소안은 설명 블록. 개별 콘텐츠/목록 필요 여부 결정 전 GENERAL 원본도 임의 생성하지 않음."
+    },
+    {
+      "path": "인사교 Real Life > 인사교 꿀팁 > 근처 식당",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "EXISTING_TYPE_ROUTE_LABEL_PENDING",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "RESTAURANT"
+        ],
+        "cohortCodes": [],
+        "topicCodes": []
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "기존 관리자 명칭은 근처 맛집. 같은 RESTAURANT 진입점 후보로 보고 최종 표시명만 결정; 새 유형/topic 없음."
+    },
+    {
+      "path": "인사교 Real Life > 인사교 꿀팁 > 문화·여가",
+      "recommendedKind": "block",
+      "scope": "future-real-life-page",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "최소안은 설명 블록. 별도 콘텐츠/반복 목록은 수집·운영 요구 확정 후 결정."
+    },
+    {
+      "path": "인사교 Real Life > 오시는 길",
+      "recommendedKind": "block",
+      "scope": "future-real-life-page",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "TEXT/IMAGE/CTA로 안내하는 후보. 지도 API/좌표를 이번 운영 데이터로 추가하지 않음."
+    },
+    {
+      "path": "지원 전 Check!!",
+      "recommendedKind": "page",
+      "scope": "future-page-candidate",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "상위 방문자 메뉴 후보; 실제 page/route 승인 전 생성 없음",
+      "note": "지원 안내 페이지 후보. 현재는 FAQ 탐색 그룹 이름만 코드에 존재; 실제 페이지/slug 없음."
+    },
+    {
+      "path": "지원 전 Check!! > 지원자격 / 일정 / 절차",
+      "recommendedKind": "block",
+      "scope": "future-application-page",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "공식 안내 TEXT/IMAGE/CTA 블록 후보. 관련 FAQ 답변과 동일 저장소로 간주하거나 자동 복사하지 않음."
+    },
+    {
+      "path": "지원 전 Check!! > 지원 혜택",
+      "recommendedKind": "block",
+      "scope": "future-application-page",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "공식 안내 TEXT/IMAGE/CTA 블록 후보. 관련 FAQ 답변과 동일 저장소로 간주하거나 자동 복사하지 않음."
+    },
+    {
+      "path": "지원 전 Check!! > FAQ",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "EXISTING_TYPE_ROUTE",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "FAQ"
+        ],
+        "cohortCodes": [],
+        "topicCodes": []
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "등록형 FAQ 전체 목록. 질문 하나는 기존 post 한 건이며 topic/page가 아님."
+    },
+    {
+      "path": "지원 전 Check!! > FAQ > 준비사항",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "FAQ"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "FAQ_PREPARATION"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 승인 후 코드→실제 topic ID로 기존 FAQ 목록 필터."
+    },
+    {
+      "path": "지원 전 Check!! > FAQ > 지원·선발",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "FAQ"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "FAQ_APPLICATION"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 승인 후 코드→실제 topic ID로 기존 FAQ 목록 필터."
+    },
+    {
+      "path": "지원 전 Check!! > FAQ > 수업",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "FAQ"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "FAQ_CLASS"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 승인 후 코드→실제 topic ID로 기존 FAQ 목록 필터."
+    },
+    {
+      "path": "지원 전 Check!! > FAQ > 생활",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "FAQ"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "FAQ_LIFE"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 승인 후 코드→실제 topic ID로 기존 FAQ 목록 필터."
+    },
+    {
+      "path": "지원 전 Check!! > FAQ > 취업",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "FAQ"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "FAQ_EMPLOYMENT"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 승인 후 코드→실제 topic ID로 기존 FAQ 목록 필터."
+    },
+    {
+      "path": "지원 전 Check!! > FAQ > 지원금",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "FAQ"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "FAQ_ALLOWANCE"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 승인 후 코드→실제 topic ID로 기존 FAQ 목록 필터."
+    },
+    {
+      "path": "지원 전 Check!! > FAQ > 프로젝트",
+      "recommendedKind": "content-list",
+      "scope": "existing-coded-navigation",
+      "status": "AWAITING_DICTIONARY_APPROVAL",
+      "currentTarget": null,
+      "filterCodes": {
+        "typeCodes": [
+          "FAQ"
+        ],
+        "cohortCodes": [],
+        "topicCodes": [
+          "FAQ_PROJECT"
+        ]
+      },
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "사전과 허용 링크 승인 후 코드→실제 topic ID로 기존 FAQ 목록 필터."
+    },
+    {
+      "path": "[초기 전달 묶음 · 위치 미정] > 인사교 간단 소개",
+      "recommendedKind": null,
+      "scope": "unplaced",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "최종 위치 결정 필요. 이름 유사성만으로 페이지 65, Real Life 또는 SSUL에 자동 연결하지 않음."
+    },
+    {
+      "path": "[초기 전달 묶음 · 위치 미정] > 인사교 인프라",
+      "recommendedKind": null,
+      "scope": "unplaced",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "최종 위치 결정 필요. 이름 유사성만으로 페이지 65, Real Life 또는 SSUL에 자동 연결하지 않음."
+    },
+    {
+      "path": "[초기 전달 묶음 · 위치 미정] > 후기",
+      "recommendedKind": null,
+      "scope": "unplaced",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "최종 위치 결정 필요. 이름 유사성만으로 페이지 65, Real Life 또는 SSUL에 자동 연결하지 않음."
+    },
+    {
+      "path": "[초기 전달 묶음 · 위치 미정] > 기수별 이미지",
+      "recommendedKind": null,
+      "scope": "unplaced",
+      "status": "DECISION_REQUIRED",
+      "currentTarget": null,
+      "filterCodes": null,
+      "menuRecommendation": "하위 항목은 메뉴 자동 생성 대상 아님",
+      "note": "최종 위치 결정 필요. 이름 유사성만으로 페이지 65, Real Life 또는 SSUL에 자동 연결하지 않음."
+    }
+  ],
+  "expectedDatabaseChangesInThisStage": 0,
+  "futureDictionaryBatchDoesNotApplyThisMapping": true
+}

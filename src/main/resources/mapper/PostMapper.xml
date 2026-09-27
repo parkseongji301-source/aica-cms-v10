@@ -2,25 +2,43 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="Post">
   <sql id="visible">p.deleted_at IS NULL <if test="authorId != null">AND p.author_id = #{authorId}</if></sql>
-  <sql id="columns">p.id, p.title, p.content, p.author_id, u.display_name AS author_name, p.created_at, p.updated_at, p.deleted_at</sql>
+  <sql id="search"><if test="status != null">AND p.status = #{status}</if><if test="categoryId != null">AND p.category_id = #{categoryId}</if><if test="search != null">AND (LOWER(p.title) LIKE #{search} ESCAPE '!' OR LOWER(p.content) LIKE #{search} ESCAPE '!')</if>
+    <if test="classification != null">
+      <if test="!classification.typeCodes.isEmpty()">AND p.content_type_code IN
+        <foreach collection="classification.typeCodes" item="code" open="(" close=")" separator=",">#{code}</foreach>
+      </if>
+      <if test="!classification.cohortIds.isEmpty()">AND EXISTS(SELECT 1 FROM post_cohorts pc WHERE pc.post_id=p.id AND pc.cohort_id IN
+        <foreach collection="classification.cohortIds" item="id" open="(" close=")" separator=",">#{id}</foreach>)
+      </if>
+      <if test="!classification.topicIds.isEmpty()">AND EXISTS(SELECT 1 FROM post_topics pt WHERE pt.post_id=p.id AND pt.topic_id IN
+        <foreach collection="classification.topicIds" item="id" open="(" close=")" separator=",">#{id}</foreach>)
+      </if>
+    </if>
+  </sql>
+  <sql id="columns">p.id, p.title, p.content, p.author_id, u.display_name AS author_name, p.created_at, p.updated_at, p.deleted_at, p.category_id, p.status, p.revision, p.rich_content, (SELECT pp.revision FROM post_publications pp WHERE pp.post_id=p.id) AS published_revision</sql>
   <select id="find" resultType="egovframework.backoffice.mvp.post.Post">
     SELECT <include refid="columns"/> FROM posts p JOIN users u ON u.id = p.author_id
     WHERE p.id = #{value} AND p.deleted_at IS NULL
   </select>
   <select id="list" resultType="egovframework.backoffice.mvp.post.Post">
     SELECT <include refid="columns"/> FROM posts p JOIN users u ON u.id = p.author_id
-    WHERE <include refid="visible"/> ORDER BY p.id DESC LIMIT #{limit} OFFSET #{offset}
+    WHERE <include refid="visible"/> <include refid="search"/> ORDER BY p.id DESC LIMIT #{limit} OFFSET #{offset}
   </select>
-  <select id="count" resultType="long">SELECT COUNT(*) FROM posts p WHERE <include refid="visible"/></select>
+  <select id="count" resultType="long">SELECT COUNT(*) FROM posts p WHERE <include refid="visible"/> <include refid="search"/></select>
+  <select id="dailyCounts" resultType="egovframework.backoffice.mvp.post.DailyPostCount">
+    SELECT CAST(p.created_at AS DATE) AS "day", COUNT(*) AS "count" FROM posts p
+    WHERE <include refid="visible"/> AND p.created_at &gt;= #{start} AND p.created_at &lt; #{end}
+    GROUP BY CAST(p.created_at AS DATE) ORDER BY CAST(p.created_at AS DATE)
+  </select>
   <insert id="create" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
     INSERT INTO posts (title, content, author_id) VALUES (#{title}, #{content}, #{authorId})
   </insert>
   <update id="edit">
-    UPDATE posts SET title = #{title}, content = #{content}, updated_at = CURRENT_TIMESTAMP
+    UPDATE posts SET title = #{title}, content = #{content}, updated_at = CURRENT_TIMESTAMP, revision = revision + 1
     WHERE id = #{id} AND deleted_at IS NULL <if test="authorId != null">AND author_id = #{authorId}</if>
   </update>
   <update id="softDelete">
-    UPDATE posts SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+    UPDATE posts SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, revision = revision + 1
     WHERE id = #{id} AND deleted_at IS NULL <if test="authorId != null">AND author_id = #{authorId}</if>
   </update>
 </mapper>

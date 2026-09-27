@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {applyTemplateBlocks} from '../src/templateBlocks.ts';
+import type {Section} from '../src/types.ts';
+const block=(n:number):Section=>({id:`block_00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,schemaVersion:2,variation:'default',type:'POSTS',heading:'공용',body:'',bodyDoc:null,imageId:null,categoryId:11,link:'',label:'',visible:false,sourceMode:'manual',query:{typeCode:'REVIEW',cohortIds:[6,7],topicIds:[1,2],sort:'LATEST',limit:6},manual:{postIds:[97,105,33]}});
+test('append preserves existing IDs and settings, including inactive source settings',()=>{const a=block(1),b=block(2);assert.deepEqual(applyTemplateBlocks([a],[b],'append'),[a,b]);});
+test('replace uses fresh copies and never mutates original or supplied template data',()=>{const a=block(1),b=block(2),result=applyTemplateBlocks([a],[b],'replace');result[0].manual!.postIds.reverse();result[0].query!.topicIds.push(3);assert.deepEqual(a,block(1));assert.deepEqual(b,block(2));});
+test('two page applications do not share nested manual or query arrays',()=>{const copies=[block(2)],a=applyTemplateBlocks([],copies,'replace'),b=applyTemplateBlocks([],copies,'append');a[0].manual!.postIds=[];assert.deepEqual(b,copies);});
+test('rejects old, malformed or duplicate IDs instead of reusing identities',()=>{assert.throws(()=>applyTemplateBlocks([block(1)],[block(1)],'replace'));assert.throws(()=>applyTemplateBlocks([],[block(2),block(2)],'append'));assert.throws(()=>applyTemplateBlocks([],[{...block(2),id:''}],'replace'));});
+test('empty templates and 30 block limit follow page editor rules',()=>{assert.deepEqual(applyTemplateBlocks([block(1)],[],'replace'),[]);assert.deepEqual(applyTemplateBlocks([block(1)],[],'append'),[block(1)]);assert.throws(()=>applyTemplateBlocks(Array.from({length:30},(_,i)=>block(i+1)),[block(99)],'append'));});

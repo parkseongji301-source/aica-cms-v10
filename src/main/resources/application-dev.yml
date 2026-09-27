@@ -1,10 +1,12 @@
 # File-backed development DB, not an approved production DB.
 spring:
   datasource:
-    url: ${BACKOFFICE_DEV_DB_URL:jdbc:h2:file:./.local-data/backoffice;DB_CLOSE_ON_EXIT=FALSE}
+    url: ${BACKOFFICE_DEV_DB_URL:jdbc:h2:file:./.local-data/backoffice;IFEXISTS=TRUE;DB_CLOSE_ON_EXIT=FALSE;AUTO_COMPACT_FILL_RATE=0}
     username: sa
     password: ${BACKOFFICE_DEV_DB_PASSWORD:}
     driver-class-name: org.h2.Driver
+    hikari:
+      connection-init-sql: "SET TIME ZONE '${backoffice.time-zone:Asia/Seoul}'"
   flyway:
     locations: classpath:db/migration/h2
   thymeleaf:

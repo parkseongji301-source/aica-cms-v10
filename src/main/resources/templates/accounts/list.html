@@ -1,26 +1,11 @@
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments :: head('계정 관리')}"></head>
-<body><header th:replace="~{fragments :: header}"></header><main>
-  <h1>계정 관리</h1>
-  <p class="muted">ADMIN과 SUPPORTER 계정을 발급하고 역할·활성 상태를 관리합니다.</p>
+<body class="admin-layout"><div th:replace="~{fragments :: header}"></div><main class="workspace" id="main-content">
+  <div class="page-heading"><div><h1>계정 관리</h1></div><a class="button" th:href="@{/admin/accounts/new}"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>계정 생성</a></div>
   <div th:replace="~{fragments :: messages}"></div>
-  <div class="actions"><a class="button" th:href="@{/admin/accounts/new}">계정 생성</a></div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>이름 / 이메일</th><th>역할</th><th>상태</th><th>관리</th></tr></thead>
-    <tbody><tr th:each="account : ${accounts}">
-      <td><strong th:text="${account.displayName}"></strong><br><span th:text="${account.email}"></span></td>
-      <td th:text="${account.role}"></td>
-      <td><span th:text="${account.active ? '활성' : '비활성'}"></span><br><span class="muted" th:if="${account.passwordChangeRequired}">비밀번호 변경 필요</span></td>
-      <td>
-        <span th:if="${account.id == currentUser.id}" class="muted">본인 계정</span>
-        <div class="actions" th:if="${account.id != currentUser.id}">
-          <a th:href="@{/admin/accounts/{id}/role(id=${account.id})}">역할 변경</a>
-          <form th:if="${account.active}" th:action="@{/admin/accounts/{id}/reset-password(id=${account.id})}" method="post"><button class="secondary" type="submit">비밀번호 초기화</button></form>
-          <form th:if="${account.active}" th:action="@{/admin/accounts/{id}/deactivate(id=${account.id})}" method="post"><button class="danger" type="submit">비활성화</button></form>
-        </div>
-      </td>
-    </tr></tbody>
-  </table></div>
-  <p class="muted">역할 변경·비활성화·비밀번호 초기화는 해당 계정의 기존 로그인 상태를 무효화합니다.</p>
+  <section class="panel"><div class="panel-heading"><h2>운영 구성원 <span class="count-pill" th:text="${#lists.size(accounts)} + '명'"></span></h2></div>
+  <div class="table-wrap"><table class="account-table"><thead><tr><th>이름 / 이메일</th><th>역할</th><th>상태</th><th>관리</th></tr></thead><tbody><tr th:each="account : ${accounts}"><td><strong th:text="${account.displayName}"></strong><br><span class="account-email" th:text="${account.email}"></span></td><td th:text="${account.role.label}"></td><td><span class="status-tag" th:classappend="${account.active ? '' : 'inactive'}" th:text="${account.active ? '활성' : '비활성'}"></span><br><span class="muted" th:if="${account.passwordChangeRequired}">비밀번호 변경 필요</span></td><td><span th:if="${account.id == currentUser.id}" class="muted">본인 계정</span><div class="actions" th:if="${account.id != currentUser.id}"><details class="inline-role"><summary>역할 변경</summary><form th:action="@{/admin/accounts/{id}/role(id=${account.id})}" method="post" data-confirm="역할을 변경하면 해당 계정은 다시 로그인해야 합니다. 변경할까요?"><label th:for="'role-'+${account.id}">역할</label><select th:id="'role-'+${account.id}" name="role"><option value="SUPER_ADMIN" th:selected="${account.role.name() == 'SUPER_ADMIN'}">최상위 관리자</option><option value="ADMIN" th:selected="${account.role.name() == 'ADMIN'}">관리자</option><option value="SUPPORTER" th:selected="${account.role.name() == 'SUPPORTER'}">서포터즈</option></select><button class="secondary">적용</button></form></details><form th:if="${account.active}" th:action="@{/admin/accounts/{id}/reset-password(id=${account.id})}" method="post" data-confirm="이 계정의 비밀번호를 초기화하시겠어요? 기존 로그인은 해제됩니다."><button class="secondary" type="submit">비밀번호 초기화</button></form><form th:if="${account.active}" th:action="@{/admin/accounts/{id}/deactivate(id=${account.id})}" method="post" data-confirm="이 계정을 비활성화하시겠어요? 해당 사용자는 로그인할 수 없습니다."><button class="danger" type="submit">비활성화</button></form></div></td></tr></tbody></table></div></section>
+  <details class="panel permission-help"><summary>역할별 권한</summary><dl><dt>최상위 관리자</dt><dd>전체 콘텐츠·사이트 설정·계정·활동 이력 관리</dd><dt>관리자</dt><dd>전체 콘텐츠·사이트 설정 관리</dd><dt>서포터즈</dt><dd>본인이 작성한 글과 업로드한 파일 관리</dd></dl></details>
+  <footer th:replace="~{fragments :: footer}"></footer>
 </main></body></html>

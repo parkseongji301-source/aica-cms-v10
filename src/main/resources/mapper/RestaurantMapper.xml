@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Restaurant">
+ <select id="draft" resultType="egovframework.backoffice.mvp.restaurant.RestaurantDetailsService$Details">SELECT address FROM post_restaurant_details WHERE post_id=#{value}</select>
+ <select id="published" resultType="egovframework.backoffice.mvp.restaurant.RestaurantDetailsService$Details">SELECT address FROM post_publication_restaurant_details WHERE post_id=#{value}</select>
+ <insert id="save">MERGE INTO post_restaurant_details(post_id,address) KEY(post_id) VALUES(#{postId},#{address})</insert>
+ <delete id="clear">DELETE FROM post_restaurant_details WHERE post_id=#{value}</delete>
+ <insert id="publish">INSERT INTO post_publication_restaurant_details(post_id,address)
+ SELECT d.post_id,d.address FROM post_restaurant_details d JOIN post_publications p ON p.post_id=d.post_id
+ WHERE d.post_id=#{value} AND p.content_type_code='RESTAURANT'</insert>
+</mapper>

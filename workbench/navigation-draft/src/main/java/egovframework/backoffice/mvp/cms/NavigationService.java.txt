@@ -1,0 +1,69 @@
+package egovframework.backoffice.mvp.cms;
+
+import static egovframework.backoffice.mvp.cms.CmsModels.*;
+import egovframework.backoffice.mvp.security.AccountPrincipal;
+import java.util.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Read-only projection of menus, the home setting and existing page sections. */
+@Service
+public class NavigationService {
+    private final SiteService site;
+    private final PageService pages;
+    public NavigationService(SiteService site,PageService pages) {this.site=site;this.pages=pages;}
+    public record Node(String key,String label,String href,String kind,Long pageId,Long categoryId,
+                       boolean hidden,List<Node> children) {}
+    public record Tree(List<Node> roots,List<Node> outside,List<Page> pages) {}
+    public record ContentLink(String label,String href,Long categoryId) {}
+
+    public List<ContentLink> contents(Page page,List<Category> categories) {
+        var result=new LinkedHashMap<String,ContentLink>();
+        for(var section:pages.sections(page.sectionsJson())) {
+            if(!section.type().equals("POSTS"))continue;
+            String name=section.categoryId()==null?"전체 콘텐츠":categories.stream().filter(c->Objects.equals(c.id(),section.categoryId())).map(Category::name).findFirst().orElse("연결 확인 필요");
+            String key=Objects.toString(section.categoryId(),"all");
+            result.putIfAbsent(key,new ContentLink(name,"/admin/posts?originPage="+page.id()+(section.categoryId()==null?"":"&categoryId="+section.categoryId()),section.categoryId()));
+        }
+        return List.copyOf(result.values());
+    }
+    @Transactional(readOnly=true)
+    public Tree tree(AccountPrincipal actor) {
+        var all=site.menus(actor);var allPages=pages.list(actor);var categories=site.categories();
+        var byId=new HashMap<Long,Page>();allPages.forEach(p->byId.put(p.id(),p));
+        var roots=new ArrayList<Node>();
+        String home=site.settings().getOrDefault("homePageId","");
+        // The home setting may point to a page without a menu; expose that same page without creating a menu.
+        allPages.stream().filter(p->Long.toString(p.id()).equals(home) && all.stream().noneMatch(m->m.kind().equals("PAGE")&&Objects.equals(m.targetId(),p.id())))
+            .forEach(p->roots.add(pageNode(p,"HOME · "+p.title(),categories)));
+        for(Menu menu:all) if(menu.parentId()==null) roots.add(node(menu,all,byId,categories,false,new HashSet<>()));
+        var outside=allPages.stream().filter(p->!Long.toString(p.id()).equals(home) && all.stream().noneMatch(m->m.kind().equals("PAGE")&&Objects.equals(m.targetId(),p.id())))
+            .map(p->pageNode(p,p.title(),categories)).toList();
+        return new Tree(roots,outside,allPages);
+    }
+    private Node pageNode(Page page,String label,List<Category> categories) {
+        String key="page-"+page.id();
+        return new Node(key,label,"/admin/pages/"+page.id()+"/edit?nav=structure&node="+key,"PAGE",page.id(),null,false,contentNodes(page,key,categories));
+    }
+    private List<Node> contentNodes(Page page,String key,List<Category> categories) {
+        return contents(page,categories).stream().map(c->{
+            String child=key+"-content-"+Objects.toString(c.categoryId(),"all");
+            return new Node(child,c.label(),c.href()+"&nav=structure&node="+child,"CONTENT",page.id(),c.categoryId(),false,List.of());
+        }).toList();
+    }
+    private Node node(Menu menu,List<Menu> all,Map<Long,Page> byId,List<Category> categories,boolean hidden,Set<Long> ancestors) {
+        String key="menu-"+menu.id();var children=new ArrayList<Node>();
+        boolean invisible=hidden||!menu.visible();String path="/admin/menus?edit="+menu.id();
+        Long pageId=null,categoryId=null;
+        if(menu.kind().equals("PAGE") && byId.containsKey(menu.targetId())) {
+            pageId=menu.targetId();path="/admin/pages/"+pageId+"/edit";
+            children.addAll(contentNodes(byId.get(pageId),key,categories));
+        } else if(menu.kind().equals("CATEGORY")) {categoryId=menu.targetId();path="/admin/posts?categoryId="+categoryId;}
+        if(ancestors.add(menu.id())) {
+            for(var child:all) if(Objects.equals(child.parentId(),menu.id()) && !ancestors.contains(child.id())) children.add(node(child,all,byId,categories,invisible,new HashSet<>(ancestors)));
+        }
+        return new Node(key,menu.label(),path+(path.contains("?")?"&":"?")+"nav=structure&node="+key,menu.kind(),pageId,categoryId,invisible,children);
+    }
+    public List<Node> flatten(Tree tree) {var result=new ArrayList<Node>();tree.roots().forEach(n->flatten(n,result));tree.outside().forEach(n->flatten(n,result));return result;}
+    private void flatten(Node node,List<Node> result) {result.add(node);node.children().forEach(n->flatten(n,result));}
+}

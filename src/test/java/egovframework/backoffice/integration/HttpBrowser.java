@@ -36,6 +36,19 @@ final class HttpBrowser {
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(form)).build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
     }
+    HttpResponse<String> upload(String path, byte[] image) throws Exception {
+        String csrf=extract(get("/login").body(), "name=\"_csrf\"[^>]*value=\"([^\"]+)\"");
+        String boundary="AicaTestBoundary123";
+        String header="--"+boundary+"\r\nContent-Disposition: form-data; name=\"file\"; filename=\"upload.png\"\r\nContent-Type: image/png\r\n\r\n";
+        var body=HttpRequest.BodyPublishers.concat(HttpRequest.BodyPublishers.ofString(header),HttpRequest.BodyPublishers.ofByteArray(image),HttpRequest.BodyPublishers.ofString("\r\n--"+boundary+"--\r\n"));
+        return client.send(HttpRequest.newBuilder(URI.create(base+path)).header("Content-Type","multipart/form-data; boundary="+boundary).header("X-CSRF-TOKEN",csrf).POST(body).build(),HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    }
+    HttpResponse<String> json(String method, String path, String body, String csrf) throws Exception {
+        var request=HttpRequest.newBuilder(URI.create(base+path)).timeout(Duration.ofSeconds(20))
+                .header("Content-Type","application/json");
+        if(csrf!=null) request.header("X-CSRF-TOKEN",csrf);
+        return client.send(request.method(method,HttpRequest.BodyPublishers.ofString(body)).build(),HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    }
     void login(String email, String password, String destination) throws Exception {
         redirect(post("/login", Map.of("username", email, "password", password)), destination);
     }

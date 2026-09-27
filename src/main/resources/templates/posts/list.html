@@ -1,25 +1,21 @@
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head('게시물 목록')}"></head>
-<body><header th:replace="~{fragments :: header}"></header><main>
-  <h1>게시물 목록</h1>
-  <p class="muted" th:text="${canManageAllPosts ? '전체 게시물을 조회하고 관리할 수 있습니다.' : '본인이 작성한 게시물만 조회하고 관리할 수 있습니다.'}"></p>
+<head th:replace="~{fragments :: head('글 관리')}"></head>
+<body class="admin-layout"><div th:replace="~{fragments :: header}"></div>
+<main class="workspace" id="main-content">
+  <div class="page-heading"><div><h1>글 관리</h1></div><a class="button" th:href="@{/admin/posts/new(categoryId=${categoryId},from=${listUrl})}"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>글쓰기</a></div>
   <div th:replace="~{fragments :: messages}"></div>
-  <div class="actions"><a class="button" th:href="@{/admin/posts/new}">게시물 등록</a><span th:text="'총 ' + ${pageData.total} + '건'"></span></div>
-  <div class="table-wrap"><table>
-    <thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>등록일</th></tr></thead>
-    <tbody>
-      <tr th:if="${#lists.isEmpty(pageData.items)}"><td colspan="4">등록된 게시물이 없습니다.</td></tr>
-      <tr th:each="post : ${pageData.items}">
-        <td th:text="${post.id}"></td>
-        <td><a th:href="@{/admin/posts/{id}(id=${post.id})}" th:text="${post.title}"></a></td>
-        <td th:text="${post.authorName}"></td><td th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
-      </tr>
-    </tbody>
-  </table></div>
-  <nav class="actions" aria-label="페이지 이동">
-    <a th:if="${pageData.page > 0}" th:href="@{/admin/posts(page=${pageData.page - 1})}">이전</a>
-    <span th:text="${pageData.page + 1} + ' / ' + ${pageData.totalPages()}"></span>
-    <a th:if="${pageData.page + 1 < pageData.totalPages()}" th:href="@{/admin/posts(page=${pageData.page + 1})}">다음</a>
-  </nav>
+  <section class="panel">
+    <div class="table-summary"><h2 th:text="${canManageAllPosts ? '전체 글' : '내 글'}"></h2><span class="count-pill" th:text="'총 ' + ${pageData.total} + '건'"></span></div>
+    <nav class="status-tabs" aria-label="콘텐츠 상태"><a th:href="@{/admin/posts(q=${query},categoryId=${categoryId})}" th:classappend="${status == '' ? 'active' : ''}">전체</a><a th:href="@{/admin/posts(status='DRAFT',q=${query},categoryId=${categoryId})}" th:classappend="${status == 'DRAFT' ? 'active' : ''}">임시저장</a><a th:href="@{/admin/posts(status='PUBLISHED',q=${query},categoryId=${categoryId})}" th:classappend="${status == 'PUBLISHED' ? 'active' : ''}">발행됨</a><a th:href="@{/admin/posts(status='PRIVATE',q=${query},categoryId=${categoryId})}" th:classappend="${status == 'PRIVATE' ? 'active' : ''}">비공개</a></nav>
+    <div class="list-toolbar"><span class="scope-label"><span class="live-dot"></span><span th:text="${canManageAllPosts ? '전체 작성자 · 최근 등록순' : '본인이 작성한 콘텐츠 · 최근 등록순'}"></span></span>
+      <form class="search-form" th:action="@{/admin/posts}" method="get" role="search"><input type="hidden" name="status" th:value="${status}"><label class="sr-only" for="category-filter">카테고리 필터</label><select id="category-filter" name="categoryId"><option value="">모든 카테고리</option><option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${categoryId == c.id}"></option></select><div class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg><label class="sr-only" for="q">콘텐츠 검색</label><input id="q" name="q" th:value="${query}" maxlength="100" placeholder="제목 또는 본문으로 검색"></div><button class="secondary" type="submit">검색</button></form>
+    </div>
+    <div class="query-summary" th:if="${!#strings.isEmpty(query)}"><strong th:text="'“' + ${query} + '”'"></strong> 검색 결과<a th:href="@{/admin/posts}">검색 초기화</a></div>
+    <div class="empty-state" th:if="${#lists.isEmpty(pageData.items)}"><h3 th:text="${filtered ? '조건에 맞는 글이 없습니다' : '등록된 글이 없습니다'}"></h3><a th:if="${filtered}" class="button secondary" th:href="@{/admin/posts}">필터 해제</a><a th:unless="${filtered}" class="button secondary" th:href="@{/admin/posts/new}">글쓰기</a></div>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(pageData.items)}"><table class="content-table"><thead><tr><th class="col-number">번호</th><th>제목</th><th>상태</th><th class="col-author">작성자</th><th class="col-date">등록일</th><th class="col-action">관리</th></tr></thead><tbody><tr th:each="post : ${pageData.items}"><td class="col-number" th:text="${post.id}"></td><td><a class="post-title" th:href="@{/admin/posts/{id}/edit(id=${post.id},from=${listUrl})}" th:text="${post.title}"></a></td><td><span class="status-pill" th:classappend="${post.status}" th:text="${post.status == 'PUBLISHED' ? '발행됨' : post.status == 'PRIVATE' ? '비공개' : '임시저장'}"></span><small class="pending-note" th:if="${post.pending()}">미반영 수정 있음</small></td><td class="col-author" th:text="${post.authorName}"></td><td class="col-date" th:text="${#temporals.format(post.createdAt, 'yyyy.MM.dd HH:mm')}"></td><td class="col-action"><a class="table-edit" th:href="@{/admin/posts/{id}/edit(id=${post.id},from=${listUrl})}" th:attr="aria-label=${post.title} + ' 수정'">수정</a></td></tr></tbody></table></div>
+    <nav class="pagination" aria-label="페이지 이동"><span>페이지당 10개 표시</span><div class="pagination-links"><a th:if="${pageData.page > 0}" th:href="@{/admin/posts(page=${pageData.page - 1},q=${query},status=${status},categoryId=${categoryId})}">이전</a><span class="disabled" th:unless="${pageData.page > 0}">이전</span><span class="page-position"><b th:text="${pageData.page + 1}"></b> / <span th:text="${pageData.totalPages()}"></span></span><a th:if="${pageData.page + 1 < pageData.totalPages()}" th:href="@{/admin/posts(page=${pageData.page + 1},q=${query},status=${status},categoryId=${categoryId})}">다음</a><span class="disabled" th:unless="${pageData.page + 1 < pageData.totalPages()}">다음</span></div></nav>
+  </section>
+
+  <footer th:replace="~{fragments :: footer}"></footer>
 </main></body></html>

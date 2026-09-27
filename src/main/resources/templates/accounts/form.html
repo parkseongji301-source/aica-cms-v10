@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments :: head('계정 생성')}"></head>
-<body><header th:replace="~{fragments :: header}"></header><main class="narrow">
+<body class="admin-layout"><header th:replace="~{fragments :: header}"></header><main class="narrow" id="main-content">
   <h1>계정 생성</h1>
   <p class="muted">임시 비밀번호는 생성 후 한 번 표시됩니다.</p>
   <div th:replace="~{fragments :: messages}"></div>
   <form th:action="@{/admin/accounts}" method="post">
     <label for="email">이메일</label><input id="email" name="email" type="email" th:value="${email}" required maxlength="254" autocomplete="off">
     <label for="displayName">이름</label><input id="displayName" name="displayName" th:value="${displayName}" required maxlength="80">
-    <label for="role">역할</label><select id="role" name="role" required><option th:each="role : ${roles}" th:value="${role}" th:text="${role}"></option></select>
+    <label for="role">역할</label><select id="role" name="role" required><option th:each="role : ${roles}" th:value="${role}" th:text="${role.label}" th:selected="${selectedRole == role}"></option></select>
     <div class="actions"><button type="submit">계정 생성</button><a th:href="@{/admin/accounts}">취소</a></div>
   </form>
 </main></body></html>

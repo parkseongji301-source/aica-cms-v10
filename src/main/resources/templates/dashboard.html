@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('대시보드')}"></head>
+<body class="admin-layout"><div th:replace="~{fragments :: header}"></div>
+<main class="workspace" id="main-content">
+  <div class="page-heading"><div><h1>대시보드</h1></div><div class="date-label"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg><span th:text="${#temporals.format(overview.today, 'yyyy.MM.dd')}"></span></div></div>
+  <div class="section-heading"><h2>운영 현황</h2><span class="sample-badge" th:if="${traffic != null}">방문 통계 · 예시 데이터</span></div>
+  <div class="metric-grid" th:if="${traffic != null}">
+    <article class="metric-card"><div class="metric-top"><span>오늘 방문자</span><span class="metric-icon blue"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg></span></div><div class="metric-value"><strong th:text="${#numbers.formatInteger(traffic.todayVisitors, 1, 'COMMA')}"></strong><span>명</span></div><p>어제 <span th:text="${traffic.yesterdayVisitors}"></span>명 <span class="metric-note">예시</span></p></article>
+    <article class="metric-card"><div class="metric-top"><span>최근 7일 방문자</span><span class="metric-icon teal"><svg class="icon" aria-hidden="true"><use href="#i-chart"></use></svg></span></div><div class="metric-value"><strong th:text="${#numbers.formatInteger(traffic.visitors, 1, 'COMMA')}"></strong><span>명</span></div><p>기간 내 중복 방문 제외 <span class="metric-note">예시</span></p></article>
+    <article class="metric-card"><div class="metric-top"><span>최근 7일 페이지 조회</span><span class="metric-icon purple"><svg class="icon" aria-hidden="true"><use href="#i-eye"></use></svg></span></div><div class="metric-value"><strong th:text="${#numbers.formatInteger(traffic.views, 1, 'COMMA')}"></strong><span>회</span></div><p>홈페이지 페이지 조회수 <span class="metric-note">예시</span></p></article>
+    <article class="metric-card"><div class="metric-top"><span>전체 글</span><span class="metric-icon amber"><svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg></span></div><div class="metric-value"><strong th:text="${#numbers.formatInteger(overview.total, 1, 'COMMA')}"></strong><span>건</span></div><p>최근 7일 <b th:text="${overview.weekCount} + '건 등록'"></b></p></article>
+  </div>
+  <div class="metric-grid three" th:if="${traffic == null}">
+    <article class="metric-card"><div class="metric-top">내 글 <svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg></div><div class="metric-value"><strong th:text="${overview.total}"></strong><span>건</span></div><p>본인이 작성한 콘텐츠</p></article>
+    <article class="metric-card"><div class="metric-top">오늘 등록</div><div class="metric-value"><strong th:text="${overview.todayCount}"></strong><span>건</span></div><p>오늘 작성한 콘텐츠</p></article>
+    <article class="metric-card"><div class="metric-top">최근 7일 등록</div><div class="metric-value"><strong th:text="${overview.weekCount}"></strong><span>건</span></div><p>최근 일주일간 작성한 콘텐츠</p></article>
+  </div>
+  <div class="dashboard-grid" th:if="${traffic != null}">
+    <section class="panel"><div class="panel-heading"><div><h2>방문자 추이 <span class="sample-badge">예시</span></h2><p>최근 7일간 홈페이지 방문 현황</p></div></div><div th:replace="~{analytics-fragments :: chart}"></div></section>
+    <section class="panel"><div class="panel-heading"><div><h2>유입 경로 <span class="sample-badge">예시</span></h2><p>방문자는 어디에서 왔을까요?</p></div></div><div th:replace="~{analytics-fragments :: sources}"></div></section>
+  </div>
+  <div class="dashboard-grid lower-grid">
+    <section class="panel recent-panel"><div class="panel-heading"><div><h2>최근 콘텐츠</h2></div><a class="text-link" th:href="@{/admin/posts}">전체 보기 <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></div>
+      <div class="empty-state compact" th:if="${#lists.isEmpty(overview.recentPosts)}"><span class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg></span><h3>등록된 글이 없습니다</h3><a class="button secondary" th:href="@{/admin/posts/new}">글쓰기</a></div>
+      <div class="table-wrap" th:unless="${#lists.isEmpty(overview.recentPosts)}"><table class="recent-table"><thead><tr><th>제목</th><th>작성자</th><th>등록일</th></tr></thead><tbody><tr th:each="post : ${overview.recentPosts}"><td><a class="post-title" th:href="@{/admin/posts/{id}/edit(id=${post.id})}" th:text="${post.title}"></a></td><td th:text="${post.authorName}"></td><td th:text="${#temporals.format(post.createdAt, 'MM.dd')}"></td></tr></tbody></table></div>
+    </section>
+    <section class="panel quick-panel"><div class="panel-heading"><div><h2>자주 하는 작업</h2></div></div>
+      <a class="quick-link" th:href="@{/admin/posts/new}"><span class="quick-icon blue"><svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg></span><span><strong>글쓰기</strong></span><svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg></a>
+      <a class="quick-link" th:if="${canManageAccounts}" th:href="@{/admin/accounts}"><span class="quick-icon teal"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg></span><span><strong>계정 관리</strong></span><svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg></a>
+      <a class="quick-link" th:href="@{/account/password}"><span class="quick-icon purple"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg></span><span><strong>내 계정 설정</strong></span><svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg></a>
+    </section>
+  </div>
+  <footer th:replace="~{fragments :: footer}"></footer>
+</main></body></html>

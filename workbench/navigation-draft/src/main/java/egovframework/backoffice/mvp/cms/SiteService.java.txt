@@ -1,0 +1,198 @@
+package egovframework.backoffice.mvp.cms;
+import egovframework.backoffice.mvp.common.*;
+import egovframework.backoffice.mvp.security.AccountPrincipal;
+import static egovframework.backoffice.mvp.cms.CmsModels.*;
+import static egovframework.backoffice.mvp.cms.CmsStore.values;
+import java.util.*;
+import java.util.function.ToLongFunction;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+@Service
+public class SiteService {
+ private final CmsStore store;private final CmsAccess access;private final MediaService media;
+ private final PageService pages;private final ActivityService audit;
+ public SiteService(CmsStore store,CmsAccess access,MediaService media,PageService pages,ActivityService audit) {
+  this.store=store;this.access=access;this.media=media;this.pages=pages;this.audit=audit;
+ }
+ public List<Category> categories() {return store.all("categories",null);}
+ public List<Menu> menus(AccountPrincipal actor) {access.manager(actor);return store.all("menus",null);}
+ public List<Link> links() {return store.all("links",null);}
+ public Map<String,String> settings() {
+  var result=new LinkedHashMap<String,String>();
+  for(Setting setting:store.<Setting>all("settings",null)) result.put(setting.settingKey(),setting.settingValue());
+  return result;
+ }
+ @Transactional
+ public void category(AccountPrincipal principal,Long id,String name) {
+  store.lock();var actor=access.manager(principal);
+  String label=InputRules.text(name,80,"카테고리 이름");
+  if(id==null) id=store.create("createCategory",values("name",label));
+  else {exists("category",id);store.change("editCategory",values("id",id,"name",label));}
+  audit.record(actor,"카테고리 저장","카테고리 #"+id,label);
+ }
+ @Transactional
+ public void deleteCategory(AccountPrincipal principal,long id) {
+  store.lock();var actor=access.manager(principal);exists("category",id);
+  if(store.<Long>one("categoryUsage",id)>0 || categoryInPage(id))
+   throw new BusinessException("콘텐츠·페이지·메뉴에서 사용 중인 카테고리입니다. 연결을 먼저 해제하세요.");
+  store.change("deleteCategory",id);audit.record(actor,"카테고리 삭제","카테고리 #"+id,"");
+ }
+ private boolean categoryInPage(long id) {
+  for(Page page:store.<Page>all("pages",null)) {
+   if(pages.sections(page.sectionsJson()).stream().anyMatch(s->Objects.equals(s.categoryId(),id))) return true;
+   PublishedPage published=store.one("anyPagePublication",page.id());
+   if(published!=null && pages.sections(published.sectionsJson()).stream().anyMatch(s->Objects.equals(s.categoryId(),id))) return true;
+  } return false;
+ }
+ @Transactional
+ public void menu(AccountPrincipal principal,Long id,String label,String kind,Long targetId,String url,boolean visible) {
+  menu(principal,id,label,kind,targetId,url,visible,id==null?null:store.<Menu>one("menu",id).parentId());
+ }
+ @Transactional
+ public void menu(AccountPrincipal principal,Long id,String label,String kind,Long targetId,String url,boolean visible,Long parentId) {
+  store.lock();var actor=access.manager(principal);
+  if(!Set.of("PAGE","CATEGORY","LINK","GROUP").contains(kind)) throw new BusinessException("메뉴 종류를 선택하세요.");
+  String address="";
+  if(kind.equals("LINK")) {address=CmsRules.url(url,true);targetId=null;}
+  else if(kind.equals("GROUP")) {targetId=null;}
+  else {
+   if(targetId==null) throw new BusinessException("연결할 페이지 또는 카테고리를 선택하세요.");
+   exists(kind.equals("PAGE")?"page":"category",targetId);
+  }
+  if(kind.equals("CATEGORY")) label=store.<Category>one("category",targetId).name();
+  else if(kind.equals("PAGE")) label=store.<Page>one("page",targetId).title();
+  else label=InputRules.text(label,80,"메뉴 이름");
+  var all=menus(principal);var ancestors=new HashSet<Long>();Long ancestor=parentId;
+  while(ancestor!=null) {
+   if(Objects.equals(ancestor,id) || !ancestors.add(ancestor)) throw new BusinessException("자신이나 하위 메뉴 안으로 옮길 수 없습니다.");
+   long candidate=ancestor;var parent=all.stream().filter(m->m.id()==candidate).findFirst().orElseThrow(()->new BusinessException("상위 메뉴를 다시 선택하세요."));
+   if(parent.kind().equals("LINK") || parent.kind().equals("CATEGORY")) throw new BusinessException("페이지 또는 묶음 메뉴 아래에 배치하세요.");
+   ancestor=parent.parentId();
+  }
+  if((kind.equals("LINK") || kind.equals("CATEGORY")) && all.stream().anyMatch(m->Objects.equals(m.parentId(),id) && id!=null)) throw new BusinessException("하위 메뉴를 먼저 옮긴 뒤 연결 종류를 변경하세요.");
+  var params=values("parentId",parentId,"id",id,"label",label.substring(0,Math.min(label.length(),80)),"kind",kind,"targetId",targetId,"url",address,"visible",visible);
+  if(id==null) id=store.create("createMenu",params);
+  else {exists("menu",id);store.change("editMenu",params);}
+  audit.record(actor,"메뉴 저장","메뉴 #"+id,label);
+ }
+ @Transactional
+ public void link(AccountPrincipal principal,Long id,String label,String url) {
+  store.lock();var actor=access.manager(principal);
+  var params=values("id",id,"label",InputRules.text(label,80,"링크 이름"),"url",CmsRules.url(url,true));
+  if(id==null) id=store.create("createLink",params);
+  else {exists("link",id);store.change("editLink",params);}
+  audit.record(actor,"외부 링크 저장","링크 #"+id,label);
+ }
+ @Transactional
+ public void deleteItem(AccountPrincipal principal,String type,long id) {
+  store.lock();var actor=access.manager(principal);
+  String noun=switch(type) {case "menus"->"Menu";case "links"->"Link";default->throw new BusinessException("항목을 확인하세요.");};
+  exists(noun.toLowerCase(Locale.ROOT),id);
+  if(type.equals("menus") && menus(principal).stream().anyMatch(m->Objects.equals(m.parentId(),id))) throw new BusinessException("하위 메뉴를 먼저 옮긴 뒤 삭제하세요.");
+  store.change("delete"+noun,id);
+  audit.record(actor,"항목 삭제",type+" #"+id,"");
+ }
+ @Transactional
+ public void reorder(AccountPrincipal principal,String type,List<Long> ids) {
+  store.lock();var actor=access.manager(principal);
+  List<Long> actual;
+  String noun;
+  switch(type) {
+   case "categories" -> {actual=categories().stream().map(Category::id).toList();noun="Category";}
+   case "menus" -> {actual=store.<Menu>all("menus",null).stream().map(Menu::id).toList();noun="Menu";}
+   case "links" -> {actual=links().stream().map(Link::id).toList();noun="Link";}
+   default -> throw new BusinessException("정렬할 항목을 확인하세요.");
+  }
+  if(ids==null || ids.size()!=actual.size() || new HashSet<>(ids).size()!=ids.size() || !new HashSet<>(actual).equals(new HashSet<>(ids)))
+   throw new BusinessException("목록이 변경되었습니다. 새로고침 후 다시 정렬하세요.");
+  for(int i=0;i<ids.size();i++) store.change("order"+noun,values("id",ids.get(i),"position",i));
+  audit.record(actor,"순서 변경",type,"총 "+ids.size()+"개");
+ }
+ @Transactional
+ public void reorderMenus(AccountPrincipal principal,Long parentId,List<Long> ids) {
+  store.lock();var actor=access.manager(principal);
+  var actual=menus(principal).stream().filter(m->Objects.equals(m.parentId(),parentId)).map(Menu::id).toList();
+  if(ids==null || ids.size()!=actual.size() || new HashSet<>(ids).size()!=ids.size() || !new HashSet<>(actual).equals(new HashSet<>(ids)))throw new BusinessException("목록이 변경되었습니다. 새로고침 후 다시 정렬하세요.");
+  for(int i=0;i<ids.size();i++)store.change("orderMenu",values("id",ids.get(i),"position",i));
+  audit.record(actor,"순서 변경","menus","총 "+ids.size()+"개");
+ }
+ @Transactional
+ public void saveSettings(AccountPrincipal principal,String group,Map<String,String> fields) {
+  store.lock();var actor=access.manager(principal);
+  var updated=new LinkedHashMap<String,String>();
+  switch(group) {
+   case "basic" -> {
+    updated.put("siteName",InputRules.text(fields.get("siteName"),80,"사이트 이름"));
+    updated.put("description",CmsRules.optional(fields.get("description"),500,"소개"));
+    String email=CmsRules.optional(fields.get("contactEmail"),254,"문의 이메일");
+    updated.put("contactEmail",email.isEmpty()?"":InputRules.email(email));
+    String home=CmsRules.optional(fields.get("homePageId"),20,"첫 화면");
+    if(!home.isEmpty()) {
+     long id=positiveId(home); if(store.one("publicPageById",id)==null) throw new BusinessException("발행된 페이지를 첫 화면으로 선택하세요.");
+    }
+    updated.put("homePageId",home);
+   }
+   case "design", "style" -> {
+    for(String key:List.of("primaryColor","headerColor")) {
+     String color=Objects.toString(fields.get(key),"");
+     if(!color.matches("#[a-fA-F0-9]{6}")) throw new BusinessException("색상을 다시 선택하세요.");
+     updated.put(key,color);
+    }
+    String radius=Objects.toString(fields.get("radius"),"");
+    if(!Set.of("0","8","12","20").contains(radius)) throw new BusinessException("모서리 모양을 선택하세요.");
+    updated.put("radius",radius);
+   }
+   case "components" -> {
+    updated.put("headerNote",CmsRules.optional(fields.get("headerNote"),120,"헤더 문구"));
+    updated.put("footerText",CmsRules.optional(fields.get("footerText"),500,"푸터 문구"));
+    String logo=CmsRules.optional(fields.get("logoId"),20,"로고");
+    if(!logo.isEmpty()) {long logoId=positiveId(logo);media.validate(principal,List.of(logoId));if(!media.required(logoId).mime().startsWith("image/"))throw new BusinessException("로고는 이미지 파일을 선택하세요.");}
+    updated.put("logoId",logo);
+   }
+   case "system" -> {
+    String size=Objects.toString(fields.get("postsPerPage"),"");
+    if(!Set.of("6","12","24").contains(size)) throw new BusinessException("콘텐츠 표시 개수를 선택하세요.");
+    updated.put("postsPerPage",size);
+   }
+   default -> throw new BusinessException("설정 항목을 확인하세요.");
+  }
+  if(group.equals("design")) {
+   String logo=CmsRules.optional(fields.get("logoId"),20,"로고");
+   if(!logo.isEmpty()) {long logoId=positiveId(logo);media.validate(principal,List.of(logoId));if(!media.required(logoId).mime().startsWith("image/"))throw new BusinessException("로고는 이미지 파일을 선택하세요.");}
+   updated.put("logoId",logo);updated.put("headerNote",CmsRules.optional(fields.get("headerNote"),120,"상단 문구"));
+   updated.put("footerText",CmsRules.optional(fields.get("footerText"),500,"하단 문구"));
+  }
+  if(group.equals("basic") && fields.containsKey("postsPerPage")) {
+   String size=fields.get("postsPerPage");if(!Set.of("6","12","24").contains(size))throw new BusinessException("목록 개수를 선택하세요.");updated.put("postsPerPage",size);
+  }
+  updated.forEach((key,value)->store.change("setting",values("key",key,"value",value)));
+  audit.record(actor,"사이트 설정 변경",group,String.join(", ",updated.keySet()));
+ }
+ public List<Activity> activities(AccountPrincipal principal,int page,String query) {
+  access.operator(principal); return store.all("activities",activityQuery(page,query));
+ }
+ public long activityCount(AccountPrincipal principal,String query) {
+  access.operator(principal);return store.one("activityCount",activityQuery(0,query));
+ }
+ public List<Activity> activities(AccountPrincipal principal,int page,String query,boolean drafts) {
+  access.operator(principal);var params=activityQuery(page,query);params.put("drafts",drafts);return store.all("activities",params);
+ }
+ public long activityCount(AccountPrincipal principal,String query,boolean drafts) {
+  access.operator(principal);var params=activityQuery(0,query);params.put("drafts",drafts);return store.one("activityCount",params);
+ }
+ private Map<String,Object> activityQuery(int page,String query) {
+  if(page<0||page>100000) throw new BusinessException("페이지 번호를 확인하세요.");
+  String q=CmsRules.optional(query,100,"검색어");
+  return values("offset",page*30,"search",q.isEmpty()?null:"%"+q.replace("!","!!").replace("%","!%").replace("_","!_")+"%");
+ }
+ private long positiveId(String value) {
+  try {long id=Long.parseLong(value);if(id>0)return id;}catch(NumberFormatException ignored){}
+  throw new BusinessException("선택한 항목을 확인하세요.");
+ }
+ private void exists(String statement,long id) {
+  if(store.one(statement,id)==null) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"항목을 찾을 수 없습니다.");
+ }
+}
+

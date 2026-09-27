@@ -2,22 +2,50 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:fragment="head(title)">
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title th:text="${title} + ' · AICA 백오피스'">AICA 백오피스</title>
+  <title th:text="${title} + ' · 인공지능 사관학교'">인공지능 사관학교</title>
   <link rel="stylesheet" th:href="@{/css/app.css}">
+  <link rel="stylesheet" th:href="@{/css/cms.css}">
+  <link rel="stylesheet" th:href="@{/css/page-blocks.css}">
+  <link rel="stylesheet" th:href="@{/css/quill.core.css}">
+  <link rel="stylesheet" th:href="@{/css/editor.css}">
+  <link rel="stylesheet" th:href="@{/css/flow.css}">
+  <meta name="operating-time-zone" th:content="${operatingTimeZone}">
+  <meta name="csrf-token" th:if="${_csrf != null}" th:content="${_csrf.token}">
+  <script defer th:src="@{/js/app.js}"></script>
+  <script defer th:src="@{/js/vendor/quill.js}"></script>
+  <script defer th:src="@{/js/rich-editor.js}"></script>
+  <script defer th:src="@{/js/cms.js}"></script>
+  <script defer th:src="@{/js/writing.js}"></script>
+  <script defer th:src="@{/js/flow.js}"></script>
 </head>
 <body>
-<header th:fragment="header" th:if="${currentUser != null}">
-  <a class="brand" th:href="@{/admin/posts}">AICA 백오피스</a>
-  <nav aria-label="주 메뉴">
-    <a th:href="@{/admin/posts}">게시물</a>
-    <a th:if="${canManageAccounts}" th:href="@{/admin/accounts}">계정 관리</a>
-    <a th:href="@{/account/password}">비밀번호 변경</a>
-    <form th:action="@{/logout}" method="post"><button type="submit">로그아웃</button></form>
-  </nav>
-  <span class="identity" th:text="${currentUser.displayName} + ' · ' + ${currentUser.role}"></span>
-</header>
+<div th:fragment="header" th:if="${currentUser != null}">
+  <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 3v17h17M8 15l4-5 4 2 5-8"/></symbol><symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h6"/></symbol><symbol id="i-pages" viewBox="0 0 24 24"><rect x="6" y="3" width="14" height="17" rx="2"/><path d="M3 7v15h13M10 8h6M10 12h6"/></symbol><symbol id="i-tree" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><path d="M12 8v5M5 16v-3h14v3"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/></symbol><symbol id="i-design" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 11h18M7 15h3M14 15h3"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6"/></symbol><symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H4v16h5M10 12h11M17 8l4 4-4 4"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol></defs></svg>
+  <a class="skip-link" href="#main-content">본문으로 바로가기</a>
+  <aside class="sidebar" id="sidebar" aria-label="관리자 메뉴">
+    <a class="brand" th:href="@{/admin}"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span class="brand-word">AICA<small>인공지능 사관학교</small></span></a>
+    <div class="workspace-label"><span class="live-dot"></span>홈페이지 관리센터<span class="workspace-tag">ADMIN</span></div>
+    <nav class="side-nav" aria-label="주 메뉴">
+      <a class="nav-root" th:href="@{/admin}" th:classappend="${activeNav == 'dashboard' ? 'active' : ''}"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>대시보드</span></a>
+      <section class="nav-section"><h2><svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg>콘텐츠</h2><div class="nav-children"><a th:href="@{/admin/posts}" th:classappend="${activeNav == 'posts' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'posts' ? 'page' : null}">글 관리</a><a th:if="${canManageAllPosts}" th:href="@{/admin/pages}" th:classappend="${activeNav == 'pages' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'pages' ? 'page' : null}">페이지 관리</a><a th:if="${canManageSite}" th:href="@{/admin/categories}" th:classappend="${activeNav == 'categories' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'categories' ? 'page' : null}">카테고리 관리</a><a th:href="@{/admin/media}" th:classappend="${activeNav == 'media' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'media' ? 'page' : null}">파일 관리</a></div></section>
+      <section class="nav-section" th:if="${canManageSite}"><h2><svg class="icon" aria-hidden="true"><use href="#i-design"></use></svg>사이트 꾸미기</h2><div class="nav-children"><a th:href="@{/admin/menus}" th:classappend="${activeNav == 'menus' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'menus' ? 'page' : null}">메뉴 설정</a><a th:href="@{/admin/design/style}" th:classappend="${activeNav == 'style' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'style' ? 'page' : null}">디자인 설정</a></div></section>
+      <section class="nav-section" th:if="${canManageAccounts}"><h2><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg>운영 관리</h2><div class="nav-children"><a th:href="@{/admin/accounts}" th:classappend="${activeNav == 'accounts' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'accounts' ? 'page' : null}">계정 관리</a><a th:href="@{/admin/activity}" th:classappend="${activeNav == 'activity' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'activity' ? 'page' : null}">활동 이력</a></div></section>
+      <section class="nav-section" th:if="${canManageSite}"><h2><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>설정</h2><div class="nav-children"><a th:href="@{/admin/settings/basic}" th:classappend="${activeNav == 'basic' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'basic' ? 'page' : null}">기본 정보</a><a th:href="@{/admin/settings/links}" th:classappend="${activeNav == 'links' ? 'active' : ''}" th:attr="aria-current=${activeNav == 'links' ? 'page' : null}">SNS / 외부 링크</a></div></section>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="sidebar-account" th:href="@{/account/password}"><span class="avatar" th:text="${#strings.substring(currentUser.displayName, 0, 1)}"></span><span class="account-info"><strong th:text="${currentUser.displayName}"></strong><small th:text="${roleLabel}"></small></span><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg></a>
+    </div>
+  </aside>
+  <button class="nav-backdrop" aria-label="메뉴 닫기" hidden></button>
+  <header class="topbar">
+    <div class="topbar-left"><button class="icon-button menu-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="sidebar"><svg class="icon" aria-hidden="true"><use href="#i-menu"></use></svg></button><span class="topbar-home">관리센터</span><span class="breadcrumb-slash">/</span><strong th:text="${sectionLabel}">대시보드</strong></div>
+    <div class="topbar-right"><span class="connection-label">홈페이지 연결 전</span><span class="preview-label" th:if="${previewMode}">로컬 개발 환경</span><span class="topbar-identity" th:text="${currentUser.displayName} + ' 님'"></span><form th:action="@{/logout}" method="post"><button class="logout-button" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-logout"></use></svg><span>로그아웃</span></button></form></div>
+  </header>
+</div>
 <div th:fragment="messages">
   <p class="error" role="alert" th:if="${formError != null}" th:text="${formError}"></p>
+  <div class="usage-links" th:if="${usages != null and !#lists.isEmpty(usages)}"><strong>사용 중인 곳</strong><a th:each="usage : ${usages}" th:href="${usage.href}" th:text="${usage.label}"></a></div>
   <p class="notice" role="status" th:if="${notice != null}" th:text="${notice}"></p>
 </div>
+<footer th:fragment="footer" class="page-footer"><span>© AICA. 인공지능 사관학교</span></footer>
 </body></html>

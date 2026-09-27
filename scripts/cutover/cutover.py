@@ -1,8 +1,8 @@
 """V10 cutover and rollback entry point. Rehearsal and execution use identical guards.
 
 No default DB or credentials. Commands require explicit paths and a pinned approval hash.
-All fixture writes stay in a separate smoke fork; the target only receives baseline and
-same-value MANUAL_DRAFT saves (new version rows, no published content changes).
+V3 cutover fixtures stay in a separate smoke fork; its target receives baseline and
+same-value MANUAL_DRAFT saves. V10 relocate-plan/relocate-approve are read-only.
 """
 import argparse, ctypes, hashlib, json, os, shutil, subprocess, sys, time, urllib.request, zipfile
 from pathlib import Path
@@ -217,6 +217,11 @@ def execute(a):
 
 def operate(a):
     root=Path(a.run_dir).resolve();info=load(root/'input.json');java=Path(a.java).resolve()
+    relocated=info.get('kind')=='V10_RELOCATION'
+    if relocated:
+        require(a.command=='serve','V10 relocation cannot use the V3 rollback command')
+        import relocation
+        relocation.runtime_check(root,info)
     db=Path(info['target']);rc=Path(info['rc']);v3=Path(info['v3'])
     require(digest(rc)==info['rcSha256'] and digest(v3)==info['v3Sha256'],'runtime checksum mismatch')
     evidence=root/(a.command+'-'+str(time.time_ns()));evidence.mkdir()
@@ -229,6 +234,11 @@ def operate(a):
         result=load(root/'result.json');require(result['success'] and not result['rollback'],'successful V10 cutover required')
         exclusive(db)
         server=start(java,rc,db,a.port,evidence,'normal-runtime',root/'runtime-receipt.json',agent=agent)
+        if relocated:
+            try: relocation.activated(root,server.pid)
+            except Exception:
+                stop(java,agent,server,evidence,'activation-failed',db)
+                raise
         print(f'V10 normal runtime ready on 127.0.0.1:{a.port}; validate-only; PID {server.pid}. Ctrl+C gracefully stops.',flush=True)
         try:
             server.wait()
@@ -237,6 +247,8 @@ def operate(a):
 
 def main():
     p=argparse.ArgumentParser();s=p.add_subparsers(dest='command',required=True)
+    import relocation
+    relocation.add_commands(s)
     a=s.add_parser('plan');a.add_argument('--java',required=True);a.add_argument('--rc',required=True);a.add_argument('--db',required=True);a.add_argument('--output',required=True)
     a=s.add_parser('run')
     for arg in ['java','rc','plan','approved-plan-sha','v3-runtime','v3-sha256','run-dir']: a.add_argument('--'+arg,required=True)
@@ -246,7 +258,9 @@ def main():
         a=s.add_parser(command);a.add_argument('--java',required=True);a.add_argument('--run-dir',required=True);a.add_argument('--port',type=int,default=8095)
         if command=='rollback': a.add_argument('--authorize-original-rollback',action='store_true')
     a=p.parse_args()
-    if a.command=='plan':
+    if a.command=='relocate-plan': relocation.plan(a)
+    elif a.command=='relocate-approve': relocation.approve(a)
+    elif a.command=='plan':
         exclusive(a.db);tool(Path(a.java).resolve(),Path(a.rc).resolve(),'plan',Path(a.db).resolve(),Path(a.output).resolve())
         print('Plan SHA-256:',digest(a.output),flush=True)
     elif a.command=='run': execute(a)

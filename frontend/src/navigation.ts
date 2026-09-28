@@ -11,6 +11,11 @@ export const managementGroups:{label:string;items:MenuEntry[]}[] = [
   {label:'사이트 설정',items:[{label:'기본 정보',path:'/settings/basic',access:'structure'},{label:'SNS / 외부 링크',path:'/settings/links',access:'structure'},{label:'시스템 설정',path:'/settings/system',access:'structure'}]}
 ];
 export const pagePath = (id:number,blockId?:string|null)=>`/pages/${id}/edit`+(blockId==null?'':'?'+new URLSearchParams({block:blockId}));
+export const pageOverviewPath = (id:number,blockId?:string|null)=>'/pages?'+new URLSearchParams({inspect:String(id),...(blockId==null?{}:{block:blockId})});
+export function pageOverviewId(search:URLSearchParams):number|null {
+  const value=search.get('inspect');
+  return value!==null&&/^[1-9]\d*$/.test(value)&&Number.isSafeInteger(Number(value))?Number(value):null;
+}
 export const contentPath = (categoryId:number|null)=>categoryId===null?'/posts':`/posts?categoryId=${categoryId}`;
 export const postEditorPath = (id:number)=>`/posts/${id}/edit`;
 export function destination(menu:Menu):string {

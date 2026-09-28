@@ -2,8 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {addressableBlock,hasStableBlockId,pageOutline,selectedBlockId} from '../src/blockNavigation.ts';
 import {newSection,duplicateSection,moveSection} from '../src/pageBlocks.ts';
-import {pagePath} from '../src/navigation.ts';
-import type {PageDocument,Section} from '../src/types.ts';
+import {pagePath,pageOverviewPath,pageOverviewId,canOpen} from '../src/navigation.ts';
+import type {Bootstrap,PageDocument,Section} from '../src/types.ts';
+
+test('structure overview uses the existing pages route and preserves exact page and block identity',()=>{
+ const block=newSection('HERO');
+ const url=new URL('/admin-next'+pageOverviewPath(65,block.id),'http://localhost');
+ assert.equal(url.pathname,'/admin-next/pages');
+ assert.equal(pageOverviewId(url.searchParams),65);
+ assert.equal(url.searchParams.get('block'),block.id);
+ assert.equal(pagePath(65,url.searchParams.get('block')),pagePath(65,block.id));
+ assert.equal(new URL(pageOverviewPath(65),'http://localhost').searchParams.has('block'),false);
+});
+test('invalid overview identifiers cannot select another page and existing page permissions remain required',()=>{
+ for(const value of ['', '0', '-1', '1.5', '01', '65oops', '9007199254740992'])assert.equal(pageOverviewId(new URLSearchParams({inspect:value})),null);
+ assert.equal(pageOverviewId(new URLSearchParams()),null);
+ for(const allowed of [false,true])assert.equal(canOpen('/pages',{permissions:{site:allowed}} as Bootstrap),allowed);
+});
 
 test('block URLs identify the same page and exact ID in both views',()=>{
  const a=newSection('HERO');

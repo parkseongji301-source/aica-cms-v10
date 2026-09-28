@@ -8,16 +8,19 @@ import {PageEditor} from './PageEditor';
 import {ContentPanel} from './ContentPanel';
 import {AccountsPanel,ActivityPanel,DashboardPanel,PagesPanel,PostsPanel,RolesPanel} from './ReadPanels';
 import {LinkManager,MediaPanel,SettingsPanel} from './EditPanels';
-import {canOpen,contentPath,destination,entries,managementGroups,pagePath} from './navigation';
+import {canOpen,contentPath,destination,entries,managementGroups,pagePath,pageOverviewPath,pageOverviewId} from './navigation';
 import {Empty,Feedback,Heading,messageOf,useRemote,setOperatingZone} from './ui';
 import {ReviewTree} from './ReviewTree';
 import {useWorkspaceRoutes} from './useWorkspaceRoutes';
 import {PageStructureBranch} from './PageStructureBranch';
+import {PageOverview} from './PageOverview';
 import {BlockDialog} from './BlockDialog';
 import {ContentTree} from './ContentTree';
+import {NavigationIcon,managementIcons} from './NavigationIcon';
 import {contentSections,sectionType,returnSectionPath} from './contentNavigation';
 import './styles.css';
 import './workspace.css';
+import './design.css';
 
 function initialMode(userId:number):ViewMode {
   const value=new URLSearchParams(location.search).get('view');
@@ -64,9 +67,17 @@ function Workspace({initial}:{initial:Bootstrap}) {
   const section=navType?contentSections[navType]:null,sectionKey=section?new URLSearchParams(route.query).get(section.param):null;
   const activePage=/^\/pages\/(\d+)\/edit$/.exec(route.path);
   const activeBlock=new URLSearchParams(route.query).get('block');
-  const activePageId=activePage?Number(activePage[1]):null;
+  const inspectedPageId=mode==='structure'&&route.path==='/pages'?pageOverviewId(new URLSearchParams(route.query)):null;
+  const activePageId=activePage?Number(activePage[1]):inspectedPageId;
   const activePost=/^\/posts\/(\d+)\/edit$/.exec(route.path);
-  const title=activePost?contentTargets[Number(activePost[1])]?.title||'콘텐츠 편집':activePage?data.pages.find(p=>p.id===Number(activePage[1]))?.title||'페이지 편집':route.path==='/posts'&&section?(section.label+(sectionKey==='all'?'':' · '+(section.nodes.find(n=>n.key===sectionKey)?.label||''))):entries.find(e=>e.path===route.path)?.label||'화면을 찾을 수 없습니다';
+  const title=activePost?contentTargets[Number(activePost[1])]?.title||'콘텐츠 편집':activePageId!==null?data.pages.find(p=>p.id===activePageId)?.title||(activePage?'페이지 편집':'페이지 구조'):route.path==='/posts'&&section?(section.label+(sectionKey==='all'?'':' · '+(section.nodes.find(n=>n.key===sectionKey)?.label||''))):entries.find(e=>e.path===route.path)?.label||'화면을 찾을 수 없습니다';
+  const editPage=(id:number,block?:string)=>{navigate(pagePath(id,block),false,false,'manage');setSidebarOpen(false);};
+  const switchMode=(next:ViewMode)=>{
+    if(next===mode)return;
+    if(next==='structure'&&activePage)navigate(pageOverviewPath(Number(activePage[1]),activeBlock),false,false,next);
+    else if(next==='manage'&&inspectedPageId!==null)navigate(pagePath(inspectedPageId,activeBlock),false,false,next);
+    else setMode(next);
+  };
   useEffect(()=>{document.title=title+' · AICA 관리센터';},[title]);
   const linkedPages=new Set(data.menus.filter(m=>m.kind==='PAGE').map(m=>m.targetId));
   const linkedCategories=new Set(data.menus.filter(m=>m.kind==='CATEGORY').map(m=>m.targetId));
@@ -84,15 +95,23 @@ function Workspace({initial}:{initial:Bootstrap}) {
   };
   return <div className="next-admin phase-two">
     <a className="skip-link" href="#next-workspace">본문으로 바로가기</a>
-    <header className="topbar"><button className="mobile-menu" aria-label="탐색 메뉴" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(!sidebarOpen)}>☰</button><div className="view-switch" role="group" aria-label="탐색 방식"><button aria-pressed={mode==='manage'} onClick={()=>setMode('manage')}>사이트 관리</button><button aria-pressed={mode==='structure'} onClick={()=>setMode('structure')}>사이트 구조</button></div><div className="topbar-right"><span>{data.user.roleLabel} · {data.user.name}</span><a href="/admin" target="_blank" rel="noopener noreferrer">기존 관리자 ↗</a><button className="text-link" onClick={refresh} aria-label="메뉴와 데이터 새로고침">새로고침</button></div></header>
-    <aside className={'sidebar'+(sidebarOpen?' sidebar-open':'')}><div className="brand"><span className="brand-icon">A</span><div>AICA<small>인공지능 사관학교</small></div></div><div className="sidebar-caption">{mode==='manage'?'사이트 관리':'사이트 구조'}</div><div className="sidebar-scroll">
-    {mode==='manage'?<nav aria-label="사이트 관리">{managementGroups.map((group,index)=><div className="nav-group" key={index}>{group.label&&<h2>{group.label}</h2>}{group.items.map(item=><button key={item.path} className={route.path===item.path||item.path==='/pages'&&activePage||item.path==='/posts'&&activePost?'selected':''} aria-current={route.path===item.path?'page':undefined} disabled={!!item.access&&!data.permissions[item.access]} title={item.access&&!data.permissions[item.access]?'이 계정에는 권한이 없습니다.':undefined} onClick={()=>go(item.path)}>{item.label}{item.access&&!data.permissions[item.access]&&<small>권한 없음</small>}</button>)}</div>)}</nav>:<nav aria-label="사이트 구조">
+    <header className="topbar"><button className="mobile-menu" aria-label="탐색 메뉴" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(!sidebarOpen)}>☰</button><span className="topbar-title"><NavigationIcon name="dashboard"/>관리센터</span><div className="topbar-right"><span className="operator-info"><span className="operator-role">{data.user.roleLabel}</span><span className="operator-avatar" aria-hidden="true">{data.user.name.slice(0,1)}</span><span>{data.user.name}</span></span><a href="/admin" target="_blank" rel="noopener noreferrer">기존 관리자 ↗</a><button className="text-link" onClick={refresh} aria-label="메뉴와 데이터 새로고침">새로고침</button></div></header>
+    <aside className={'sidebar'+(sidebarOpen?' sidebar-open':'')} aria-label="워크스페이스 탐색"><button type="button" className="brand brand-home" aria-label="AICA 관리센터 홈으로 이동" title="관리센터 홈으로 이동" onClick={()=>{navigate('/dashboard',false,false,'manage');setSidebarOpen(false);}}><span className="brand-icon" aria-hidden="true">A</span><span className="brand-name">AICA<small>인공지능 사관학교</small></span></button>
+    <div className="sidebar-view">
+      <div className="view-switch" role="group" aria-label="탐색 방식">
+        <button aria-pressed={mode==='manage'} onClick={()=>switchMode('manage')}>사이트 관리</button>
+        <button aria-pressed={mode==='structure'} onClick={()=>switchMode('structure')}>사이트 구조</button>
+      </div>
+      <p className="sidebar-view-note">{mode==='manage'?'콘텐츠와 설정 관리':'페이지와 콘텐츠 관계 탐색'}</p>
+    </div>
+    <div className="sidebar-scroll">
+    {mode==='manage'?<nav className="management-navigation" aria-label="사이트 관리">{managementGroups.map((group,index)=><div className={'nav-group'+(group.label?' nav-group-labeled':'')} key={index}>{group.label&&<h2><NavigationIcon name={managementIcons[group.label]??'folder'}/><span>{group.label}</span></h2>}{group.items.map(item=><button key={item.path} className={route.path===item.path||item.path==='/pages'&&activePage||item.path==='/posts'&&activePost?'selected':''} aria-current={route.path===item.path?'page':undefined} disabled={!!item.access&&!data.permissions[item.access]} title={item.access&&!data.permissions[item.access]?'이 계정에는 권한이 없습니다.':undefined} onClick={()=>go(item.path)}>{!group.label&&<NavigationIcon name={item.path==='/dashboard'?'dashboard':'link'}/>}<span className="nav-item-copy"><span>{item.label}</span>{item.access&&!data.permissions[item.access]&&<small>권한 없음</small>}</span></button>)}</div>)}</nav>:<nav className="structure-navigation" aria-label="사이트 구조">
       {!data.permissions.site?<p className="nav-note">사이트 구조 조회 권한이 없습니다.</p>:<>
       <ReviewTree catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?reviewKey:null} go={go} error={reviewCatalog.error}/>
       <ContentTree type="FAQ" catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?faqKey:null} go={go} error=""/>
       <ContentTree type="RESTAURANT" catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?restaurantKey:null} go={go} error=""/>
       {structure.error&&<p className="nav-note" role="alert">블록 탐색을 불러오지 못했습니다. {structure.error}</p>}
-      <h2>홈페이지 메뉴</h2><ul className="structure-tree">{data.menus.map(menu=>menu.kind==='PAGE'&&menu.targetId!==null?<PageStructureBranch key={menu.id} id={menu.targetId} label={menu.label} hidden={!menu.visible} outline={outlineFor(menu.targetId)} activePage={activePageId} activeBlock={activeBlock} go={go}/>:<li key={menu.id}><button disabled={menu.kind==='LINK'&&!data.permissions.structure} className={selected(destination(menu))?'selected':''} data-menu-id={menu.id} data-category-id={menu.kind==='CATEGORY'?menu.targetId:undefined} onClick={()=>go(destination(menu))}><span className="tree-line">└</span><span>{menu.label}<small>{menu.kind==='CATEGORY'?'콘텐츠 목록':menu.kind==='LINK'?'직접 링크':''}{!menu.visible?' · 숨김':''}</small></span></button></li>)}</ul>{!data.menus.length&&<p className="nav-note">등록된 메뉴 없음</p>}
+      <h2>홈페이지 메뉴</h2><ul className="structure-tree">{data.menus.map(menu=>menu.kind==='PAGE'&&menu.targetId!==null?<PageStructureBranch key={menu.id} id={menu.targetId} label={menu.label} hidden={!menu.visible} outline={outlineFor(menu.targetId)} activePage={activePageId} activeBlock={activeBlock} go={go}/>:<li key={menu.id}><button disabled={menu.kind==='LINK'&&!data.permissions.structure} className={selected(destination(menu))?'selected':''} data-menu-id={menu.id} data-category-id={menu.kind==='CATEGORY'?menu.targetId:undefined} onClick={()=>go(destination(menu))}><NavigationIcon name={menu.kind==='CATEGORY'?'folder':'link'}/><span className="nav-item-copy"><span>{menu.label}</span><small>{menu.kind==='CATEGORY'?'콘텐츠 목록':menu.kind==='LINK'?'직접 링크':''}{!menu.visible?' · 숨김':''}</small></span></button></li>)}</ul>{!data.menus.length&&<p className="nav-note">등록된 메뉴 없음</p>}
       {data.pages.some(p=>!linkedPages.has(p.id))&&<><h2>메뉴 밖 페이지</h2><ul className="structure-tree">{data.pages.filter(p=>!linkedPages.has(p.id)).map(p=><PageStructureBranch key={p.id} id={p.id} label={p.title} outline={outlineFor(p.id)} activePage={activePageId} activeBlock={activeBlock} go={go}/>)}</ul></>}
       {data.categories.some(c=>!linkedCategories.has(c.id))&&<><h2>기존 카테고리</h2><p className="nav-note">방문자 메뉴에 연결되지 않은 카테고리</p>{data.categories.filter(c=>!linkedCategories.has(c.id)).map(c=><button key={c.id} data-category-id={c.id} className={selected(contentPath(c.id))?'selected':''} onClick={()=>go(contentPath(c.id))}>{c.name}</button>)}</>}
       {!data.pages.length&&!data.categories.length&&!data.menus.length&&<p className="nav-note">연결할 원본이 아직 없습니다.</p>}
@@ -101,11 +120,13 @@ function Workspace({initial}:{initial:Bootstrap}) {
     <main id="next-workspace"><div className="breadcrumbs"><span>{mode==='manage'?'사이트 관리':'사이트 구조'}</span><span>/</span><span>{title}</span></div><Feedback error={navigationError}/>
       {Object.entries(visited).map(([key,savedRoute])=>{
         const active=key===route.path,match=/^\/pages\/(\d+)\/edit$/.exec(key),postMatch=/^\/posts\/(\d+)\/edit$/.exec(key);
+        const inspectedId=mode==='structure'&&key==='/pages'?pageOverviewId(new URLSearchParams(savedRoute.query)):null;
         const props={active,version,data,go,refresh,search:new URLSearchParams(savedRoute.query)};
         let panel;
         if(!canOpen(key,data))panel=<><Heading title={entries.some(e=>e.path===key)||match?'접근 권한이 없습니다.':'화면을 찾을 수 없습니다.'}/><Empty>사이트 관리에서 사용할 수 있는 메뉴를 선택하세요.</Empty></>;
         else if(match)panel=<PagePanel blockId={new URLSearchParams(savedRoute.query).get('block')} viewMode={mode} onSelectBlock={(block,replace)=>navigate(pagePath(Number(match[1]),block),replace)} onOutline={updatedOutline} registerGuard={registerGuard} id={Number(match[1])} active={active} data={data} go={go} onTitle={name=>savedPage(Number(match[1]),name)}/>;
         else if(postMatch)panel=<ContentPanel registerGuard={registerGuard} canPublish={!!data.permissions.publish} id={Number(postMatch[1])} active={active} categories={data.categories} onLoaded={loadedContent} onSaved={post=>{loadedContent(post);refresh();}} onList={()=>go(visited['/posts']?'/posts'+visited['/posts'].query:returnSectionPath(new URLSearchParams(savedRoute.query),reviewCatalog.data)||'/posts')} onMediaChange={refresh}/>;
+        else if(inspectedId!==null)panel=<PageOverview page={data.pages.find(p=>p.id===inspectedId)} menus={data.menus} outline={structure.data?.find(p=>p.pageId===inspectedId)} loading={structure.loading} error={structure.error} blockId={new URLSearchParams(savedRoute.query).get('block')} onSelectBlock={block=>go(pageOverviewPath(inspectedId,block))} onEdit={block=>editPage(inspectedId,block)} onRetry={structure.reload}/>;
         else switch(key) {
           case '/dashboard':panel=<DashboardPanel {...props}/>;break;
           case '/posts':panel=<PostsPanel {...props}/>;break;

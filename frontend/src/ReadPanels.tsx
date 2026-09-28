@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import type {AccountRow,ActivityList,Bootstrap,Dashboard,Go,PostList,PostRow,RoleRow,ClassificationCatalog} from './types';
+import type {AccountRow,ActivityList,Bootstrap,Dashboard,Go,PostList,PostRow,RoleRow,ClassificationCatalog,ViewMode} from './types';
 import {topicLabel} from './classification';
 import {allowedTopicIds} from './classification';
 import {contextualPostPath,filterValues,contentContext,draftSelection,scopedPostParams,contentSections} from './contentNavigation';
@@ -21,7 +21,7 @@ export function DashboardPanel({active,version,data,go}:Props) {
     <section className="card"><header className="panel-header"><h2>최근 콘텐츠</h2><button className="text-link" onClick={()=>go('/posts')}>전체 보기 →</button></header><PostTable items={d.recentPosts} categories={data.categories} go={go}/></section>
   </>}</section>;
 }
-export function PostsPanel({active,version,data,go,search}:Props) {
+export function PostsPanel({active,version,data,go,search,viewMode}:Props&{viewMode:ViewMode}) {
   const q=search.get('q')||'',status=search.get('status')||'',category=search.get('categoryId')||'',page=Math.max(0,Number(search.get('page')||0)||0);
   const [term,setTerm]=useState(q);useEffect(()=>setTerm(q),[q]);
   const catalog=useRemote<ClassificationCatalog>('/classifications',active,version);
@@ -34,8 +34,8 @@ export function PostsPanel({active,version,data,go,search}:Props) {
   const toggle=(key:string,value:string)=>change({[key]:(multi(key).includes(value)?multi(key).filter(v=>v!==value):[...multi(key),value]).join(',')});
   const categoryName=data.categories.find(c=>String(c.id)===category)?.name;
   const listTitle=scope?(scope.key==='all'?section!.label:`${section!.label} · ${scope.label}`):categoryName?`콘텐츠 목록 · ${categoryName}`:'콘텐츠 목록';
-  return <section><Heading title={listTitle} note={scope?`${section!.parent} / ${section!.label} · 초안 기준`:'기존 콘텐츠를 선택해 편집합니다. 새 콘텐츠 작성·발행은 기존 관리자에서 처리합니다.'} actions={scope?<button className="primary" disabled={!!scope.error||!!catalog.error||catalog.loading} onClick={()=>setCreating(true)}>＋ 새 {scope.type==='RESTAURANT'?'맛집':section!.label}</button>:<LegacyLink href={'/admin/posts/new'+(category?'?categoryId='+category:'')}>＋ 새 콘텐츠</LegacyLink>}/>
-    {creating&&scope&&!scope.error&&<CreateContentDraft selection={draftSelection(scope)} catalog={catalog.data!} onClose={()=>setCreating(false)} onCreated={post=>{setCreating(false);result.reload();go(contextualPostPath(post.id,scope));}}/>}
+  return <section><Heading title={listTitle} note={viewMode==='manage'?'기존 콘텐츠를 검색하고 관리합니다. 새 콘텐츠는 상단 ‘콘텐츠 편집’에서 작성하세요.':scope?`${section!.parent} / ${section!.label} · 초안 기준`:'새 콘텐츠를 작성하거나 기존 콘텐츠를 선택해 편집합니다.'} actions={viewMode==='structure'&&(scope?<button className="primary" disabled={!!scope.error||!!catalog.error||catalog.loading} onClick={()=>setCreating(true)}>＋ 새 {scope.type==='RESTAURANT'?'맛집':section!.label}</button>:<LegacyLink href={'/admin/posts/new'+(category?'?categoryId='+category:'')}>＋ 새 콘텐츠</LegacyLink>)}/>
+    {active&&viewMode==='structure'&&creating&&scope&&!scope.error&&<CreateContentDraft selection={draftSelection(scope)} catalog={catalog.data!} onClose={()=>setCreating(false)} onCreated={post=>{setCreating(false);result.reload();go(contextualPostPath(post.id,scope));}}/>}
     {scope?.error&&<Feedback error={catalog.error||scope.error}/>}
     <section className="card"><div className="filter-bar"><div className="status-tabs">{[['','전체'],['DRAFT','임시저장'],['PUBLISHED','발행'],['PRIVATE','비공개']].map(([value,label])=><button key={value} aria-pressed={status===value} onClick={()=>change({status:value})}>{label}</button>)}</div><button className="text-link" onClick={result.reload}>새로고침</button></div>
     <form className="search-bar" onSubmit={e=>{e.preventDefault();change({q:term});}}><select aria-label="기존 카테고리 필터" value={category} onChange={e=>change({categoryId:e.target.value})}><option value="">전체 카테고리</option>{data.categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><input aria-label="콘텐츠 검색" maxLength={100} value={term} onChange={e=>setTerm(e.target.value)} placeholder={scope?.type==='FAQ'?'질문·답변 검색':scope?.type==='RESTAURANT'?'식당명·소개 검색':'제목·본문 검색'}/><button>검색</button>{data.permissions.structure&&<LegacyLink href="/admin/categories">기존 카테고리 관리</LegacyLink>}</form>
@@ -51,7 +51,7 @@ export function PostsPanel({active,version,data,go,search}:Props) {
 }
 export function PagesPanel({data,go}:Props) {
   const [q,setQ]=useState(''),[status,setStatus]=useState('');const items=data.pages.filter(p=>p.title.toLowerCase().includes(q.toLowerCase())&&(!status||p.status===status));
-  return <section><Heading title="전체 페이지 현황" note="사이트 구조와 같은 페이지 원본을 편집합니다." actions={<LegacyLink href="/admin/pages">{data.permissions.structure?'발행·페이지 추가 등 관리':'기존 페이지 발행 관리'}</LegacyLink>}/><section className="card"><div className="search-bar"><input aria-label="페이지 검색" value={q} onChange={e=>setQ(e.target.value)} placeholder="페이지 이름 검색"/><select aria-label="페이지 상태" value={status} onChange={e=>setStatus(e.target.value)}><option value="">전체 상태</option><option value="DRAFT">임시저장</option><option value="PUBLISHED">발행</option><option value="PRIVATE">비공개</option></select><span>{items.length}개</span></div><div className="table-scroll"><table className="data-table"><thead><tr><th>페이지</th><th>상태</th><th>최근 수정</th><th>작업</th></tr></thead><tbody>{items.map(p=><tr key={p.id}><td><button className="text-link" data-page-id={p.id} onClick={()=>go(pagePath(p.id))}>{p.title}</button><small className="row-meta">/{p.slug}</small></td><td><Status value={p.status} pending={p.pending}/></td><td>{date(p.updatedAt)}</td><td><button onClick={()=>go(pagePath(p.id))}>편집</button></td></tr>)}</tbody></table>{!items.length&&<Empty/>}</div></section></section>;
+  return <section><Heading title="전체 페이지 현황" note="콘텐츠 편집 화면과 같은 페이지 원본을 편집합니다." actions={<LegacyLink href="/admin/pages">{data.permissions.structure?'발행·페이지 추가 등 관리':'기존 페이지 발행 관리'}</LegacyLink>}/><section className="card"><div className="search-bar"><input aria-label="페이지 검색" value={q} onChange={e=>setQ(e.target.value)} placeholder="페이지 이름 검색"/><select aria-label="페이지 상태" value={status} onChange={e=>setStatus(e.target.value)}><option value="">전체 상태</option><option value="DRAFT">임시저장</option><option value="PUBLISHED">발행</option><option value="PRIVATE">비공개</option></select><span>{items.length}개</span></div><div className="table-scroll"><table className="data-table"><thead><tr><th>페이지</th><th>상태</th><th>최근 수정</th><th>작업</th></tr></thead><tbody>{items.map(p=><tr key={p.id}><td><button className="text-link" data-page-id={p.id} onClick={()=>go(pagePath(p.id))}>{p.title}</button><small className="row-meta">/{p.slug}</small></td><td><Status value={p.status} pending={p.pending}/></td><td>{date(p.updatedAt)}</td><td><button onClick={()=>go(pagePath(p.id))}>편집</button></td></tr>)}</tbody></table>{!items.length&&<Empty/>}</div></section></section>;
 }
 export function AccountsPanel({active,version,data}:Props) {
   const result=useRemote<AccountRow[]>('/accounts',active,version);

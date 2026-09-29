@@ -24,8 +24,8 @@ export const get = <T>(path:string,signal?:AbortSignal)=>request<T>(base+path,{s
 export const send = <T>(path:string,method:string,body?:unknown)=>request<T>(base+path,{method,...(body===undefined?{}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})});
 export const uploadMedia = (file:File)=>{const body=new FormData();body.append('file',file);return request<ImageFile>(base+'/media',{method:'POST',body});};
 export const getPost=(id:number,signal?:AbortSignal)=>get<PostDocument>(`/posts/${id}`,signal);
-export const createPost=(title:string,classification:ClassificationSelection)=>send<PostDocument>('/posts','POST',{
-  saveIntent:'AUTOSAVE',title,content:'',richContent:null,categoryId:null,mediaIds:[],classification:classificationSelection(classification)
+export const createPost=(title:string,classification:ClassificationSelection,categoryId:number|null=null)=>send<PostDocument>('/posts','POST',{
+  saveIntent:'AUTOSAVE',title,content:'',richContent:null,categoryId,mediaIds:[],classification:classificationSelection(classification)
 });
 export const getClassifications=(signal?:AbortSignal)=>get<ClassificationCatalog>('/classifications',signal);
 export const getPublication=(id:number,signal?:AbortSignal)=>get<PostPublication>(`/posts/${id}/publication`,signal);

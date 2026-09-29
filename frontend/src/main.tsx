@@ -100,13 +100,12 @@ function Workspace({initial}:{initial:Bootstrap}) {
     <div className="sidebar-view">
       <div className="view-switch" role="group" aria-label="탐색 방식">
         <button aria-pressed={mode==='manage'} onClick={()=>switchMode('manage')}>사이트 관리</button>
-        <button aria-pressed={mode==='structure'} onClick={()=>switchMode('structure')}>콘텐츠 편집</button>
+        <button aria-pressed={mode==='structure'} onClick={()=>switchMode('structure')}>콘텐츠 작업</button>
       </div>
       <p className="sidebar-view-note">{mode==='manage'?'콘텐츠와 설정 관리':'페이지와 콘텐츠 관계 탐색'}</p>
     </div>
     <div className="sidebar-scroll">
-    {mode==='manage'?<nav className="management-navigation" aria-label="사이트 관리">{managementGroups.map((group,index)=><div className={'nav-group'+(group.label?' nav-group-labeled':'')} key={index}>{group.label&&<h2><NavigationIcon name={managementIcons[group.label]??'folder'}/><span>{group.label}</span></h2>}{group.items.map(item=><button key={item.path} className={route.path===item.path||item.path==='/pages'&&activePage||item.path==='/posts'&&activePost?'selected':''} aria-current={route.path===item.path?'page':undefined} disabled={!!item.access&&!data.permissions[item.access]} title={item.access&&!data.permissions[item.access]?'이 계정에는 권한이 없습니다.':undefined} onClick={()=>go(item.path)}>{!group.label&&<NavigationIcon name={item.path==='/dashboard'?'dashboard':'link'}/>}<span className="nav-item-copy"><span>{item.label}</span>{item.access&&!data.permissions[item.access]&&<small>권한 없음</small>}</span></button>)}</div>)}</nav>:<nav className="structure-navigation" aria-label="콘텐츠 편집">
-      <div className="review-navigation"><h2>콘텐츠 작성</h2><button className={route.path==='/posts'&&!navType&&!new URLSearchParams(route.query).has('categoryId')?'selected':''} onClick={()=>go('/posts')}><NavigationIcon name="content"/><span className="nav-item-copy"><span>전체 콘텐츠</span></span></button></div>
+    {mode==='manage'?<nav className="management-navigation" aria-label="사이트 관리">{managementGroups.map((group,index)=><div className={'nav-group'+(group.label?' nav-group-labeled':'')} key={index}>{group.label&&<h2><NavigationIcon name={managementIcons[group.label]??'folder'}/><span>{group.label}</span></h2>}{group.items.map(item=><button key={item.path} className={route.path===item.path||item.path==='/pages'&&activePage||item.path==='/posts'&&activePost?'selected':''} aria-current={route.path===item.path?'page':undefined} disabled={!!item.access&&!data.permissions[item.access]} title={item.access&&!data.permissions[item.access]?'이 계정에는 권한이 없습니다.':undefined} onClick={()=>go(item.path)}>{!group.label&&<NavigationIcon name={item.path==='/dashboard'?'dashboard':'link'}/>}<span className="nav-item-copy"><span>{item.label}</span>{item.access&&!data.permissions[item.access]&&<small>권한 없음</small>}</span></button>)}</div>)}</nav>:<nav className="structure-navigation" aria-label="콘텐츠 작업">
       {!data.permissions.site?<p className="nav-note">페이지와 메뉴 구성은 조회 권한이 있는 계정에 표시됩니다.</p>:<>
       <ReviewTree catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?reviewKey:null} go={go} error={reviewCatalog.error}/>
       <ContentTree type="FAQ" catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?faqKey:null} go={go} error=""/>
@@ -118,7 +117,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
       {!data.pages.length&&!data.categories.length&&!data.menus.length&&<p className="nav-note">연결할 원본이 아직 없습니다.</p>}
       </>}
     </nav>}</div><div className="sidebar-footer"><span>홈페이지 연결 전</span><small>동일한 원본 · 두 가지 탐색</small></div></aside>
-    <main id="next-workspace"><div className="breadcrumbs"><span>{mode==='manage'?'사이트 관리':'콘텐츠 편집'}</span><span>/</span><span>{title}</span></div><Feedback error={navigationError}/>
+    <main id="next-workspace"><div className="breadcrumbs"><span>{mode==='manage'?'사이트 관리':'콘텐츠 작업'}</span><span>/</span><span>{title}</span></div><Feedback error={navigationError}/>
       {Object.entries(visited).map(([key,savedRoute])=>{
         const active=key===route.path,match=/^\/pages\/(\d+)\/edit$/.exec(key),postMatch=/^\/posts\/(\d+)\/edit$/.exec(key);
         const inspectedId=mode==='structure'&&key==='/pages'?pageOverviewId(new URLSearchParams(savedRoute.query)):null;
@@ -130,7 +129,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
         else if(inspectedId!==null)panel=<PageOverview page={data.pages.find(p=>p.id===inspectedId)} menus={data.menus} outline={structure.data?.find(p=>p.pageId===inspectedId)} loading={structure.loading} error={structure.error} blockId={new URLSearchParams(savedRoute.query).get('block')} onSelectBlock={block=>go(pageOverviewPath(inspectedId,block))} onEdit={block=>editPage(inspectedId,block)} onRetry={structure.reload}/>;
         else switch(key) {
           case '/dashboard':panel=<DashboardPanel {...props}/>;break;
-          case '/posts':panel=<PostsPanel {...props} viewMode={mode}/>;break;
+          case '/posts':panel=<PostsPanel {...props}/>;break;
           case '/pages':panel=<PagesPanel {...props}/>;break;
           case '/media':panel=<MediaPanel {...props}/>;break;
           case '/menus':panel=<LinkManager {...props} type="menus"/>;break;

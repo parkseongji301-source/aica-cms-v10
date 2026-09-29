@@ -23,14 +23,14 @@ export function Heading({title,note,actions,badge}:{title:string;note?:string;ac
   return <div className="editor-heading"><div><h1>{title} {badge&&<span className="scope-tag">{badge}</span>}</h1>{note&&<p className="target-caption">{note}</p>}</div><div className="heading-actions">{actions}</div></div>;
 }
 export function LegacyLink({href,children}:{href:string;children:ReactNode}) {
-  return <a className="legacy-link" href={href} target="_blank" rel="noopener noreferrer">{children} <span>기존 화면 ↗</span></a>;
+  return <a className="legacy-link" href={href} target="_blank" rel="noopener noreferrer">{children} <span>기존 화면 · 새 창 ↗</span></a>;
 }
-export function Feedback({error,loading,message}:{error?:string;loading?:boolean;message?:string}) {
-  return <>{loading&&<p className="loading-line" role="status">불러오는 중…</p>}{error&&<div className="error-box" role="alert">{error}</div>}{message&&<p className="success-line" role="status">{message}</p>}</>;
+export function Feedback({error,loading,message,reload}:{error?:string;loading?:boolean;message?:string;reload?:()=>void}) {
+  return <>{loading&&<p className="loading-line" role="status">불러오는 중…</p>}{error&&<div className="error-box" role="alert"><strong>처리하지 못했습니다.</strong><p>{error}</p>{reload&&<button disabled={loading} onClick={reload}>다시 불러오기</button>}</div>}{message&&<p className="success-line" role="status">{message}</p>}</>;
 }
 export function Empty({children='등록된 항목이 없습니다.'}:{children?:ReactNode}) {return <div className="empty-state">{children}</div>;}
-export function Status({value,pending=false}:{value:string;pending?:boolean}) {
-  return <span className="table-status"><span className={'status-tag state-'+value.toLowerCase()}>{({DRAFT:'임시저장',PUBLISHED:'발행',PRIVATE:'비공개'} as Record<string,string>)[value]||value}</span>{pending&&<small>미반영 수정</small>}</span>;
+export function Status({value,pending=false,pageWording=false}:{value:string;pending?:boolean;pageWording?:boolean}) {
+  return <span className="table-status"><span className={'status-tag state-'+value.toLowerCase()}>{(pageWording?({DRAFT:'임시보관',PUBLISHED:'게시됨',PRIVATE:'비공개'} as Record<string,string>):({DRAFT:'임시저장',PUBLISHED:'발행',PRIVATE:'비공개'} as Record<string,string>))[value]||value}</span>{pending&&<small>{pageWording?'미게시 수정 있음':'미반영 수정'}</small>}</span>;
 }
 export function Pager({page,total,size,onChange}:{page:number;total:number;size:number;onChange:(page:number)=>void}) {
   const pages=Math.max(1,Math.ceil(total/size));return <div className="pagination"><span>{total}개 · {page+1} / {pages}</span><button disabled={page<=0} onClick={()=>onChange(page-1)}>이전</button><button disabled={page+1>=pages} onClick={()=>onChange(page+1)}>다음</button></div>;

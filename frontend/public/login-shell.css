@@ -1,0 +1,28 @@
+/* Authentication presentation only. No form or authentication behavior changes. */
+body.login-layout { background:#f4f5f6; grid-template-columns:minmax(260px, .8fr) minmax(420px,1.2fr); color:#292d32; }
+.login-layout .login-brand-panel { background:#fff; color:#292d32; border-right:1px solid #e0e2e5; padding:48px; }
+.login-layout .login-brand-panel .brand-word { color:#315ad8; }
+.login-layout .login-brand-panel .brand-word small { color:#686e76; }
+.login-layout .login-message h2 { font-size:30px; line-height:1.6; letter-spacing:-.6px; }
+.login-layout .login-message p,.login-layout .login-message .eyebrow,.login-layout .login-brand-panel>small { color:#686e76; }
+.login-layout .login-orbit { display:none; }
+.login-layout .login-main { padding:48px; }
+.login-layout .login-box { max-width:440px; background:#fff; border:1px solid #e0e2e5; padding:36px; border-radius:3px; box-sizing:border-box; }
+.login-layout .login-box h1 { font-size:26px; }
+.login-layout .login-box .eyebrow,.login-layout .login-box .page-description,.login-layout .login-footnote { color:#686e76; font-size:13px; line-height:1.8; }
+.login-layout .login-box label { font-size:14px; }
+.login-layout .login-box input { min-height:44px; border:1px solid #d5d8de; border-radius:3px; box-shadow:none; }
+.login-layout .login-box button { background:#315ad8; border-radius:3px; min-height:44px; box-shadow:none; }
+.login-layout .login-box input:focus-visible,.login-layout .login-box button:focus-visible { outline:2px solid #315ad8; outline-offset:3px; }
+.login-layout .login-box .error,.login-layout .login-box .notice { font-size:13px; line-height:1.8; border-radius:3px; }
+body.admin-layout:has(form[action='/account/password']) { background:#f4f5f6; }
+body.admin-layout:has(form[action='/account/password']) main.narrow { background:white; padding:32px; border:1px solid #e0e2e5; border-radius:3px; box-shadow:none; }
+body.admin-layout:has(form[action='/account/password']) main.narrow input,body.admin-layout:has(form[action='/account/password']) main.narrow button { border-radius:3px; min-height:44px; }
+@media(max-width:800px) {
+ body.login-layout { grid-template-columns:1fr; }
+ .login-layout .login-brand-panel { min-height:0; padding:24px; border-right:0; border-bottom:1px solid #e0e2e5; gap:16px; }
+ .login-layout .login-message h2 { font-size:20px; margin:0; }
+ .login-layout .login-message p,.login-layout .login-brand-panel>small { display:none; }
+ .login-layout .login-main { padding:24px 16px; }
+ .login-layout .login-box { padding:24px; }
+}

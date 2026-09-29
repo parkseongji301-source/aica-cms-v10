@@ -1,0 +1,225 @@
+/* AICA workspace surfaces. UI only: saved content and public previews keep their styles. */
+.phase-two {
+  --ui-ink: #262d38;
+  --ui-muted: #68717e;
+  --ui-line: #e8ebef;
+  --ui-accent: #365ccc;
+  --ui-canvas: #f3f4f6;
+  --ui-soft: #f8f9fb;
+  --sidebar-width: 244px;
+  --workspace-max-width: 1480px;
+  --workspace-gutter: 28px;
+  --surface-inset: 36px;
+  background: var(--ui-canvas);
+  color: var(--ui-ink);
+  letter-spacing: -.15px;
+}
+
+/* A quiet navigation rail shares the canvas, instead of being a separate box. */
+.phase-two .sidebar {
+  width: var(--sidebar-width);
+  background: var(--ui-canvas);
+  color: var(--ui-ink);
+  border: 0;
+  padding: 28px 16px 20px;
+}
+.phase-two .brand { padding: 0 12px 26px; gap: 12px; }
+.phase-two .brand-home { border-radius: 8px; }
+.phase-two .brand-name,.phase-two .brand-home:hover .brand-name { color: var(--ui-ink); font-size: 23px; letter-spacing: .7px; }
+.phase-two .brand-icon { width: 34px; height: 36px; font-size: 24px; border-radius: 9px; background: var(--ui-accent); color: #fff; box-shadow: none; }
+.phase-two .brand small { font-size: 11px; color: var(--ui-muted); margin-top: 2px; letter-spacing: 0; }
+.phase-two .sidebar-view { border: 0; padding: 0 0 20px; }
+.phase-two .sidebar-view .view-switch { background: #e9ecf1; border: 0; border-radius: 9px; padding: 4px; gap: 2px; }
+.phase-two .sidebar-view .view-switch button { color: #636d7c; border-radius: 6px; font-size: 12px; min-height: 36px; font-weight: 550; }
+.phase-two .sidebar-view .view-switch button:hover { background: #f2f4f7; color: var(--ui-ink); }
+.phase-two .sidebar-view .view-switch button[aria-pressed=true] { color: var(--ui-ink); background: #fff; box-shadow: 0 1px 3px #27334b0b; font-weight: 650; }
+.phase-two .sidebar-view .view-switch button[aria-pressed=true]::before { display: none; }
+.phase-two .sidebar-view-note { color: var(--ui-muted); margin: 10px 8px 0; font-size: 11px; line-height: 1.6; }
+.phase-two .sidebar-scroll { padding: 2px 2px 12px; scrollbar-color: #c8ced7 transparent; scrollbar-width: thin; }
+.phase-two .sidebar-scroll::-webkit-scrollbar-thumb { background: #c8ced7; }
+.phase-two .sidebar nav h2 { margin: 24px 12px 8px; padding: 0; border: 0; font-size: 11px; color: #737c88; font-weight: 650; letter-spacing: .25px; gap: 9px; }
+.phase-two .sidebar nav h2 .navigation-icon { width: 14px; height: 14px; flex-basis: 14px; color: #89929e; }
+.phase-two .sidebar .structure-group { color: var(--ui-muted); font-size: 11px; }
+.phase-two .sidebar nav button { min-height: 38px; padding: 9px 12px; border-radius: 7px; color: #525d6d; font-size: 13px; line-height: 1.5; font-weight: 450; margin-bottom: 2px; }
+.phase-two .sidebar .management-navigation .nav-group-labeled>button { padding-left: 35px; }
+.phase-two .sidebar nav button:hover:not(:disabled) { background: #e9ecf1; color: var(--ui-ink); }
+.phase-two .sidebar nav button.selected { background: #e5ebf9; color: #3154ad; box-shadow: none; font-weight: 650; }
+.phase-two .sidebar .tree-parent.has-selected-child>button,
+.phase-two .sidebar .page-branch>button.selected:not([aria-current=page]) { background: transparent; color: var(--ui-ink); box-shadow: none; font-weight: 600; }
+.phase-two .sidebar .review-children { margin: 4px 0 10px 20px; padding-left: 10px; border-color: #dce1e8; }
+.phase-two .sidebar .review-children button { min-height: 34px; padding-block: 7px; font-size: 12px; }
+.phase-two .sidebar :is(.block-tree,.review-child) { border-color: #dce1e8; }
+.phase-two .sidebar nav button:disabled { color: #7c8591; }
+.phase-two .sidebar nav button small,.phase-two .sidebar .nav-note { color: var(--ui-muted); font-size: 11px; }
+.phase-two .sidebar-footer { margin: 10px 10px 0; padding: 16px 0 0; border-color: #e1e5eb; gap: 4px; }
+.phase-two .sidebar-footer span { color: #66717e; font-size: 11px; }
+.phase-two .sidebar-footer small { color: #737e8b; font-size: 10px; }
+
+/* The header belongs to the surrounding canvas; work happens on one white surface. */
+.phase-two .topbar { height: 72px; left: var(--sidebar-width); padding: 0 var(--workspace-gutter); border: 0; background: var(--ui-canvas); box-shadow: none; }
+.phase-two .topbar-title { font-size: 13px; font-weight: 550; color: #636e7c; }
+.phase-two .topbar-title .navigation-icon { color: #7a8593; }
+.phase-two .topbar-right { font-size: 12px; gap: 18px; }
+.phase-two .topbar-right a { color: #687381; }
+.phase-two .operator-role { font-size: 11px; }
+.phase-two .operator-avatar { width: 30px; height: 30px; border: 0; background: #e6eaf1; color: #526075; }
+.phase-two #next-workspace { margin-left: var(--sidebar-width); max-width: none; padding: 84px var(--workspace-gutter) 24px; min-width: 0; }
+.phase-two #next-workspace>:is(.workspace-breadcrumbs,[data-screen],.page-footer,.error-box) { width: 100%; max-width: var(--workspace-max-width); margin-left: auto; margin-right: auto; }
+.phase-two .workspace-breadcrumbs { margin-bottom: 18px; font-size: 12px; padding-inline: 4px; }
+.phase-two .workspace-breadcrumbs button { color: #707b89; }
+.phase-two .breadcrumb-separator { color: #abb2bc; }
+.phase-two #next-workspace>[data-screen] { background: #fff; border: 1px solid #e7eaf0; border-radius: 14px; padding: var(--surface-inset); min-height: calc(100svh - 218px); }
+.phase-two :is(.posts-workspace,.writing-workspace) { max-width: none; }
+.phase-two .editor-heading,.phase-two .posts-workspace .editor-heading,.phase-two .writer-heading { align-items: center; gap: 24px; margin-bottom: 32px; }
+.phase-two .editor-heading h1,.phase-two .writer-heading h1 { color: var(--ui-ink); font-size: 26px; font-weight: 650; line-height: 1.4; letter-spacing: -.75px; }
+.phase-two .target-caption,.phase-two .posts-workspace .target-caption,.phase-two .writer-heading p { font-size: 13px; color: var(--ui-muted); line-height: 1.75; margin-top: 8px; }
+.phase-two .page-footer { border: 0; margin-top: 0; padding: 22px 4px 0; font-size: 11px; color: #7a8492; }
+
+/* Interior sections are separated by spacing and light rules, not nested frames. */
+.phase-two .card { background: #fff; border-color: var(--ui-line); border-radius: 8px; box-shadow: none; }
+.phase-two :is(.posts-list-card,.pages-workspace>.card,.admin-table-workspace>.card,.trash-workspace>.card,.template-list,.settings-workspace>.settings-panel) { border: 0; border-radius: 0; box-shadow: none; }
+.phase-two .posts-workspace .posts-list-card { border: 0; border-radius: 0; }
+.phase-two .posts-workspace { --list-space: 0px; }
+.phase-two .posts-status-bar { padding: 0; }
+.phase-two .posts-workspace .status-tabs { gap: 26px; }
+.phase-two .posts-workspace .status-tabs button { min-height: 48px; font-size: 14px; font-weight: 500; }
+.phase-two .status-tabs button { color: var(--ui-muted); }
+.phase-two .posts-workspace .status-tabs button[aria-pressed=true] { color: var(--ui-ink); border-color: var(--ui-accent); border-bottom-width: 2px; font-weight: 650; }
+.phase-two .posts-search-area { padding: 24px 0 14px; }
+.phase-two .posts-search { max-width: 620px; margin-bottom: 14px; }
+.phase-two .posts-search input { background: #fafbfc; }
+.phase-two .posts-results-heading { border-top: 0; padding: 14px 0 18px; color: var(--ui-muted); font-size: 12px; }
+.phase-two .posts-results-heading>span:last-child { font-size: 11px; }
+.phase-two .data-table th { background: var(--ui-soft); color: #6a7482; font-size: 12px; font-weight: 550; border-color: var(--ui-line); }
+.phase-two .data-table th:first-child { border-radius: 6px 0 0 6px; }
+.phase-two .data-table th:last-child { border-radius: 0 6px 6px 0; }
+.phase-two .data-table td { color: var(--ui-ink); border-color: #edf0f4; }
+.phase-two .data-table tr:hover td { background: #fafbfc; }
+.phase-two .data-table .text-link { color: var(--ui-ink); }
+.phase-two .posts-table :is(th,td):first-child { padding-left: 16px; }
+.phase-two .posts-table :is(th,td):last-child { padding-right: 16px; }
+.phase-two .posts-table td { padding-top: 22px; padding-bottom: 22px; }
+.phase-two .posts-table .content-title { font-weight: 600; font-size: 14px; }
+.phase-two .posts-table .post-category { color: #747e8c; font-size: 12px; margin-top: 7px; }
+.phase-two :is(.post-meta-label,.post-date-cell,.row-meta) { color: var(--ui-muted); font-size: 12px; }
+.phase-two .post-status { font-size: 11px; font-weight: 550; padding: 4px 8px; border-radius: 5px; }
+.phase-two .state-draft { background: #f0f2f5; color: #626d7c; }
+.phase-two .state-published { background: #edf5f1; color: #357359; }
+.phase-two .state-private { background: #f2f0f6; color: #6e6083; }
+.phase-two .scope-tag { border-radius: 5px; background: #f0f2f6; color: #667181; }
+.phase-two .posts-filter-panel { background: var(--ui-soft); border-color: var(--ui-line); border-radius: 8px; }
+.phase-two .posts-filter-options label { border-color: #e1e5ec; border-radius: 6px; }
+.phase-two .posts-workspace .posts-filter-chip { background: #f0f3f9; color: #546581; border-color: #e2e7f0; border-radius: 5px; }
+.phase-two .filter-count { background: #eaf0fc; color: #3f5faa; border-radius: 4px; font-weight: 600; }
+.phase-two .posts-workspace .pagination { padding: 20px 0 0; }
+.phase-two :is(.search-bar,.panel-header) { padding-left: 0; padding-right: 0; }
+.phase-two .panel-header { background: transparent; border-color: var(--ui-line); }
+.phase-two .panel-header h2 { font-weight: 600; }
+.phase-two .metric { background: var(--ui-soft); border: 0; padding: 24px; }
+.phase-two .metric>strong { color: var(--ui-ink); font-weight: 550; }
+.phase-two .daily-chart progress { accent-color: #a1adc1; }
+.phase-two .daily-chart progress::-webkit-progress-bar { background: #eef1f5; }
+.phase-two .daily-chart progress::-webkit-progress-value { background: #a1adc1; }
+.phase-two .daily-chart progress::-moz-progress-bar { background: #a1adc1; }
+
+/* Consistent, modest controls. Rich-text and website preview controls are excluded. */
+.phase-two :is(.heading-actions,.search-bar,.panel-actions,.pagination,.action-buttons,.writer-actions,.writer-heading,.dialog-actions,.posts-search,.posts-filter-buttons,.post-action-cell,.page-row-actions,.template-actions,.block-operations) button {
+  border-radius: 6px; border-color: #dce1e8; box-shadow: none; color: #505c6d; background: #fff; font-weight: 500;
+}
+.phase-two :is(.heading-actions,.search-bar,.panel-actions,.pagination,.action-buttons,.writer-actions,.writer-heading,.dialog-actions,.posts-search,.posts-filter-buttons,.post-action-cell,.page-row-actions,.template-actions,.block-operations) button:not(.primary):not(.danger):hover:not(:disabled) { background: #f5f7fa; border-color: #b9c3d1; }
+.phase-two :is(.heading-actions,.panel-actions,.action-buttons,.writer-actions,.dialog-actions) button.primary { background: var(--ui-accent); color: #fff; border-color: var(--ui-accent); font-weight: 600; }
+.phase-two :is(.heading-actions,.panel-actions,.action-buttons,.writer-actions,.dialog-actions) button.primary:hover:not(:disabled) { background: #2e50b6; border-color: #2e50b6; }
+.phase-two :is(.heading-actions,.panel-actions,.action-buttons,.writer-actions,.dialog-actions) button.danger { color: #a33e48; border-color: #e9cdd1; }
+.phase-two .posts-filter-buttons button[aria-expanded=true] { background: #edf2fc; color: #3658ad; border-color: #bac9eb; }
+.phase-two :is(.text-link,.legacy-link) { color: #576782; }
+.phase-two .text-link:hover:not(:disabled) { color: #294c9d; }
+.phase-two .editor-heading .legacy-link { border-radius: 6px; border-color: #e0e5ec; color: #596577; font-size: 12px; }
+.phase-two :is(.search-bar,.settings-panel,.side-form,.posts-search,.posts-category-filter,.writer-properties) :is(input:not([type=checkbox]):not([type=color]):not([type=file]),select,textarea) { border-color: #dce1e8; border-radius: 6px; color: var(--ui-ink); }
+.phase-two :is(button,a,input,select,textarea,summary):focus-visible { outline: 2px solid #6684cc; outline-offset: 3px; }
+.phase-two .sidebar :is(button,a):focus-visible { outline-color: #6684cc; outline-offset: -2px; }
+.phase-two :is(.target-caption,.writer-save-state,.writer-save-help,.writer-properties-note,.save-message,.save-hint) { color: var(--ui-muted); }
+
+/* Writing and structure editors sit directly on the work surface. */
+.phase-two .writer-actionbar,.phase-two .pages-editor-workspace .editor-actions { top: 72px; border: 0; border-block: 1px solid var(--ui-line); border-radius: 0; background: #fff; box-shadow: none; padding: 16px 0; }
+.phase-two .writer-publication-state { border: 0; border-radius: 6px; background: var(--ui-soft); margin: 18px 0 28px; padding: 14px 16px; }
+.phase-two .writer-publication-state.has-changes { background: #fcf7ec; }
+.phase-two .writer-layout { gap: 32px; }
+.phase-two .writer-canvas { border: 0; padding: 4px 0 0; border-radius: 0; }
+.phase-two .writer-title-field input { border-bottom-color: var(--ui-line); }
+.phase-two .writer-properties { background: var(--ui-soft); border: 0; border-radius: 8px; padding: 24px; }
+.phase-two .writer-properties h2 { font-weight: 600; font-size: 15px; }
+.phase-two .writer-more>summary { border-color: #dce1e8; border-radius: 6px; }
+.phase-two .writer-more-panel { border-radius: 8px; border-color: var(--ui-line); box-shadow: 0 8px 28px #26395812; }
+.phase-two .writer-more-panel button:hover:not(:disabled) { background: var(--ui-soft); }
+.phase-two .writer-preview { border-radius: 8px; }
+.phase-two .pages-editor-workspace .title-card { border: 0; padding: 20px 0; }
+.phase-two .pages-editor-workspace .block-navigator { border: 0; background: var(--ui-soft); border-radius: 8px; }
+.phase-two .pages-editor-workspace .block-navigator>header { background: transparent; }
+.phase-two .pages-editor-workspace .section-card { border-radius: 8px; border-color: var(--ui-line); }
+.phase-two .section-card>header { background: #fff; border-color: var(--ui-line); }
+.phase-two .operations-workspace .side-form { background: var(--ui-soft); border: 0; border-radius: 8px; }
+.phase-two .operations-workspace .management-split>.card:first-child { border: 0; }
+.phase-two .media-workspace .media-tile { border-color: #e3e8ef; border-radius: 8px; box-shadow: none; }
+.phase-two .media-workspace .media-tile.selected { border-color: #8ca5df; background: #f1f5fe; }
+.phase-two .media-workspace .media-grid { padding: 20px 0; }
+.phase-two .settings-workspace .settings-panel { max-width: 960px; padding: 0; }
+.phase-two .settings-workspace .settings-panel fieldset { gap: 16px; }
+.phase-two .settings-workspace .panel-actions { margin-top: 16px; padding-top: 24px; }
+.phase-two .roles-workspace article { background: var(--ui-soft); border: 0; border-radius: 8px; }
+.phase-two .version-list { border-color: var(--ui-line); border-radius: 8px; overflow: hidden; }
+.phase-two .version-compare>section,.phase-two .template-contents,.phase-two .template-confirm { border-radius: 8px; }
+.phase-two :is(.block-dialog,.create-review) { border: 1px solid #e2e7ee; border-radius: 12px; box-shadow: 0 20px 70px #25334b26; color: var(--ui-ink); }
+.phase-two :is(.block-dialog,.create-review)::backdrop { background: #25334b52; }
+.phase-two .loading-line,.phase-two .success-line,.phase-two .error-box { border-radius: 6px; padding: 16px 20px; font-size: 13px; line-height: 1.7; box-shadow: none; }
+.phase-two .empty-state { padding: 48px 24px; color: var(--ui-muted); font-size: 14px; line-height: 1.8; }
+
+@media(min-width:1700px) {
+  .phase-two { --sidebar-width: 260px; --workspace-gutter: 40px; --surface-inset: 44px; }
+  .phase-two .sidebar { padding-inline: 20px; }
+}
+@media(max-width:1180px) {
+  .phase-two { --sidebar-width: 220px; --workspace-gutter: 20px; --surface-inset: 24px; }
+  .phase-two .sidebar { padding-inline: 12px; }
+  .phase-two .writer-layout { gap: 24px; }
+  .phase-two .sidebar .management-navigation .nav-group-labeled>button { padding-left: 28px; }
+}
+@media(max-width:900px) {
+  .phase-two { --sidebar-width: 200px; --workspace-gutter: 16px; --surface-inset: 20px; }
+  .phase-two .topbar-right .operator-role { display: none; }
+  .phase-two .editor-heading,.phase-two .posts-workspace .editor-heading { align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+  .phase-two .writer-layout { gap: 20px; }
+}
+@media(max-width:680px) {
+  .phase-two { --sidebar-width: 0px; --workspace-gutter: 12px; --surface-inset: 20px; }
+  .phase-two .topbar { left: 0; height: 64px; padding-inline: 16px; gap: 10px; }
+  .phase-two .topbar-title { font-size: 12px; }
+  .phase-two .topbar-right { gap: 10px; font-size: 11px; }
+  .phase-two .sidebar { width: 264px; top: 64px; max-width: calc(100vw - 48px); padding: 16px; box-shadow: 8px 0 32px #25334b18; }
+  .phase-two .sidebar-backdrop { background: #25334b45; }
+  .phase-two .sidebar-dismiss { color: #566477; border-color: #d4dce7; background: #fff; border-radius: 6px; margin-bottom: 16px; }
+  .phase-two #next-workspace { margin-left: 0; padding: 76px 12px 20px; }
+  .phase-two #next-workspace>[data-screen] { border-radius: 10px; min-height: calc(100svh - 190px); }
+  .phase-two .workspace-breadcrumbs { margin-bottom: 12px; }
+  .phase-two .editor-heading h1,.phase-two .writer-heading h1,.phase-two .posts-workspace .editor-heading h1 { font-size: 23px; }
+  .phase-two .editor-heading,.phase-two .posts-workspace .editor-heading,.phase-two .writer-heading { margin-bottom: 24px; gap: 16px; }
+  .phase-two .writer-heading { align-items: flex-start; }
+  .phase-two .posts-workspace .status-tabs { gap: 16px; }
+  .phase-two .posts-workspace .status-tabs button { font-size: 12px; }
+  .phase-two .posts-workspace .posts-refresh { font-size: 12px; }
+  .phase-two .posts-filter-buttons button { font-size: 12px; }
+  .phase-two .posts-search-area { padding-top: 18px; }
+  .phase-two .posts-table tr { padding-block: 22px; }
+  .phase-two .posts-workspace .posts-table .content-title { font-size: 15px; }
+  .phase-two .writer-actionbar,.phase-two .pages-editor-workspace .editor-actions { position: static; padding: 14px 0; }
+  .phase-two .writer-canvas { padding: 0; }
+  .phase-two .writer-properties { padding: 20px; }
+  .phase-two .settings-workspace .settings-panel { padding: 0; }
+  .phase-two .page-footer { font-size: 10px; padding-top: 18px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .phase-two :is(button,a,input,select,textarea) { transition: none; }
+}
+@media(min-width:761px) and (max-width:1000px) {
+  .phase-two .posts-table-wrap { overflow-x: auto; }
+  .phase-two .posts-table { min-width: 720px; }
+}

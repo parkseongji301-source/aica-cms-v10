@@ -17,7 +17,7 @@ V11 RC1의 [승격 절차](docs/V11_PROMOTION.md)와 [사본 리허설 결과](d
 - 인수 개발자: [개발자 인수인계](docs/5D/5D-2/04_DEVELOPER_HANDOVER.md), [배포·실행](docs/5D/5D-2/07_DEPLOYMENT_AND_RUNTIME.md), [백업·복구](docs/5D/5D-2/08_BACKUP_AND_RECOVERY.md), [migration](docs/5D/5D-2/09_DATABASE_MIGRATIONS.md)
 - 납품 범위/최종 검수: [제한사항과 A/B 범위 결정](docs/5D/5D-2/11_LIMITATIONS_AND_ACCEPTANCE.md)
 
-현재 이 PC 접속: [React 관리자](http://127.0.0.1:8095/admin-next?view=manage). 로그인 자격증명은 별도로 인계합니다.
+현재 이 PC 접속: [콘텐츠 작업](http://127.0.0.1:8095/admin-next/posts?view=structure) · [사이트 관리](http://127.0.0.1:8095/admin-next/dashboard?view=manage). 로그인 자격증명은 별도로 인계합니다. 집 PC의 V11 이관본에는 기능 동결 상태의 [콘텐츠 작업 홈 UI](docs/CONTENT_WORK_HOME.md)를 적용했습니다. 이 PC의 현재 실행·종료 경로는 해당 문서를 따릅니다.
 
 ## 실행 전에
 

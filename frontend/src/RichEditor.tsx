@@ -27,9 +27,10 @@ class TableEmbed extends StoredEmbed {
 class Divider extends StoredEmbed {static blotName='divider';static tagName='hr';static value(){return true;}}
 Quill.register({'formats/aicaImage':ImageEmbed,'formats/aicaFile':FileEmbed,'formats/aicaTable':TableEmbed,'formats/divider':Divider},true);
 const formats=['header','font','size','bold','italic','underline','strike','color','background','align','list','indent','blockquote','code-block','link','aicaImage','aicaFile','aicaTable','divider'];
-export function RichEditor({document:source,plain,label,onChange,advanced=false,onUploadState,onMediaChange,onFatalError}:{document:string|null;plain:string;label:string;onChange:(plain:string,document:string)=>void;advanced?:boolean;onUploadState?:(busy:boolean)=>void;onMediaChange?:()=>void;onFatalError?:(message:string)=>void}) {
+export function RichEditor({document:source,plain,label,onChange,advanced=false,focusedLayout=false,onUploadState,onMediaChange,onFatalError}:{document:string|null;plain:string;label:string;onChange:(plain:string,document:string)=>void;advanced?:boolean;focusedLayout?:boolean;onUploadState?:(busy:boolean)=>void;onMediaChange?:()=>void;onFatalError?:(message:string)=>void}) {
  const host=useRef<HTMLDivElement>(null),quill=useRef<Quill|null>(null),change=useRef(onChange);change.current=onChange;
  const [editor,setEditor]=useState<Quill|null>(null);
+ const [more,setMore]=useState(false);
  const lastRange=useRef({index:0,length:0});
  const fatal=useRef(onFatalError);fatal.current=onFatalError;
  const [error,setError]=useState(''),[activeFormat,setActiveFormat]=useState<Record<string,unknown>>({});
@@ -46,23 +47,24 @@ export function RichEditor({document:source,plain,label,onChange,advanced=false,
  useEffect(()=>{quill.current?.root.setAttribute('aria-label',label);},[label]);
  const format=(name:string,value:unknown)=>{const q=quill.current;if(!q||!q.isEnabled())return;q.focus();q.setSelection(lastRange.current,'silent');q.format(name,value,'user');setActiveFormat(q.getFormat());};
  const selected=(name:string)=>typeof activeFormat[name]==='string'||typeof activeFormat[name]==='number'?String(activeFormat[name]):'';
- return <div className="rich-field">
+ return <div className={'rich-field'+(focusedLayout?' focused-rich':'')+(more?' show-more':'')}>
   <div className="rich-toolbar" role="toolbar" aria-label={label+' 서식'}>
    <select aria-label={label+' 문단'} value={selected('header')} onChange={e=>format('header',e.target.value?Number(e.target.value):false)}><option value="">본문</option><option value="1">제목 1</option><option value="2">제목 2</option><option value="3">제목 3</option></select>
-   <select aria-label={label+' 글꼴'} value={selected('font')} onChange={e=>format('font',e.target.value||false)}><option value="">고딕</option><option value="serif">명조</option><option value="mono">고정폭</option></select>
-   <select aria-label={label+' 크기'} value={selected('size')} onChange={e=>format('size',e.target.value||false)}><option value="small">14</option><option value="">16</option><option value="large">20</option><option value="huge">28</option></select>
-   {(['bold','italic','underline','strike'] as const).map((key,i)=><button key={key} type="button" aria-label={['굵게','기울임','밑줄','취소선'][i]} aria-pressed={activeFormat[key]===true} onMouseDown={e=>e.preventDefault()} onClick={()=>format(key,!quill.current?.getFormat()[key])}>{['B','I','U','S'][i]}</button>)}
-   <select aria-label={label+' 글자색'} value={selected('color')} onChange={e=>format('color',e.target.value||false)}><option value="">글자색</option>{['navy','blue','teal','red','purple','gray','white'].map((c,i)=><option key={c} value={c}>{['남색','파랑','청록','빨강','보라','회색','흰색'][i]}</option>)}</select>
-   <select aria-label={label+' 정렬'} value={selected('align')} onChange={e=>format('align',e.target.value||false)}><option value="">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option><option value="justify">양쪽</option></select>
+   <select data-secondary="true" aria-label={label+' 글꼴'} value={selected('font')} onChange={e=>format('font',e.target.value||false)}><option value="">고딕</option><option value="serif">명조</option><option value="mono">고정폭</option></select>
+   <select data-secondary="true" aria-label={label+' 크기'} value={selected('size')} onChange={e=>format('size',e.target.value||false)}><option value="small">14</option><option value="">16</option><option value="large">20</option><option value="huge">28</option></select>
+   {(['bold','italic','underline','strike'] as const).map((key,i)=><button key={key} data-secondary={key==='underline'||key==='strike'} type="button" aria-label={['굵게','기울임','밑줄','취소선'][i]} aria-pressed={activeFormat[key]===true} onMouseDown={e=>e.preventDefault()} onClick={()=>format(key,!quill.current?.getFormat()[key])}>{['B','I','U','S'][i]}</button>)}
+   <select data-secondary="true" aria-label={label+' 글자색'} value={selected('color')} onChange={e=>format('color',e.target.value||false)}><option value="">글자색</option>{['navy','blue','teal','red','purple','gray','white'].map((c,i)=><option key={c} value={c}>{['남색','파랑','청록','빨강','보라','회색','흰색'][i]}</option>)}</select>
+   <select data-secondary="true" aria-label={label+' 정렬'} value={selected('align')} onChange={e=>format('align',e.target.value||false)}><option value="">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option><option value="justify">양쪽</option></select>
    <button type="button" aria-pressed={activeFormat.list==='bullet'} onMouseDown={e=>e.preventDefault()} onClick={()=>format('list',activeFormat.list==='bullet'?false:'bullet')}>• 목록</button>
    {advanced&&<>
-    <select aria-label={label+' 배경색'} value={selected('background')} onChange={e=>format('background',e.target.value||false)}><option value="">배경색</option><option value="yellow">노랑</option><option value="blue">파랑</option><option value="teal">청록</option><option value="gray">회색</option></select>
+    <select data-secondary="true" aria-label={label+' 배경색'} value={selected('background')} onChange={e=>format('background',e.target.value||false)}><option value="">배경색</option><option value="yellow">노랑</option><option value="blue">파랑</option><option value="teal">청록</option><option value="gray">회색</option></select>
     <button type="button" aria-pressed={activeFormat.list==='ordered'} onMouseDown={e=>e.preventDefault()} onClick={()=>format('list',activeFormat.list==='ordered'?false:'ordered')}>1. 목록</button>
-    <button type="button" aria-pressed={!!activeFormat.blockquote} onMouseDown={e=>e.preventDefault()} onClick={()=>format('blockquote',!activeFormat.blockquote)}>인용문</button>
-    <button type="button" aria-pressed={!!activeFormat['code-block']} onMouseDown={e=>e.preventDefault()} onClick={()=>format('code-block',activeFormat['code-block']?false:'plain')}>코드 블록</button>
+    <button type="button" data-secondary="true" aria-pressed={!!activeFormat.blockquote} onMouseDown={e=>e.preventDefault()} onClick={()=>format('blockquote',!activeFormat.blockquote)}>인용문</button>
+    <button type="button" data-secondary="true" aria-pressed={!!activeFormat['code-block']} onMouseDown={e=>e.preventDefault()} onClick={()=>format('code-block',activeFormat['code-block']?false:'plain')}>코드 블록</button>
    </>}
    <button type="button" aria-label="실행 취소" onMouseDown={e=>e.preventDefault()} onClick={()=>quill.current?.history.undo()}>↶</button>
    <button type="button" aria-label="다시 실행" onMouseDown={e=>e.preventDefault()} onClick={()=>quill.current?.history.redo()}>↷</button>
+   {focusedLayout&&<button type="button" className="writer-format-toggle" aria-expanded={more} onMouseDown={e=>e.preventDefault()} onClick={()=>setMore(value=>!value)}>{more?'추가 서식 접기':'추가 서식'}</button>}
   </div>
   {advanced&&<RichContentTools editor={editor} onUploadState={onUploadState} onMediaChange={onMediaChange}/>}
   {error&&<p role="alert">{error}</p>}<div ref={host}/>

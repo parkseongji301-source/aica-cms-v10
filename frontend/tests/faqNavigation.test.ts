@@ -17,11 +17,16 @@ test('all FAQ locations use their real IDs and never resolve the same-named revi
   }
   assert.notEqual(sectionPath('FAQ','life',catalog),sectionPath('REVIEW','life',catalog));
 });
-test('FAQ context locks type/topic, retains cohort OR and other filters, rejects ambiguous paths',()=>{
-  const input=new URLSearchParams('faqSection=life&typeCodes=REVIEW&topicIds=91&cohortIds=6,7&status=DRAFT&q=park');
+test('FAQ context uses its location and visible search/status without hidden advanced filters',()=>{
+  const input=new URLSearchParams('faqSection=life&typeCodes=REVIEW&topicIds=91&cohortIds=6,7&categoryId=12&status=DRAFT&q=park');
   const scope=contentContext(input,catalog)!;const result=scopedPostParams(input,scope);
   assert.equal(result.get('typeCodes'),'FAQ');assert.equal(result.get('topicIds'),'304');
-  assert.equal(result.get('cohortIds'),'6,7');assert.equal(result.get('status'),'DRAFT');assert.equal(result.has('faqSection'),false);
+  assert.equal(result.has('cohortIds'),false);assert.equal(result.has('categoryId'),false);
+  assert.equal(result.get('q'),'park');assert.equal(result.get('status'),'DRAFT');assert.equal(result.has('faqSection'),false);
+  const all=scopedPostParams(input,contentContext(new URLSearchParams('faqSection=all'),catalog));
+  assert.equal(all.has('topicIds'),false);
+  const unscoped=scopedPostParams(input,null);
+  assert.equal(unscoped.get('cohortIds'),'6,7');assert.equal(unscoped.get('categoryId'),'12');assert.equal(unscoped.get('topicIds'),'91');
   assert.ok(contentContext(new URLSearchParams('reviewSection=life&faqSection=life'),catalog)!.error);
   assert.equal(sectionPath('FAQ','life',{...catalog,allowedTopics:[]}),null);
 });

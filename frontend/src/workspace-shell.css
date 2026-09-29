@@ -1,0 +1,20 @@
+.phase-two .workspace-breadcrumbs { margin: 0 0 20px; color: var(--ui-muted); font-size: 13px; }
+.workspace-breadcrumbs ol { display: flex; flex-wrap: wrap; gap: 0 8px; margin: 0; padding: 0; list-style: none; }
+.workspace-breadcrumbs li { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.workspace-breadcrumbs button { border: 0; background: transparent; color: #425e85; padding: 6px 0; font: inherit; text-align: left; }
+.workspace-breadcrumbs button:hover { text-decoration: underline; }
+.workspace-breadcrumbs [aria-current] { color: var(--ui-ink); font-weight: 600; overflow-wrap: anywhere; }
+.breadcrumb-separator { color: #8895a7; }
+.phase-two .sidebar .review-children { list-style: none; margin: 4px 0 8px 20px; padding: 0 0 0 10px; border-left: 1px solid #344960; }
+.phase-two .sidebar .review-children button { min-height: 36px; }
+.phase-two .sidebar .tree-parent.has-selected-child>button { background: #253f60; }
+.sidebar-dismiss,.sidebar-backdrop { display: none; }
+@media(max-width:680px) {
+  .phase-two .topbar-title { font-size: 13px; }
+  .phase-two .topbar-right { gap: 10px; }
+  .phase-two .sidebar { z-index: 60; top: 64px; bottom: 0; max-width: calc(100vw - 48px); }
+  .sidebar-backdrop { display: block; position: fixed; inset: 64px 0 0; z-index: 59; background: #152b4966; }
+  .phase-two .sidebar-dismiss { display: block; align-self: flex-end; background: transparent; color: #fff; border: 1px solid #71839b; padding: 6px 12px; margin-bottom: 10px; }
+  .phase-two .workspace-breadcrumbs { margin-bottom: 16px; }
+  .workspace-breadcrumbs button { min-height: 40px; }
+}

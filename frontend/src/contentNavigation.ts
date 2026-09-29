@@ -14,6 +14,10 @@ export const contentSections={
 } as const;
 export type SectionType=keyof typeof contentSections;
 export type ContentContext={type:SectionType;param:string;key:string;label:string;topicId:number|null;error:string};
+export const contentLocationLabel=(scope:ContentContext)=>scope.key==='all'?contentSections[scope.type].label:`${scope.label} ${contentSections[scope.type].label}`;
+export function rememberPostOrigin(origins:Record<string,string>,previous:{path:string;query:string},next:{path:string;query:string}) {
+  return previous.path==='/posts'&&/^\/posts\/\d+\/edit$/.test(next.path)?{...origins,[next.path]:previous.path+previous.query}:origins;
+}
 export const filterValues=(search:URLSearchParams,key:string)=>[...new Set(search.getAll(key).flatMap(v=>v.split(',')).filter(Boolean))];
 export function sectionType(search:URLSearchParams):SectionType|null {
   return (Object.keys(contentSections) as SectionType[]).find(type=>search.has(contentSections[type].param))||null;
@@ -42,7 +46,9 @@ export function scopedPostParams(search:URLSearchParams,scope:ContentContext|nul
   const result=new URLSearchParams({q:search.get('q')||'',status:search.get('status')||'',page:String(Math.max(0,Number(search.get('page'))||0))});
   if(search.get('categoryId'))result.set('categoryId',search.get('categoryId')!);
   for(const key of ['typeCodes','cohortIds','topicIds'])if(filterValues(search,key).length)result.set(key,filterValues(search,key).join(','));
-  if(scope){result.set('typeCodes',scope.type);if(scope.type==='RESTAURANT')result.delete('topicIds');if(scope.topicId!==null)result.set('topicIds',String(scope.topicId));}
+  // Section lists use the sidebar location, search and status only. Old URLs must
+  // not silently keep advanced filters that can no longer be seen or cleared.
+  if(scope){result.set('typeCodes',scope.type);result.delete('categoryId');result.delete('cohortIds');result.delete('topicIds');if(scope.topicId!==null)result.set('topicIds',String(scope.topicId));}
   return result;
 }
 export const draftSelection=(scope:ContentContext):ClassificationSelection=>({typeCode:scope.type,cohortIds:[],topicIds:scope.topicId===null?[]:[scope.topicId]});

@@ -1,0 +1,29 @@
+.phase-two .settings-workspace .settings-panel { max-width:900px; padding:32px; }
+.phase-two .settings-workspace .settings-panel fieldset { display:grid; gap:24px; }
+.phase-two .settings-workspace .settings-panel label { font-size:14px; line-height:1.7; }
+.phase-two .settings-workspace .settings-panel input:not([type=color]),.phase-two .settings-workspace .settings-panel select { min-height:42px; }
+.phase-two .settings-workspace .panel-actions { border-top:1px solid var(--ui-line); padding-top:24px; margin-top:8px; gap:12px; flex-wrap:wrap; }
+.phase-two .settings-save-state { flex-basis:100%; font-size:13px; color:var(--ui-muted); }
+.phase-two .settings-workspace .component-catalog { margin-top:32px; }
+.phase-two .settings-workspace>h2 { font-size:18px; margin-top:24px; }
+.phase-two .component-catalog header { background:white; padding:24px; }
+.phase-two .component-catalog h2 { font-size:18px; }
+.phase-two .component-catalog p { font-size:13px; line-height:1.8; color:var(--ui-muted); }
+.phase-two .admin-table-workspace table { min-width:780px; }
+.phase-two .admin-table-workspace td { line-height:1.8; }
+.phase-two .activity-workspace td:last-child { min-width:240px; overflow-wrap:anywhere; }
+.phase-two .account-state { display:inline-block; padding:3px 8px; border-radius:3px; background:#f1f3f5; font-size:13px; }
+.phase-two .account-state.disabled { color:#686e76; border:1px solid var(--ui-line); }
+.phase-two .roles-workspace .roles-grid { gap:24px; }
+.phase-two .roles-workspace article { padding:24px; }
+.phase-two .roles-workspace h2 { font-size:19px; }
+.phase-two .roles-workspace li { line-height:1.8; padding:10px 0; border-bottom:1px solid var(--ui-line); font-size:14px; }
+.phase-two .roles-workspace .eyebrow { color:var(--ui-muted); font-size:12px; }
+.phase-two .loading-line,.phase-two .success-line,.phase-two .error-box { border-radius:3px; padding:16px 20px; font-size:14px; line-height:1.7; box-shadow:none; }
+.phase-two .error-box p { margin:8px 0; overflow-wrap:anywhere; }
+.phase-two .empty-state { padding:40px 24px; color:var(--ui-muted); font-size:14px; line-height:1.8; }
+@media(max-width:680px) {
+ .phase-two .settings-workspace .settings-panel { padding:20px; }
+ .phase-two .roles-workspace .roles-grid { grid-template-columns:1fr; }
+ .phase-two .links-workspace .manage-list li { flex-wrap:wrap; }
+}

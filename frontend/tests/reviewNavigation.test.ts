@@ -20,11 +20,12 @@ test('missing, inactive or disallowed topic never falls back to all posts',()=>{
   assert.equal(reviewPath('life',{...catalog,allowedTopics:[]}),null);
   assert.equal(reviewPath('life',{...catalog,topics:catalog.topics.map(t=>({...t,active:false}))}),null);
 });
-test('location locks REVIEW/topic while retaining cohort OR and other AND filters',()=>{
+test('review location keeps search/status/page and drops hidden advanced filters',()=>{
   const input=new URLSearchParams('reviewSection=life&typeCodes=FAQ&topicIds=99&cohortIds=6,7&categoryId=2&q=test&status=DRAFT&page=1');
   const params=scopedPostParams(input,reviewContext(input,catalog));
   assert.equal(params.get('typeCodes'),'REVIEW');assert.equal(params.get('topicIds'),'71');
-  assert.equal(params.get('cohortIds'),'6,7');assert.equal(params.get('categoryId'),'2');assert.equal(params.get('page'),'1');
+  assert.equal(params.has('cohortIds'),false);assert.equal(params.has('categoryId'),false);assert.equal(params.get('page'),'1');
+  assert.equal(params.get('q'),'test');assert.equal(params.get('status'),'DRAFT');
   assert.equal(params.has('reviewSection'),false);
 });
 test('new review starts only the selected topic, cohorts empty; both entries share editor path and ID',()=>{

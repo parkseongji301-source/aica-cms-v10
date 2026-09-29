@@ -33,15 +33,15 @@ export function TrashPanel({active,version,data,go,search,onChanged,registerGuar
     }catch(e){setSelection(null);setError(messageOf(e)+' 목록을 확인한 뒤 다시 선택하세요.');result.reload();}
     finally{inFlight.current=false;setBusy(false);}
   }
-  return <section><Heading title="휴지통" note="게시물을 복원하면 임시보관으로 돌아옵니다. 영구삭제 전까지 본문·첨부·분류·버전 이력을 보관합니다."/>
+  return <section className="trash-workspace operations-workspace"><Heading title="휴지통" note="게시물을 복원하면 임시보관으로 돌아옵니다. 영구삭제 전까지 본문·첨부·분류·버전 이력을 보관합니다."/>
     <Feedback loading={result.loading} error={selection?result.error:error||result.error} message={message}/>
     {restoredId!==null&&<button onClick={()=>go(`/posts/${restoredId}/edit`)}>복원한 글 편집</button>}
-    <section className="card"><form className="search-bar" onSubmit={e=>{e.preventDefault();if(!busy)change(0,term);}}>
+    <p className="operation-note">복원한 글은 자동으로 공개되지 않습니다. 영구삭제한 글은 복구할 수 없습니다.</p><section className="card"><form className="search-bar" onSubmit={e=>{e.preventDefault();if(!busy)change(0,term);}}>
       <input aria-label="휴지통 검색" maxLength={100} placeholder="제목·본문 검색" value={term} disabled={busy} onChange={e=>setTerm(e.target.value)}/>
       <button disabled={busy}>검색</button><button type="button" disabled={busy} onClick={result.reload}>새로고침</button>
-    </form><div className="table-scroll"><table className="data-table"><thead><tr><th>제목</th><th>카테고리</th><th>보관 전 상태</th><th>작성자</th><th>삭제일</th><th>작업</th></tr></thead>
-      <tbody>{result.data?.items.map(post=><tr key={post.id}><td>{post.title}</td><td>{data.categories.find(c=>c.id===post.categoryId)?.name||'미분류'}</td><td><Status value={post.status}/></td><td>{post.authorName}</td><td>{date(post.deletedAt)}</td>
-        <td><div className="heading-actions"><button disabled={busy||result.loading||!!result.error} onClick={()=>choose(post,'restore')}>복원</button><button className="danger-link" disabled={busy||result.loading||!!result.error} onClick={()=>choose(post,'purge')}>영구삭제</button></div></td></tr>)}</tbody>
+    </form><div className="table-scroll"><table className="data-table"><thead><tr><th>제목</th><th>삭제일</th><th>이전 상태</th><th>작성자 / 기존 카테고리</th><th>작업</th></tr></thead>
+      <tbody>{result.data?.items.map(post=><tr key={post.id}><td><strong>{post.title}</strong></td><td>{date(post.deletedAt)}</td><td><Status value={post.status} pageWording/></td><td>{post.authorName}<small>{data.categories.find(c=>c.id===post.categoryId)?.name||'미분류'}</small></td>
+        <td><div className="heading-actions"><button disabled={busy||result.loading||!!result.error} onClick={()=>choose(post,'restore')}>임시보관으로 복원</button><button className="danger-link" disabled={busy||result.loading||!!result.error} onClick={()=>choose(post,'purge')}>영구삭제</button></div></td></tr>)}</tbody>
     </table>{!result.loading&&!result.error&&result.data?.items.length===0&&<Empty>{q?'검색 결과가 없습니다.':'휴지통이 비어 있습니다.'}</Empty>}</div>
     {result.data&&<Pager page={page} total={result.data.total} size={result.data.pageSize} onChange={p=>{if(!busy)change(p);}}/>}</section>
     {selection&&<BlockDialog active={active} title={selection.action==='restore'?'임시보관으로 복원':'게시물 영구삭제'} onClose={close}>

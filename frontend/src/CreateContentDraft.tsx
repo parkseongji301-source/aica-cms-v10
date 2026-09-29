@@ -6,7 +6,7 @@ import {contentPresentation} from './contentPresentation';
 import {messageOf} from './ui';
 
 /** Explicit draft creation shared by both navigation sections; editing stays in ContentEditor. */
-export function CreateContentDraft({selection,catalog,allowTypeSelection=false,categoryId=null,onCreated,onClose}:{selection:ClassificationSelection;catalog:ClassificationCatalog;allowTypeSelection?:boolean;categoryId?:number|null;onCreated:(post:PostDocument)=>void;onClose:()=>void}) {
+export function CreateContentDraft({selection,catalog,allowTypeSelection=false,categoryId=null,contextLabel,onCreated,onClose}:{selection:ClassificationSelection;catalog:ClassificationCatalog;allowTypeSelection?:boolean;categoryId?:number|null;contextLabel?:string;onCreated:(post:PostDocument)=>void;onClose:()=>void}) {
   const dialog=useRef<HTMLDialogElement>(null),pending=useRef(false);
   const [typeCode,setTypeCode]=useState(selection.typeCode);
   const [title,setTitle]=useState(''),[topics,setTopics]=useState(selection.topicIds),[busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -21,8 +21,9 @@ export function CreateContentDraft({selection,catalog,allowTypeSelection=false,c
     catch(e){setError(messageOf(e));}finally{pending.current=false;setBusy(false);}
   }
   return <dialog ref={dialog} className="create-review" aria-labelledby="create-draft-title" onCancel={e=>{e.preventDefault();if(!busy)onClose();}}>
-    <form onSubmit={e=>{e.preventDefault();void create();}}><h2 id="create-draft-title">{allowTypeSelection?'새 콘텐츠':`새 ${typeLabel}`}</h2>
-      <p className="muted">{typeLabel?`${typeLabel} · 기수 선택 없음`:'유형을 선택한 뒤 제목을 입력하세요.'}</p>
+    <form onSubmit={e=>{e.preventDefault();void create();}}><h2 id="create-draft-title">새 {contextLabel||typeLabel||'콘텐츠'} 작성</h2>
+      <p className="muted">{contextLabel?(selection.topicIds.length?'선택한 위치의 유형·주제를 기본값으로 넣었습니다. 주제는 아래에서 조정할 수 있습니다.':'선택한 위치의 콘텐츠 유형으로 작성합니다.'):typeLabel?`${typeLabel} · 기수 선택 없음`:'유형을 선택한 뒤 제목을 입력하세요.'}</p>
+      <p className="muted">제목을 입력하고 작성을 시작하면 임시보관 글이 만들어집니다. 기수는 편집 화면에서 선택할 수 있습니다.</p>
       {allowTypeSelection&&<label>콘텐츠 유형<select autoFocus={!typeCode} required value={typeCode} disabled={busy} onChange={e=>chooseType(e.target.value)}><option value="">유형을 선택하세요</option>{catalog.types.filter(t=>t.active).map(t=><option key={t.code} value={t.code}>{t.name}</option>)}</select></label>}
       <label>{presentation.title}<input autoFocus={!!typeCode} required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} disabled={busy}/></label>
       {typeCode!=='RESTAURANT'&&availableTopics.length>0&&<fieldset className="draft-topics"><legend>주제 <small>복수 선택 · 선택 없음 허용</small></legend>
@@ -31,7 +32,7 @@ export function CreateContentDraft({selection,catalog,allowTypeSelection=false,c
         </label>)}</div>
       </fieldset>}
       {error&&<p className="error-box" role="alert">{error}</p>}
-      <div className="heading-actions"><button type="button" disabled={busy} onClick={onClose}>취소</button><button className="primary" disabled={busy||!canCreate}>{busy?'만드는 중…':'초안 만들기'}</button></div>
+      <div className="heading-actions"><button type="button" disabled={busy} onClick={onClose}>취소</button><button className="primary" disabled={busy||!canCreate}>{busy?'만드는 중…':'작성 시작'}</button></div>
     </form>
   </dialog>;
 }

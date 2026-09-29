@@ -13,10 +13,11 @@ import egovframework.backoffice.mvp.classification.ClassificationModels.Classifi
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-/** Shared post drafts; all validation and writes remain in PostService. Publication uses the existing UI. */
+/** Shared post drafts and explicit publication; validation and writes remain in PostService. */
 @RestController
 @RequestMapping("/api/admin/next/posts")
 public class NextPostApi {
@@ -31,8 +32,32 @@ public class NextPostApi {
                                List<Long> mediaIds,List<Media> attachments,Classification classification,Details restaurant) {}
     public record SaveRequest(Long revision,String title,String content,String richContent,Long categoryId,List<Long> mediaIds,JsonNode classification,JsonNode restaurant,String saveIntent) {}
     public record PreviewRequest(String title,String content,String richContent,List<Long> mediaIds,JsonNode classification,JsonNode restaurant) {}
+    public record TrashRequest(Long revision,boolean confirmed) {}
+    public record TrashRow(long id,String title,String authorName,Long categoryId,String status,long revision,LocalDateTime deletedAt) {}
 
     @ModelAttribute public void noStore(HttpServletResponse response) { response.setHeader("Cache-Control","no-store"); }
+
+    @GetMapping("/trash")
+    public Map<String,Object> trash(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="") String q) {
+        var result=posts.trash(actor,page,q);
+        return Map.of("items",result.items().stream().map(p->new TrashRow(p.id(),p.title(),p.authorName(),p.categoryId(),p.status(),p.revision(),p.deletedAt())).toList(),
+            "page",result.page(),"pageSize",result.pageSize(),"total",result.total());
+    }
+    @PostMapping(value="/{id}/trash",consumes="application/json")
+    public Map<String,Long> moveToTrash(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody TrashRequest input) {
+        if(!input.confirmed())throw new BusinessException("휴지통 이동을 확인하세요.");
+        posts.delete(actor,id,input.revision());return Map.of("id",id);
+    }
+    @PostMapping(value="/{id}/restore",consumes="application/json")
+    public PostDocument restoreTrash(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody TrashRequest input) {
+        if(!input.confirmed())throw new BusinessException("임시보관으로 복원할지 확인하세요.");
+        return document(actor,posts.restoreTrash(actor,id,input.revision()));
+    }
+    @DeleteMapping(value="/{id}/trash",consumes="application/json")
+    public Map<String,Long> purgeTrash(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody TrashRequest input) {
+        if(!input.confirmed())throw new BusinessException("복구할 수 없는 영구 삭제를 확인하세요.");
+        posts.purgeTrash(actor,id,input.revision());return Map.of("id",id);
+    }
 
     @GetMapping("/{id}")
     public PostDocument get(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {
@@ -56,6 +81,18 @@ public class NextPostApi {
         var saved=posts.saveDocument(actor,id,input.revision(),input.title(),input.content(),
             input.categoryId(),input.mediaIds(),"save",input.richContent(),classifications.parse(input.classification()),restaurants.parse(input.restaurant()),egovframework.backoffice.mvp.version.SaveIntent.request(input.saveIntent()));
         return document(actor,saved);
+    }
+
+    @PostMapping(value="/{id}/publish",consumes="application/json")
+    public PostDocument publish(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody SaveRequest input) {
+        posts.get(actor,id);
+        if(input.revision()==null) throw new BusinessException("저장 버전이 필요합니다. 내용을 다시 조회하세요.");
+        // Save the submitted editor contents and publication in the same existing transaction.
+        // Autosave stays on PUT; publication cannot be enabled through a draft request field.
+        var published=posts.saveDocument(actor,id,input.revision(),input.title(),input.content(),
+            input.categoryId(),input.mediaIds(),"publish",input.richContent(),classifications.parse(input.classification()),
+            restaurants.parse(input.restaurant()),egovframework.backoffice.mvp.version.SaveIntent.MANUAL_DRAFT);
+        return document(actor,published);
     }
 
     @GetMapping("/{id}/preview")

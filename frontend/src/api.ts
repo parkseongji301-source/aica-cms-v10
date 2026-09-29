@@ -29,9 +29,11 @@ export const createPost=(title:string,classification:ClassificationSelection,cat
 });
 export const getClassifications=(signal?:AbortSignal)=>get<ClassificationCatalog>('/classifications',signal);
 export const getPublication=(id:number,signal?:AbortSignal)=>get<PostPublication>(`/posts/${id}/publication`,signal);
-export const savePost=(post:PostDocument,saveIntent:'AUTOSAVE'|'MANUAL_DRAFT'='MANUAL_DRAFT')=>send<PostDocument>(`/posts/${post.id}`,'PUT',{
-  saveIntent,revision:post.revision,title:post.title,content:post.content,richContent:post.richContent,categoryId:post.categoryId,mediaIds:post.mediaIds,classification:classificationSelection(post.classification),...restaurantPayload(post)
+const postPayload=(post:PostDocument)=>({
+  revision:post.revision,title:post.title,content:post.content,richContent:post.richContent,categoryId:post.categoryId,mediaIds:post.mediaIds,classification:classificationSelection(post.classification),...restaurantPayload(post)
 });
+export const savePost=(post:PostDocument,saveIntent:'AUTOSAVE'|'MANUAL_DRAFT'='MANUAL_DRAFT')=>send<PostDocument>(`/posts/${post.id}`,'PUT',{...postPayload(post),saveIntent});
+export const publishPost=(post:PostDocument)=>send<PostDocument>(`/posts/${post.id}/publish`,'POST',postPayload(post));
 export const previewPost=(post:PostDocument,signal?:AbortSignal)=>request<PostPreview>(`${base}/posts/${post.id}/preview`,{
   method:'POST',headers:{'Content-Type':'application/json'},signal,
   body:JSON.stringify({title:post.title,content:post.content,richContent:post.richContent,mediaIds:post.mediaIds,classification:classificationSelection(post.classification),...restaurantPayload(post)})

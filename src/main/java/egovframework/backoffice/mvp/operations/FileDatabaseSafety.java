@@ -8,10 +8,11 @@ import java.security.MessageDigest;
 import java.sql.*;
 import java.util.*;
 
-/** Shared pre-connection checks for the packaged V10 runtime and one-shot cutover tool. */
+/** Shared pre-connection checks for the current runtime and preserved V3 -> V10 cutover tool. */
 public final class FileDatabaseSafety {
     public static final ObjectMapper JSON = new ObjectMapper();
     public static final String LOCATION = "classpath:db/migration/h2";
+    public static final String CURRENT_VERSION = "11";
     private FileDatabaseSafety() {}
     public static void require(boolean condition, String reason) {
         if (!condition) throw new IllegalStateException("DB safety STOP: " + reason);
@@ -67,6 +68,8 @@ public final class FileDatabaseSafety {
         var out=new ArrayList<Map<String,Object>>();
         for(var m:flyway.info().all()) {
             require(m.getVersion()!=null,"repeatable/unversioned migrations are not approved");
+            // The preserved V3 -> V10 tool has an explicitly bounded manifest.
+            if(m.getVersion().compareTo(org.flywaydb.core.api.MigrationVersion.fromVersion("10"))>0)continue;
             var row=new LinkedHashMap<String,Object>();row.put("version",m.getVersion().getVersion());row.put("script",m.getScript());row.put("checksum",m.getChecksum());out.add(row);
         }
         require(out.size()==10,"exactly V1 through V10 required");
@@ -123,12 +126,20 @@ public final class FileDatabaseSafety {
         return out;
     }
     public static void requireV10(Path file,String user,String password) throws Exception {
-        var f=flyway(readUrl(file),user,password,null);f.validate();
+        var f=flyway(readUrl(file),user,password,"10");f.validate();
         require(f.info().current()!=null&&"10".equals(f.info().current().getVersion().getVersion())&&f.info().pending().length==0,"normal runtime accepts V10 only; use approved one-shot cutover");
     }
+    public static void requireCurrentSchema(Path file,String user,String password) throws Exception {
+        var f=flyway(readUrl(file),user,password,null);f.validate();
+        require(f.info().current()!=null&&CURRENT_VERSION.equals(f.info().current().getVersion().getVersion())&&f.info().pending().length==0,
+            "normal runtime accepts V"+CURRENT_VERSION+" only; migrate and validate a separate copy first");
+    }
     public static void requireReceipt(Path file,Path receipt,String jarHash) throws Exception {
+        requireReceipt(file,receipt,jarHash,"10");
+    }
+    public static void requireReceipt(Path file,Path receipt,String jarHash,String schemaVersion) throws Exception {
         var r=JSON.readTree(receipt.toFile());
-        require(r.path("status").asText().equals("MIGRATED_V10"),"missing completed cutover receipt");
+        require(r.path("status").asText().equals("MIGRATED_V"+schemaVersion),"missing completed cutover receipt for V"+schemaVersion);
         require(file.toRealPath().toString().equals(r.path("databasePath").asText()),"receipt database path mismatch");
         require(jarHash.equals(r.path("jarSha256").asText()),"receipt runtime checksum mismatch");
         require(r.path("workaround").asText().equals("AUTO_COMPACT_FILL_RATE=0"),"receipt workaround mismatch");

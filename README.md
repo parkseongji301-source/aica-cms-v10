@@ -1,6 +1,10 @@
-# AICA CMS V10
+# AICA CMS (운영 V11)
 
-콘텐츠·페이지·블록을 관리하는 Spring/React 백오피스와 발행본 전용 공개 API입니다. 원본 V10 전환은 완료됐으며 실제 공개 홈페이지는 아직 없습니다. 현재 기능/schema는 동결 상태입니다.
+콘텐츠·페이지·블록을 관리하는 Spring/React 백오피스와 발행본 전용 공개 API입니다. 2026-09-29 실제 8095의 V11 승격을 완료했습니다. 실제 공개 홈페이지는 아직 없습니다. [V11 운영 기준점](docs/V11_OPERATING_BASELINE.md)을 이후 UX 개선의 비교 기준으로 사용합니다.
+
+2026-09-29 개발본에는 사용자 요청에 따라 [React 게시·재게시 연결](docs/POST_PUBLICATION.md)과 [게시물 휴지통·복원·영구삭제](docs/POST_TRASH.md)를 추가했습니다. 휴지통은 V11 추가 테이블을 사용합니다. 기존 8095 운영본과 분리해 검증했으며, 새 UI·서버·검증된 V11 DB를 함께 적용해야 합니다. UI 파일만 교체해서 적용할 수 없습니다.
+
+V11 RC1의 [승격 절차](docs/V11_PROMOTION.md)와 [사본 리허설 결과](docs/V11_REHEARSAL_RESULTS.md)에 따라 최신 전체 백업·새 승인 계획·MIGRATED_V11 receipt를 발급하고 실제 승격했습니다. 기존 데이터 보존과 실제 정상 종료·cold 검사·재시작은 PASS했으며 V10 전체 rollback 묶음을 보존했습니다.
 
 이후 디자인·동선 변경은 [UI·UX 기능 동결 기준](docs/UI_UX_FREEZE.md)을 따릅니다. 업무 기능 범위를 넘어야 하면 진행 전에 사용자에게 알립니다.
 
@@ -17,7 +21,7 @@
 
 ## 실행 전에
 
-현재 원본 V10에는 승인된 `serve` 경로와 validate-only를 사용합니다. 파일 DB writer의 **AUTO_COMPACT_FILL_RATE=0은 필수**입니다. 과거 `run-local.ps1`은 V3 실행 경로이므로 원본 V10에 사용하지 마세요. 정확한 명령·경로·종료 절차는 배포·실행 가이드에 있습니다.
+현재 원본 V11은 `.cache/company-v11/start-ui.ps1`에서 승인된 `serve`와 validate-only로 실행합니다. 파일 DB writer의 **AUTO_COMPACT_FILL_RATE=0은 필수**입니다. 과거 V3/V10 시작 경로를 현재 V11 DB에 사용하지 마세요. 정확한 실행·종료·복구 경로는 [V11 운영 기준점](docs/V11_OPERATING_BASELINE.md)을 따릅니다.
 
 ## 이전 단계 기록
 

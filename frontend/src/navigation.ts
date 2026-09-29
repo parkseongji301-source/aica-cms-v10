@@ -1,9 +1,9 @@
 import type {Bootstrap, Menu} from './types';
 
-export type MenuEntry = {label:string;path:string;access?:'site'|'operations'|'templateManage'|'structure'};
+export type MenuEntry = {label:string;path:string;access?:'site'|'operations'|'templateManage'|'structure'|'permanentDelete'};
 export const managementGroups:{label:string;items:MenuEntry[]}[] = [
   {label:'',items:[{label:'대시보드',path:'/dashboard'}]},
-  {label:'콘텐츠 관리',items:[{label:'콘텐츠 목록',path:'/posts'},{label:'미디어 관리',path:'/media'}]},
+  {label:'콘텐츠 관리',items:[{label:'콘텐츠 목록',path:'/posts'},{label:'휴지통',path:'/trash',access:'permanentDelete'},{label:'미디어 관리',path:'/media'}]},
   {label:'페이지 관리',items:[{label:'전체 페이지 현황',path:'/pages',access:'site'}]},
   {label:'',items:[{label:'메뉴 관리',path:'/menus',access:'structure'}]},
   {label:'디자인 관리',items:[{label:'공통 스타일',path:'/design/style',access:'structure'},{label:'공통 컴포넌트',path:'/design/components',access:'structure'},{label:'공용 템플릿',path:'/design/templates',access:'templateManage'}]},

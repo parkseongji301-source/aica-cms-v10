@@ -252,6 +252,8 @@ class ClassificationIntegrationTest {
         var b=login("ADMIN");posts.unpublish(actor("ADMIN"),id,posts.get(actor("ADMIN"),id).revision());
         assertThat(published(List.of(),List.of())).isEmpty();error(b.get(API+id+"/publication"),404,"NOT_FOUND");
         posts.delete(actor("SUPER_ADMIN"),id,posts.get(actor("SUPER_ADMIN"),id).revision());
+        assertThat(published(List.of(),List.of())).isEmpty();
+        posts.purgeTrash(actor("SUPER_ADMIN"),id,posts.trashed(actor("SUPER_ADMIN"),id).revision());
         for(String table:List.of("post_cohorts","post_topics","post_publication_cohorts","post_publication_topics"))
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM "+table+" WHERE post_id=?",Long.class,id)).isZero();
     }

@@ -9,6 +9,16 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class PostMapper extends EgovAbstractMapper {
     public Post find(long id) { return selectOne("Post.find", id); }
+    public Post findTrashed(long id) { return selectOne("Post.findTrashed",id); }
+    public List<Post> listTrashed(int limit,int offset,String query) {
+        var values=searchValues(null,query);values.put("limit",limit);values.put("offset",offset);
+        return selectList("Post.listTrashed",values);
+    }
+    public long countTrashed(String query) { return selectOne("Post.countTrashed",searchValues(null,query)); }
+    public void markTrashed(long id) { insert("Post.markTrashed",id); }
+    public void forgetTrash(long id) { delete("Post.forgetTrash",id); }
+    public int restoreTrashed(long id) { return update("Post.restoreTrashed",id); }
+    public int purgeTrashed(long id) { return delete("Post.purgeTrashed",id); }
     public List<Post> list(Long authorId, int limit, int offset) {
         return list(authorId, limit, offset, "");
     }

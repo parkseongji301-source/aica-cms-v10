@@ -60,6 +60,7 @@ class NextPostIntegrationTest {
         return result;
     }
     private HttpResponse<String> put(HttpBrowser b,long id,Map<String,Object> body,String csrf)throws Exception{return b.json("PUT",API+"/"+id,json.writeValueAsString(body),csrf);}
+    private HttpResponse<String> publish(HttpBrowser b,long id,Map<String,Object> body,String csrf)throws Exception{return b.json("POST",API+"/"+id+"/publish",json.writeValueAsString(body),csrf);}
     private void error(HttpResponse<String> response,int status,String code)throws Exception {
         assertThat(response.statusCode()).as(response.body()).isEqualTo(status);
         assertThat(response.headers().firstValue("content-type").orElse("")).contains("application/json");
@@ -165,6 +166,99 @@ class NextPostIntegrationTest {
         jdbc.update("UPDATE users SET auth_version=auth_version+1 WHERE role='SUPPORTER'");error(supporter.get(API+"/"+ownId),401,"SESSION_EXPIRED");
     }
 
+    @Test void newDraftCanBePublishedFromSubmittedEditorContentsWithoutAnotherSave()throws Exception {
+        var b=login("ADMIN");String csrf=token(b);
+        var created=b.json("POST",API,json.writeValueAsString(Map.of("title","새 글","content","","mediaIds",List.of(),"saveIntent","AUTOSAVE")),csrf);
+        assertThat(created.statusCode()).isEqualTo(201);
+        var draft=json.readTree(created.body());long id=draft.path("id").asLong();
+        assertThat(draft.path("status").asText()).isEqualTo("DRAFT");
+        var fields=input(draft);fields.put("title","게시할 식당");fields.put("content","방금 입력한 소개");
+        fields.put("classification",Map.of("typeCode","RESTAURANT","cohortIds",List.of(),"topicIds",List.of()));
+        fields.put("restaurant",Map.of("address","광주광역시 테스트로 123"));
+        fields.put("categoryId",12);fields.put("mediaIds",List.of(imageId,fileId));
+        var result=ok(publish(b,id,fields,csrf));
+        assertThat(result.path("id").asLong()).isEqualTo(id);
+        assertThat(result.path("status").asText()).isEqualTo("PUBLISHED");
+        assertThat(result.path("revision").asLong()).isEqualTo(draft.path("revision").asLong()+1);
+        assertThat(result.path("publishedRevision")).isEqualTo(result.path("revision"));
+        assertThat(result.path("pending").asBoolean()).isFalse();
+        var publication=ok(b.get(API+"/"+id+"/publication"));
+        assertThat(publication.path("post").path("title").asText()).isEqualTo("게시할 식당");
+        assertThat(publication.path("post").path("content").asText()).isEqualTo("방금 입력한 소개");
+        assertThat(publication.path("classification").path("typeCode").asText()).isEqualTo("RESTAURANT");
+        assertThat(publication.path("restaurant").path("address").asText()).isEqualTo("광주광역시 테스트로 123");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publication_media WHERE post_id=?",Integer.class,id)).isEqualTo(2);
+        assertThat(b.get("/api/public/v1/posts/"+id).body()).contains("게시할 식당","방금 입력한 소개","광주광역시 테스트로 123");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_versions WHERE post_id=? AND reason='PUBLISH'",Integer.class,id)).isEqualTo(1);
+    }
+
+    @Test void autosavePreservesPublicationUntilExplicitRepublishAndPrivatePostCanPublish()throws Exception {
+        var b=login("SUPER_ADMIN");String csrf=token(b);var before=read(b,publishedId);
+        var fields=input(before);fields.put("title","수정 중 초안");fields.put("richContent",richDocument());fields.put("saveIntent","AUTOSAVE");
+        var draft=ok(put(b,publishedId,fields,csrf));
+        assertThat(draft.path("pending").asBoolean()).isTrue();
+        assertThat(b.get("/api/public/v1/posts/"+publishedId).body()).contains("기존 발행 콘텐츠").doesNotContain("수정 중 초안");
+        fields=input(draft);fields.put("title","최종 게시 제목");
+        // A forged author or ID cannot change the publication target or ownership.
+        fields.put("id",ownId);fields.put("authorId",principal("SUPER_ADMIN").getId());
+        var published=ok(publish(b,publishedId,fields,csrf));
+        assertThat(published.path("pending").asBoolean()).isFalse();
+        assertThat(published.path("authorId")).isEqualTo(before.path("authorId"));
+        assertThat(json.readTree(published.path("richContent").asText())).isEqualTo(json.readTree(richDocument()));
+        assertThat(b.get("/admin/posts/"+publishedId+"/publication").body()).contains("최종 게시 제목","<strong>","<table>","안내 첨부");
+        assertThat(read(b,ownId).path("title").asText()).isEqualTo("본인 초안");
+        var privatePost=ok(publish(b,privateId,input(read(b,privateId)),csrf));
+        assertThat(privatePost.path("status").asText()).isEqualTo("PUBLISHED");
+    }
+
+    @Test void rejectedPublicationDoesNotChangeDraftPublicationOrHistory()throws Exception {
+        var b=login("ADMIN");String csrf=token(b);var before=read(b,publishedId);
+        var publication=ok(b.get(API+"/"+publishedId+"/publication"));
+        var history=ok(b.get(API+"/"+publishedId+"/versions"));
+        var fields=input(before);fields.remove("revision");error(publish(b,publishedId,fields,csrf),400,"VALIDATION_ERROR");
+        fields=input(before);fields.put("title","");error(publish(b,publishedId,fields,csrf),400,"VALIDATION_ERROR");
+        fields=input(before);fields.put("content","");fields.put("mediaIds",List.of());error(publish(b,publishedId,fields,csrf),400,"VALIDATION_ERROR");
+        fields=input(before);fields.put("categoryId",999999);error(publish(b,publishedId,fields,csrf),400,"VALIDATION_ERROR");
+        fields=input(before);fields.put("classification",Map.of("typeCode","UNKNOWN","cohortIds",List.of(),"topicIds",List.of()));error(publish(b,publishedId,fields,csrf),400,"VALIDATION_ERROR");
+        error(publish(b,999999,input(before),csrf),404,"NOT_FOUND");
+        assertThat(read(b,publishedId)).isEqualTo(before);
+        assertThat(ok(b.get(API+"/"+publishedId+"/publication"))).isEqualTo(publication);
+        assertThat(ok(b.get(API+"/"+publishedId+"/versions"))).isEqualTo(history);
+        var saved=ok(put(b,publishedId,input(before),csrf));
+        error(publish(b,publishedId,input(before),csrf),409,"REVISION_CONFLICT");
+        assertThat(read(b,publishedId)).isEqualTo(saved);
+        assertThat(ok(b.get(API+"/"+publishedId+"/publication"))).isEqualTo(publication);
+    }
+
+    @Test void publicationEnforcesRoleCsrfAndCurrentSession()throws Exception {
+        var admin=login("ADMIN");var supporter=login("SUPPORTER");var own=read(supporter,ownId);
+        error(publish(supporter,ownId,input(own),token(supporter)),403,"FORBIDDEN_OR_CSRF");
+        error(publish(supporter,publishedId,input(read(admin,publishedId)),token(supporter)),403,"FORBIDDEN_OR_CSRF");
+        error(publish(admin,ownId,input(own),null),403,"FORBIDDEN_OR_CSRF");
+        var anonymous=new HttpBrowser(port);
+        String anonymousCsrf=HttpBrowser.extract(anonymous.get("/login").body(),"name=\"_csrf\"[^>]*value=\"([^\"]+)\"");
+        error(publish(anonymous,ownId,input(own),anonymousCsrf),401,"AUTH_REQUIRED");
+        String csrf=token(admin);jdbc.update("UPDATE users SET auth_version=auth_version+1 WHERE role='ADMIN'");
+        error(publish(admin,ownId,input(own),csrf),401,"SESSION_EXPIRED");
+        assertThat(read(supporter,ownId)).isEqualTo(own);
+    }
+
+    @Test void racingAutosaveAndPublicationCannotSilentlyOverwriteEachOther()throws Exception {
+        var b=login("ADMIN");String csrf=token(b);var before=read(b,publishedId);
+        var draft=input(before);draft.put("title","동시 초안");draft.put("saveIntent","AUTOSAVE");
+        var publication=input(before);publication.put("title","동시 게시");
+        var gate=new java.util.concurrent.CountDownLatch(1);
+        var saveFuture=java.util.concurrent.CompletableFuture.supplyAsync(()->{try{gate.await();return put(b,publishedId,draft,csrf);}catch(Exception e){throw new RuntimeException(e);}});
+        var publishFuture=java.util.concurrent.CompletableFuture.supplyAsync(()->{try{gate.await();return publish(b,publishedId,publication,csrf);}catch(Exception e){throw new RuntimeException(e);}});
+        gate.countDown();
+        var saveResult=saveFuture.get(30,java.util.concurrent.TimeUnit.SECONDS);var publishResult=publishFuture.get(30,java.util.concurrent.TimeUnit.SECONDS);
+        assertThat(List.of(saveResult.statusCode(),publishResult.statusCode())).containsExactlyInAnyOrder(200,409);
+        var after=read(b,publishedId);var publicPost=ok(b.get(API+"/"+publishedId+"/publication")).path("post");
+        assertThat(after.path("revision").asLong()).isEqualTo(before.path("revision").asLong()+1);
+        assertThat(after.path("title").asText()).isEqualTo(publishResult.statusCode()==200?"동시 게시":"동시 초안");
+        assertThat(publicPost.path("title").asText()).isEqualTo(publishResult.statusCode()==200?"동시 게시":"기존 발행 콘텐츠");
+    }
+
     @Test void draftAndPrivateStatusStayUnchangedWithAdditiveClassificationSchema()throws Exception {
         var b=login("ADMIN");String csrf=token(b);
         for(long id:List.of(ownId,privateId)) {
@@ -172,7 +266,7 @@ class NextPostIntegrationTest {
             var saved=ok(put(b,id,fields,csrf));assertThat(saved.path("status")).isEqualTo(before.path("status"));
             assertThat(saved.path("categoryId").isNull()).isTrue();assertThat(saved.path("publishedRevision")).isEqualTo(before.path("publishedRevision"));
         }
-        assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10");
+        assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10","11");
         assertThat(b.get("/admin/posts/new").statusCode()).isEqualTo(200);
     }
 }

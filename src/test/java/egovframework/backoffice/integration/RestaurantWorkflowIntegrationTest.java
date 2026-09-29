@@ -99,7 +99,12 @@ class RestaurantWorkflowIntegrationTest {
         assertThat(admin.json("PUT",API+"/"+id,json.writeValueAsString(input),token(admin)).statusCode()).isEqualTo(409);assertThat(get(admin,API+"/"+id)).isEqualTo(latest);
         var own=create(supporter,"내 주소");assertThat(own.path("authorId").asLong()).isEqualTo(accounts.findByEmail("supporter@restaurant.test").id());
         publish(admin,latest);assertThat(admin.post("/admin/posts/"+id+"/delete",Map.of()).statusCode()).isEqualTo(403);
-        assertThat(login("SUPER_ADMIN").post("/admin/posts/"+id+"/delete",Map.of("revision",get(admin,API+"/"+id).path("revision").asText(),"confirmed","true")).statusCode()).isEqualTo(302);
+        var root=login("SUPER_ADMIN");
+        assertThat(root.post("/admin/posts/"+id+"/delete",Map.of("revision",get(admin,API+"/"+id).path("revision").asText(),"confirmed","true")).statusCode()).isEqualTo(302);
+        assertThat(jdbc.queryForObject("SELECT address FROM post_restaurant_details WHERE post_id=?",String.class,id)).isEqualTo("최신 주소");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publication_restaurant_details WHERE post_id=?",Integer.class,id)).isEqualTo(1);
+        long revision=jdbc.queryForObject("SELECT revision FROM posts WHERE id=?",Long.class,id);
+        assertThat(root.json("DELETE",API+"/"+id+"/trash",json.writeValueAsString(Map.of("revision",revision,"confirmed",true)),token(root)).statusCode()).isEqualTo(200);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_restaurant_details WHERE post_id=?",Integer.class,id)).isZero();assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publication_restaurant_details WHERE post_id=?",Integer.class,id)).isZero();
     }
     @Test void failedSnapshotWriteRollsBackPublicationAndRevisionAsOneTransaction()throws Exception {

@@ -106,7 +106,7 @@ public class PostController {
  }
  @PostMapping("/{id}/delete")
  public String delete(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestParam(required=false) Long revision,@RequestParam(defaultValue="false") boolean confirmed,@RequestParam(required=false) String from,RedirectAttributes redirect) {
-  if(!confirmed)throw new BusinessException("영구 삭제 영향을 확인하고 확인란을 선택하세요.");
-  posts.delete(actor,id,revision);redirect.addFlashAttribute("notice","콘텐츠를 영구 삭제했습니다. 복구 기능은 없습니다.");return "redirect:"+ListLocation.posts(from);
+  if(!confirmed)throw new BusinessException("휴지통 이동 영향을 확인하고 확인란을 선택하세요.");
+  posts.delete(actor,id,revision);redirect.addFlashAttribute("notice","콘텐츠를 휴지통으로 이동했습니다. 휴지통에서 임시보관으로 복원할 수 있습니다.");return "redirect:"+ListLocation.posts(from);
  }
 }

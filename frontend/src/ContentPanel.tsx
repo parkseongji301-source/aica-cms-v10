@@ -5,8 +5,8 @@ import {getPost,getClassifications} from './api';
 import {ContentEditor} from './ContentEditor';
 import {Feedback,messageOf} from './ui';
 
-export function ContentPanel({id,active,categories,onLoaded,onSaved,onList,onMediaChange,registerGuard,canPublish}:{
-  registerGuard:(path:string,guard:EditorGuard|null)=>void;canPublish:boolean;id:number;active:boolean;categories:Category[];onLoaded:(post:PostDocument)=>void;
+export function ContentPanel({id,active,categories,onLoaded,onSaved,onList,onMediaChange,registerGuard,canPublish,canDelete,onTrashed}:{
+  registerGuard:(path:string,guard:EditorGuard|null)=>void;canPublish:boolean;canDelete:boolean;onTrashed:(id:number)=>void;id:number;active:boolean;categories:Category[];onLoaded:(post:PostDocument)=>void;
   onSaved:(post:PostDocument)=>void;onList:()=>void;onMediaChange:()=>void;
 }) {
   const onGuard=useCallback((guard:EditorGuard|null)=>registerGuard('/posts/'+id+'/edit',guard),[id,registerGuard]);
@@ -19,6 +19,6 @@ export function ContentPanel({id,active,categories,onLoaded,onSaved,onList,onMed
       .catch(e=>{if(!controller.signal.aborted)setError(messageOf(e));});
     return()=>controller.abort();
   },[id,active,document,retry]);
-  return document&&catalog?<ContentEditor onGuard={onGuard} canPublish={canPublish} initial={document} catalog={catalog} categories={categories} active={active} onSaved={onSaved} onList={onList} onMediaChange={onMediaChange}/>
+  return document&&catalog?<ContentEditor onGuard={onGuard} canPublish={canPublish} canDelete={canDelete} onTrashed={onTrashed} initial={document} catalog={catalog} categories={categories} active={active} onSaved={onSaved} onList={onList} onMediaChange={onMediaChange}/>
     :<><Feedback error={error} loading={!error}/>{error&&<button onClick={()=>{setError('');setRetry(n=>n+1);}}>다시 시도</button>}</>;
 }

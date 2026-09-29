@@ -1,3 +1,4 @@
 * text=auto
 mvnw text eol=lf
 *.cmd text eol=crlf
+src/main/resources/db/migration/h2/*.sql text eol=lf

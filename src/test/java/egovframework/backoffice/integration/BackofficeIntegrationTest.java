@@ -352,7 +352,9 @@ class BackofficeIntegrationTest {
         long imageId=image(actor,"실제 이미지.png");
         long id=posts.save(actor,null,null,"첨부 글","본문",null,List.of(imageId),"save");
         assertThatThrownBy(()->media.delete(actor,imageId)).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
-        posts.delete(actor,id,posts.get(actor,id).revision());media.delete(actor,imageId);
+        posts.delete(actor,id,posts.get(actor,id).revision());
+        assertThatThrownBy(()->media.delete(actor,imageId)).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
+        posts.purgeTrash(actor,id,posts.trashed(actor,id).revision());media.delete(actor,imageId);
         assertThatThrownBy(()->media.required(imageId)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         assertThatThrownBy(()->site.link(actor,null,"위험 링크","javascript:alert(1)")).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
         site.category(actor,null,"첫 항목");site.category(actor,null,"둘째 항목");

@@ -33,7 +33,7 @@ public class DeletionImpactService {
   }
   for(var t:templates.list())collect(found,pages.sections(t.blocksJson()),id,"템플릿 · "+t.name()+(t.active()?" · 활성":" · 비활성"),"/admin-next/design/templates");
   return new Impact(kind,id,p.title(),p.revision(),List.copyOf(found),
-    "콘텐츠를 관리·공개 목록에서 제거하고 발행본·분류 연결·첨부 연결·맛집 상세를 삭제합니다. 직접 선택 ID는 남아 사용 불가로 표시되고, 조건 목록에서 제외됩니다. 원본 미디어 파일은 삭제하지 않습니다. 휴지통·복구 기능은 없습니다.",versionMedia.impact(egovframework.backoffice.mvp.version.VersionKind.POST,id));
+    "콘텐츠를 휴지통으로 이동하고 공개 목록에서 제외합니다. 본문·분류·첨부·맛집 상세·버전 이력을 보관하며, 휴지통에서 임시보관으로 복원할 수 있습니다. 직접 선택 ID는 남아 사용 불가로 표시됩니다. 영구삭제는 휴지통에서 별도로 실행합니다.",versionMedia.impact(egovframework.backoffice.mvp.version.VersionKind.POST,id));
  }
  private void collect(List<UsageService.Usage> result,List<Section> blocks,long id,String label,String href){
   for(var b:blocks)if("POSTS".equals(b.type())){

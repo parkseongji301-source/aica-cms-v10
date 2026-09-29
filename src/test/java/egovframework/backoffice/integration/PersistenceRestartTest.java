@@ -22,6 +22,7 @@ class PersistenceRestartTest {
         ClassificationMigrationTest.flyway(url,null).migrate();
         url += ";IFEXISTS=TRUE";
         long postId;
+        long trashedId;
         long imageId;
         long pageId;
         String hash;
@@ -41,6 +42,9 @@ class PersistenceRestartTest {
             service.create(actor, "persist-admin@example.test", "지속 관리자", Role.ADMIN);
             service.create(actor, "persist-support@example.test", "지속 서포터", Role.SUPPORTER);
             postId = first.getBean(PostService.class).create(actor, "재시작 후 유지", "파일 DB 본문");
+            var trashService=first.getBean(PostService.class);
+            trashedId=trashService.save(actor,null,null,"재시작 후 복원","휴지통 본문",null,java.util.List.of(),"publish");
+            trashService.delete(actor,trashedId,trashService.get(actor,trashedId).revision());
             var imageBytes = new java.io.ByteArrayOutputStream();
             javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(2,2,java.awt.image.BufferedImage.TYPE_INT_RGB), "png", imageBytes);
             imageId = first.getBean(egovframework.backoffice.mvp.cms.MediaService.class).upload(actor,
@@ -70,6 +74,10 @@ class PersistenceRestartTest {
             redirect(browser.get("/admin/posts"), "/login");
             browser.login(email, initial, "/login?error");
             browser.login(email, changed, "/admin");
+            var trashService=second.getBean(PostService.class);var trashActor=new AccountPrincipal(mapper.findByEmail(email));
+            assertThat(trashService.trash(trashActor,0,"").items()).extracting(Post::id).containsExactly(trashedId);
+            var recovered=trashService.restoreTrash(trashActor,trashedId,trashService.trashed(trashActor,trashedId).revision());
+            assertThat(recovered.status()).isEqualTo("DRAFT");assertThat(recovered.content()).isEqualTo("휴지통 본문");
             assertThat(browser.get("/admin/posts/" + postId).body()).contains("재시작 후 유지", "파일 DB 본문");
             assertThat(browser.get("/admin/accounts").body()).contains("persist-admin@example.test", "persist-support@example.test");
             var anonymous = new HttpBrowser(port(second));

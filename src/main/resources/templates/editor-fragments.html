@@ -11,5 +11,5 @@
 <a th:if="${kind == 'posts'}" data-publication-link th:hidden="${status != 'PUBLISHED'}" th:href="@{/admin/posts/{id}/publication(id=${id ?: 0})}" target="_blank" rel="noopener">발행본 확인 ↗</a>
 <details><summary>더 보기</summary><div class="document-action-menu">
 <form th:if="${canPublish}" data-document-action="unpublish" th:hidden="${status != 'PUBLISHED'}" th:action="@{/admin/{kind}/{id}/unpublish(kind=${kind},id=${id ?: 0})}" method="post" data-confirm="저장된 발행본을 비공개로 전환할까요?"><input type="hidden" name="revision" th:value="${revision}"><input type="hidden" name="from" th:value="${returnTo}"><button class="secondary">공개 중단</button></form>
-<a th:if="${canDeletePermanent}" class="text-danger" data-delete-review th:href="@{/admin/{kind}/{id}/delete-confirm(kind=${kind},id=${id ?: 0})}">영구 삭제 검토</a>
+<a th:if="${canDeletePermanent}" class="text-danger" data-delete-review th:href="@{/admin/{kind}/{id}/delete-confirm(kind=${kind},id=${id ?: 0})}" th:text="${kind == 'posts'} ? '휴지통 이동 검토' : '영구 삭제 검토'">삭제 검토</a>
 </div></details></div></body></html>

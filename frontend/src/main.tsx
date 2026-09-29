@@ -6,6 +6,7 @@ import {bootstrap,getPage,get} from './api';
 import {TemplatesPanel} from './PageTemplates';
 import {PageEditor} from './PageEditor';
 import {ContentPanel} from './ContentPanel';
+import {TrashPanel} from './TrashPanel';
 import {AccountsPanel,ActivityPanel,DashboardPanel,PagesPanel,PostsPanel,RolesPanel} from './ReadPanels';
 import {LinkManager,MediaPanel,SettingsPanel} from './EditPanels';
 import {canOpen,contentPath,destination,entries,managementGroups,pagePath,pageOverviewPath,pageOverviewId} from './navigation';
@@ -50,6 +51,9 @@ function Workspace({initial}:{initial:Bootstrap}) {
   const [contentTargets,setContentTargets]=useState<Record<number,{title:string;categoryId:number|null}>>({});
   const loadedContent=(post:PostDocument)=>setContentTargets(old=>({...old,[post.id]:{title:post.title,categoryId:post.categoryId}}));
   const refresh=useCallback(()=>setVersion(v=>v+1),[]);
+  const [postEpochs,setPostEpochs]=useState<Record<number,number>>({});
+  const trashChanged=(id:number)=>{setPostEpochs(old=>({...old,[id]:(old[id]||0)+1}));refresh();};
+  const trashed=(id:number)=>{trashChanged(id);navigate('/trash',false,true);setSidebarOpen(false);};
   useEffect(()=>{
     let cancelled=false;
     void bootstrap().then(value=>{if(!cancelled){setData(value);setNavigationError('');}}).catch(e=>{if(!cancelled)setNavigationError(messageOf(e));});
@@ -106,6 +110,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
     </div>
     <div className="sidebar-scroll">
     {mode==='manage'?<nav className="management-navigation" aria-label="사이트 관리">{managementGroups.map((group,index)=><div className={'nav-group'+(group.label?' nav-group-labeled':'')} key={index}>{group.label&&<h2><NavigationIcon name={managementIcons[group.label]??'folder'}/><span>{group.label}</span></h2>}{group.items.map(item=><button key={item.path} className={route.path===item.path||item.path==='/pages'&&activePage||item.path==='/posts'&&activePost?'selected':''} aria-current={route.path===item.path?'page':undefined} disabled={!!item.access&&!data.permissions[item.access]} title={item.access&&!data.permissions[item.access]?'이 계정에는 권한이 없습니다.':undefined} onClick={()=>go(item.path)}>{!group.label&&<NavigationIcon name={item.path==='/dashboard'?'dashboard':'link'}/>}<span className="nav-item-copy"><span>{item.label}</span>{item.access&&!data.permissions[item.access]&&<small>권한 없음</small>}</span></button>)}</div>)}</nav>:<nav className="structure-navigation" aria-label="콘텐츠 작업">
+      {data.permissions.permanentDelete&&<button className={route.path==='/trash'?'selected':''} onClick={()=>go('/trash')}>휴지통</button>}
       {!data.permissions.site?<p className="nav-note">페이지와 메뉴 구성은 조회 권한이 있는 계정에 표시됩니다.</p>:<>
       <ReviewTree catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?reviewKey:null} go={go} error={reviewCatalog.error}/>
       <ContentTree type="FAQ" catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?faqKey:null} go={go} error=""/>
@@ -125,11 +130,12 @@ function Workspace({initial}:{initial:Bootstrap}) {
         let panel;
         if(!canOpen(key,data))panel=<><Heading title={entries.some(e=>e.path===key)||match?'접근 권한이 없습니다.':'화면을 찾을 수 없습니다.'}/><Empty>사이트 관리에서 사용할 수 있는 메뉴를 선택하세요.</Empty></>;
         else if(match)panel=<PagePanel blockId={new URLSearchParams(savedRoute.query).get('block')} viewMode={mode} onSelectBlock={(block,replace)=>navigate(pagePath(Number(match[1]),block),replace)} onOutline={updatedOutline} registerGuard={registerGuard} id={Number(match[1])} active={active} data={data} go={go} onTitle={name=>savedPage(Number(match[1]),name)}/>;
-        else if(postMatch)panel=<ContentPanel registerGuard={registerGuard} canPublish={!!data.permissions.publish} id={Number(postMatch[1])} active={active} categories={data.categories} onLoaded={loadedContent} onSaved={post=>{loadedContent(post);refresh();}} onList={()=>go(visited['/posts']?'/posts'+visited['/posts'].query:returnSectionPath(new URLSearchParams(savedRoute.query),reviewCatalog.data)||'/posts')} onMediaChange={refresh}/>;
+        else if(postMatch)panel=<ContentPanel key={postEpochs[Number(postMatch[1])]||0} registerGuard={registerGuard} canPublish={!!data.permissions.publish} canDelete={!!data.permissions.permanentDelete} onTrashed={trashed} id={Number(postMatch[1])} active={active} categories={data.categories} onLoaded={loadedContent} onSaved={post=>{loadedContent(post);refresh();}} onList={()=>go(visited['/posts']?'/posts'+visited['/posts'].query:returnSectionPath(new URLSearchParams(savedRoute.query),reviewCatalog.data)||'/posts')} onMediaChange={refresh}/>;
         else if(inspectedId!==null)panel=<PageOverview page={data.pages.find(p=>p.id===inspectedId)} menus={data.menus} outline={structure.data?.find(p=>p.pageId===inspectedId)} loading={structure.loading} error={structure.error} blockId={new URLSearchParams(savedRoute.query).get('block')} onSelectBlock={block=>go(pageOverviewPath(inspectedId,block))} onEdit={block=>editPage(inspectedId,block)} onRetry={structure.reload}/>;
         else switch(key) {
           case '/dashboard':panel=<DashboardPanel {...props}/>;break;
           case '/posts':panel=<PostsPanel {...props}/>;break;
+          case '/trash':panel=<TrashPanel {...props} onChanged={trashChanged} registerGuard={registerGuard}/>;break;
           case '/pages':panel=<PagesPanel {...props}/>;break;
           case '/media':panel=<MediaPanel {...props}/>;break;
           case '/menus':panel=<LinkManager {...props} type="menus"/>;break;

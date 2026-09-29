@@ -24,6 +24,26 @@
     SELECT <include refid="columns"/> FROM posts p JOIN users u ON u.id = p.author_id
     WHERE <include refid="visible"/> <include refid="search"/> ORDER BY p.id DESC LIMIT #{limit} OFFSET #{offset}
   </select>
+  <select id="findTrashed" resultType="egovframework.backoffice.mvp.post.Post">
+    SELECT <include refid="columns"/> FROM posts p JOIN users u ON u.id=p.author_id JOIN post_trash t ON t.post_id=p.id
+    WHERE p.id=#{value} AND p.deleted_at IS NOT NULL
+  </select>
+  <select id="listTrashed" resultType="egovframework.backoffice.mvp.post.Post">
+    SELECT <include refid="columns"/> FROM posts p JOIN users u ON u.id=p.author_id JOIN post_trash t ON t.post_id=p.id
+    WHERE p.deleted_at IS NOT NULL <include refid="search"/> ORDER BY p.deleted_at DESC,p.id DESC LIMIT #{limit} OFFSET #{offset}
+  </select>
+  <select id="countTrashed" resultType="long">
+    SELECT COUNT(*) FROM posts p JOIN post_trash t ON t.post_id=p.id WHERE p.deleted_at IS NOT NULL <include refid="search"/>
+  </select>
+  <insert id="markTrashed">INSERT INTO post_trash(post_id) VALUES(#{value})</insert>
+  <delete id="forgetTrash">DELETE FROM post_trash WHERE post_id=#{value}</delete>
+  <update id="restoreTrashed">
+    UPDATE posts SET deleted_at=NULL,status='DRAFT',updated_at=CURRENT_TIMESTAMP,revision=revision+1
+    WHERE id=#{value} AND deleted_at IS NOT NULL AND EXISTS(SELECT 1 FROM post_trash WHERE post_id=#{value})
+  </update>
+  <delete id="purgeTrashed">
+    DELETE FROM posts WHERE id=#{value} AND deleted_at IS NOT NULL AND EXISTS(SELECT 1 FROM post_trash WHERE post_id=#{value})
+  </delete>
   <select id="count" resultType="long">SELECT COUNT(*) FROM posts p WHERE <include refid="visible"/> <include refid="search"/></select>
   <select id="dailyCounts" resultType="egovframework.backoffice.mvp.post.DailyPostCount">
     SELECT CAST(p.created_at AS DATE) AS "day", COUNT(*) AS "count" FROM posts p

@@ -9,11 +9,16 @@ public class VersionMediaReferences {
  public record FileImpact(long id,String name){}
  public record Impact(long versionCount,List<FileImpact> files){}
  private final VersionStore versions;private final VersionHistoryService history;private final CmsStore cms;
- public VersionMediaReferences(VersionStore versions,VersionHistoryService history,CmsStore cms){this.versions=versions;this.history=history;this.cms=cms;}
+ private final egovframework.backoffice.mvp.post.PostMapper posts;private final CmsAccess access;
+ public VersionMediaReferences(VersionStore versions,VersionHistoryService history,CmsStore cms,egovframework.backoffice.mvp.post.PostMapper posts,CmsAccess access){this.versions=versions;this.history=history;this.cms=cms;this.posts=posts;this.access=access;}
  public boolean used(long media){return Arrays.stream(VersionKind.values()).anyMatch(k->!versions.uses(k,media).isEmpty());}
  public List<UsageService.Usage> uses(AccountPrincipal actor,long media){
   var result=new ArrayList<UsageService.Usage>();boolean restricted=false;
   for(var kind:VersionKind.values())for(var use:versions.uses(kind,media)){
+   if(kind==VersionKind.POST&&posts.findTrashed(use.targetId())!=null){
+    if(access.actor(actor).role()!=egovframework.backoffice.mvp.account.Role.SUPER_ADMIN){restricted=true;continue;}
+    result.add(new UsageService.Usage("휴지통 · 콘텐츠 #"+use.targetId()+" · 과거 버전 #"+use.versionId(),"/admin-next/trash"));continue;
+   }
    try{history.authorize(actor,kind,use.targetId(),false);}
    catch(AccessDeniedException e){restricted=true;continue;}
    String label=(kind==VersionKind.POST?"콘텐츠":kind==VersionKind.PAGE?"페이지":"공용 템플릿")+" #"+use.targetId()+" · 과거 버전 #"+use.versionId()+" · "+use.reason();

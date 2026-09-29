@@ -1,11 +1,12 @@
 import {useDocumentVisible} from './editorGuard';
 import {savedTime} from './ui';
 import {VersionHistoryDialog} from './VersionHistoryDialog';
+import {BlockDialog} from './BlockDialog';
 import {historyRequested,type RestoreResult} from './versionHistory';
 import {useEffect,useRef,useState} from 'react';
 import {useEditorGuard,type GuardRegistration} from './editorGuard';
 import type {Category,PostDocument,PostPreview,Classification,ClassificationCatalog,RestaurantDetails} from './types';
-import {ApiError,bootstrap,getPost,getPublication,previewPost,savePost} from './api';
+import {ApiError,bootstrap,getPost,getPublication,previewPost,savePost,publishPost,send} from './api';
 import {classificationProblem,classificationView,sameClassification} from './classification';
 import {ClassificationFields,ClassificationSummary} from './ClassificationFields';
 import {editablePost,postFingerprint as fingerprint} from './contentDocument';
@@ -15,15 +16,18 @@ import {RichEditor} from './RichEditor';
 import {date,messageOf} from './ui';
 import './content-editor.css';
 
-type Props={onGuard:GuardRegistration;canPublish:boolean;initial:PostDocument;catalog:ClassificationCatalog;categories:Category[];active:boolean;onList:()=>void;
+type Props={onGuard:GuardRegistration;canPublish:boolean;canDelete:boolean;onTrashed:(id:number)=>void;initial:PostDocument;catalog:ClassificationCatalog;categories:Category[];active:boolean;onList:()=>void;
   onSaved:(post:PostDocument)=>void;onMediaChange:()=>void};
 
-export function ContentEditor({initial,catalog,categories,active,onList,onSaved,onMediaChange,onGuard,canPublish}:Props) {
+export function ContentEditor({initial,catalog,categories,active,onList,onSaved,onMediaChange,onGuard,canPublish,canDelete,onTrashed}:Props) {
   const documentVisible=useDocumentVisible();
  const [historyOpen,setHistoryOpen]=useState(()=>historyRequested()),[historyBusy,setHistoryBusy]=useState(false);
  const [doc,setDoc]=useState(()=>editablePost(initial));
   const [saved,setSaved]=useState(()=>fingerprint(editablePost(initial)));
   const [busy,setBusy]=useState(false),[uploading,setUploading]=useState(false),[blocked,setBlocked]=useState(false);
+  const [publishing,setPublishing]=useState(false);
+  const [publishError,setPublishError]=useState('');
+  const [trashOpen,setTrashOpen]=useState(false),[trashing,setTrashing]=useState(false);
   const [fatal,setFatal]=useState(false),[authError,setAuthError]=useState(false),[epoch,setEpoch]=useState(0);
   const [message,setMessage]=useState('저장된 내용을 불러왔습니다.'),[error,setError]=useState('');
   const [preview,setPreview]=useState<PostPreview|null>(null),[previewError,setPreviewError]=useState('');
@@ -45,31 +49,39 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
     version.current++;live.current={...live.current,...patch};setDoc(live.current);
     setMessage('변경사항 있음 · 잠시 후 자동 저장');if(!blocked)setError('');
   }
-  async function save(automatic=false) {
-    if(historyOpen||automatic&&(!active||document.hidden))return;
+  async function save(automatic=false,publish=false) {
+    if(trashOpen||historyOpen||historyBusy||publish&&!canPublish||automatic&&(!active||document.hidden))return;
     const current=live.current;
     if(inFlight.current||uploadPending.current||blocked||fatal)return;
     if(classificationProblem(current.classification,catalog,baseline.current)||restaurantProblem(current))return;
     if(!current.title.trim()){if(!automatic)setError(contentPresentation(current.classification.typeCode).missingTitle);return;}
     if(automatic&&(fingerprint(current)===savedRef.current||fingerprint(current)===failed.current))return;
-    const submitted=version.current;inFlight.current=true;setBusy(true);setError('');
+    const submitted=version.current;inFlight.current=true;setBusy(true);setPublishing(publish);setError('');
+    if(publish)setPublishError('');
     try {
-      const result=editablePost(await savePost(current,automatic?'AUTOSAVE':'MANUAL_DRAFT'));failed.current='';setSaved(fingerprint(result));
+      const result=editablePost(await (publish?publishPost(current):savePost(current,automatic?'AUTOSAVE':'MANUAL_DRAFT')));
+      failed.current='';savedRef.current=fingerprint(result);setSaved(savedRef.current);
       baseline.current=result.classification;
       live.current=submitted===version.current?result:{...live.current,revision:result.revision,status:result.status,
         publishedRevision:result.publishedRevision,pending:result.pending,attachments:result.attachments,
         mediaIds:result.mediaIds,updatedAt:result.updatedAt};
       setDoc(live.current);onSaved(result);setAuthError(false);
-      setMessage((automatic?'자동 저장됨 · ':'초안 버전 저장됨 · ')+savedTime());
+      if(publish)setPublicationVersion(v=>v+1);
+      const changed=submitted!==version.current;
+      setMessage(publish
+        ? '게시 완료 · '+savedTime()+(changed?' · 게시 중 입력한 변경사항은 초안으로 자동 저장됩니다.':'')
+        : (automatic?'자동 저장됨 · ':'초안 버전 저장됨 · ')+savedTime());
     } catch(e) {
-      failed.current=fingerprint(current);setError(messageOf(e));setMessage('저장되지 않음');
+      if(!publish)failed.current=fingerprint(current);
+      if(publish)setPublishError(messageOf(e));else setError(messageOf(e));
+      setMessage(publish?'게시를 완료하지 못했습니다. 게시 상태를 확인한 뒤 다시 시도하세요.':'저장되지 않음');
       if(e instanceof ApiError&&[401,403,404,409].includes(e.status)){setBlocked(true);setAuthError([401,403].includes(e.status));}
-    } finally {inFlight.current=false;setBusy(false);}
+    } finally {inFlight.current=false;setBusy(false);setPublishing(false);}
   }
   useEffect(()=>{
-    if(historyOpen||!active||!documentVisible||!dirty||busy||uploading||blocked||fatal||problem)return;
+    if(trashOpen||historyOpen||!active||!documentVisible||!dirty||busy||uploading||blocked||fatal||problem)return;
     const timer=setTimeout(()=>void save(true),1800);return()=>clearTimeout(timer);
-  },[historyOpen,active,documentVisible,doc,dirty,busy,uploading,blocked,fatal,problem]);
+  },[trashOpen,historyOpen,active,documentVisible,doc,dirty,busy,uploading,blocked,fatal,problem]);
   useEffect(()=>{
     const leave=(event:BeforeUnloadEvent)=>{if(fingerprint(live.current)!==savedRef.current||inFlight.current||uploadPending.current){event.preventDefault();event.returnValue='';}};
     window.addEventListener('beforeunload',leave);return()=>window.removeEventListener('beforeunload',leave);
@@ -105,27 +117,35 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
       if(requested!==version.current){setMessage('조회 중 변경된 입력을 유지했습니다.');return;}
       live.current=result;setDoc(result);setSaved(fingerprint(result));failed.current='';setEpoch(n=>n+1);
       baseline.current=result.classification;setPublicationVersion(v=>v+1);
-      setBlocked(false);setFatal(false);setAuthError(false);setError('');setMessage('저장된 내용을 다시 불러왔습니다.');onSaved(result);
+      setBlocked(false);setFatal(false);setAuthError(false);setError('');setPublishError('');setMessage('저장된 내용을 다시 불러왔습니다.');onSaved(result);
     }catch(e){setError(messageOf(e));}finally{inFlight.current=false;setBusy(false);}
   }
   async function restored(_result:RestoreResult){
     const value=editablePost(await getPost(initial.id));version.current++;live.current=value;savedRef.current=fingerprint(value);
     setDoc(value);setSaved(savedRef.current);baseline.current=value.classification;failed.current='';setEpoch(n=>n+1);
-    setBlocked(false);setFatal(false);setAuthError(false);setError('');setMessage('새 초안으로 복구했습니다. 발행본은 유지됩니다.');onSaved(value);
+    setBlocked(false);setFatal(false);setAuthError(false);setError('');setPublishError('');setMessage('새 초안으로 복구했습니다. 발행본은 유지됩니다.');onSaved(value);
   }
   function uploadState(value:boolean){uploadPending.current=value;setUploading(value);}
+  async function trash() {
+    if(!canDelete||inFlight.current||uploadPending.current||historyBusy||blocked||fingerprint(live.current)!==savedRef.current)return;
+    inFlight.current=true;setBusy(true);setTrashing(true);setError('');let moved=false;
+    try {await send(`/posts/${doc.id}/trash`,'POST',{revision:live.current.revision,confirmed:true});moved=true;}
+    catch(e){setError(messageOf(e));if(e instanceof ApiError&&[401,403,404,409].includes(e.status)){setBlocked(true);setAuthError([401,403].includes(e.status));}}
+    finally{inFlight.current=false;setBusy(false);setTrashing(false);setTrashOpen(false);}
+    if(moved)onTrashed(doc.id);
+  }
   const category=categories.find(c=>c.id===doc.categoryId)?.name||'미분류';
 
   return <section className="content-editor" data-testid="content-editor" data-content-id={doc.id}>
     <div className="editor-heading"><div><p className="eyebrow">{presentation.heading}</p><h1>{doc.title.trim()||initial.title}</h1>
       <p className="target-caption">{doc.authorName} · 최근 수정 {date(doc.updatedAt)}</p></div>
-      <div className="heading-actions"><button onClick={onList}>목록</button><a aria-disabled={dirty||busy||uploading||blocked} href={dirty||busy||uploading||blocked?undefined:'/admin/posts/'+doc.id+'/edit'} target="_blank" rel="noopener noreferrer">{canPublish?'발행·상세 관리':'기존 편집 화면'} <span>기존 화면 ↗</span></a></div>
+      <div className="heading-actions"><button onClick={onList}>목록</button>{canDelete&&<button className="danger-link" disabled={dirty||busy||uploading||historyBusy||blocked} title={dirty?'변경사항을 저장한 뒤 이동할 수 있습니다.':undefined} onClick={()=>{setError('');setTrashOpen(true);}}>휴지통으로 이동</button>}<a aria-disabled={dirty||busy||uploading||blocked} href={dirty||busy||uploading||blocked?undefined:'/admin/posts/'+doc.id+'/edit'} target="_blank" rel="noopener noreferrer">{canPublish?'공개 중단 등 상세 관리':'기존 편집 화면'} <span>기존 화면 ↗</span></a></div>
     </div>
     <div className="editor-actions"><div><span className="status-tag">{doc.status==='PUBLISHED'?'발행본 있음':doc.status==='PRIVATE'?'비공개':'임시저장'}</span>
-      {doc.pending&&<span className="pending-tag">미반영 수정</span>}<span className="save-message" role="status">{busy?'저장·조회 중…':uploading?'파일 업로드 중…':problem?'입력 확인 필요 · 저장 대기':message}</span></div>
-      <div className="action-buttons"><button disabled={busy||uploading} onClick={()=>{if(dirty)setError('초안을 저장한 뒤 버전 이력을 열어 주세요.');else setHistoryOpen(true);}}>버전 이력</button><button disabled={busy||uploading} onClick={()=>void reload()}>다시 조회</button><button className="primary" disabled={busy||uploading||blocked||fatal||!!problem} onClick={()=>void save()}>초안 저장</button></div>
+      {(doc.pending||doc.status==='PUBLISHED'&&dirty)&&<span className="pending-tag">미반영 수정</span>}<span className="save-message" role="status">{publishing?'게시 중…':busy?'저장·조회 중…':uploading?'파일 업로드 중…':problem?'입력 확인 필요 · 저장 대기':message}</span></div>
+      <div className="action-buttons"><button disabled={busy||uploading||historyBusy} onClick={()=>{if(dirty)setError('초안을 저장한 뒤 버전 이력을 열어 주세요.');else setHistoryOpen(true);}}>버전 이력</button><button disabled={busy||uploading||historyBusy} onClick={()=>void reload()}>다시 조회</button><button className={canPublish?undefined:'primary'} disabled={busy||uploading||historyBusy||blocked||fatal||!!problem} onClick={()=>void save()}>초안 저장</button>{canPublish&&<button className="primary" disabled={busy||uploading||historyBusy||blocked||fatal||!!problem||!doc.title.trim()||doc.status==='PUBLISHED'&&!doc.pending&&!dirty} onClick={()=>void save(false,true)}>{publishing?'게시 중…':doc.status==='PUBLISHED'?'수정 내용 게시':'게시'}</button>}</div>
     </div>
-    {error&&<div className="error-box" role="alert">{error}{authError&&<div><a href="/login" target="_blank" rel="noopener">새 탭에서 로그인</a><button onClick={()=>void bootstrap().then(()=>{setBlocked(false);setAuthError(false);setError('');}).catch(e=>setError(messageOf(e)))}>로그인 상태 다시 확인</button></div>}</div>}
+    {(error||publishError)&&<div className="error-box" role="alert">{publishError&&<p>게시 실패: {publishError}</p>}{error}{authError&&<div><a href="/login" target="_blank" rel="noopener">새 탭에서 로그인</a><button onClick={()=>void bootstrap().then(()=>{setBlocked(false);setAuthError(false);setError('');}).catch(e=>setError(messageOf(e)))}>로그인 상태 다시 확인</button></div>}</div>}
     <div className="editor-grid"><div className="editing-column card content-canvas">
       <ClassificationFields value={doc.classification} catalog={catalog} baseline={baseline.current} problem={classificationIssue} onChange={patch=>change({classification:{...doc.classification,...patch}})}/>
       {addressIssue&&<div className="classification-warning" role="alert"><p>{addressIssue}</p>{doc.classification.typeCode!=='RESTAURANT'&&<button onClick={()=>change({restaurant:{address:''}})}>주소를 비우고 유형 변경</button>}</div>}
@@ -161,5 +181,6 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
       {doc.status==='PUBLISHED'&&doc.publishedRevision!==null&&<a className="publication-link" href={'/admin/posts/'+doc.id+'/publication'} target="_blank" rel="noopener noreferrer">기존 발행본 확인 ↗</a>}
     </aside></div>
     {historyOpen&&<VersionHistoryDialog kind="posts" id={doc.id} active={active} onClose={()=>setHistoryOpen(false)} onRestored={restored} onBusy={setHistoryBusy}/>}
+    {trashOpen&&<BlockDialog active={active} title="휴지통으로 이동" onClose={()=>{if(!inFlight.current)setTrashOpen(false);}}><p><strong>{doc.title}</strong></p><p>게시물이 목록과 공개 화면에서 사라집니다. 본문·첨부·분류·버전 이력은 보관하며 휴지통에서 임시보관으로 복원할 수 있습니다.</p><div className="dialog-actions"><button disabled={trashing} onClick={()=>setTrashOpen(false)}>취소</button><button className="danger" disabled={trashing} onClick={()=>void trash()}>{trashing?'이동 중…':'휴지통으로 이동'}</button></div></BlockDialog>}
   </section>;
 }

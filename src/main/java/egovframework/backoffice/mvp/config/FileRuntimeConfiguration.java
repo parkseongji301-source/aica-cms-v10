@@ -29,15 +29,16 @@ public class FileRuntimeConfiguration {
             require(!"always".equals(env.getProperty("spring.sql.init.mode")),"file SQL initialization is disabled");
             require(FileDatabaseSafety.LOCATION.equals(env.getProperty("spring.flyway.locations",FileDatabaseSafety.LOCATION)),"unapproved Flyway migration location");
             require(!env.getProperty("AICA_CUTOVER_ENABLED","false").equalsIgnoreCase("true"),"cutover mode must not be used by the web server");
+            require(!env.getProperty("AICA_V11_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
             Path db=requireWriter(ds.getJdbcUrl());
             boolean original=db.toString().replace('\\','/').toLowerCase(Locale.ROOT).contains("/.local-data/");
             String receipt=env.getProperty("AICA_RUNTIME_RECEIPT","");
             if(original || !env.getProperty("backoffice.classification-migration.copy-validation",Boolean.class,false)) {
                 require(!receipt.isBlank(),"original DB is blocked without a completed cutover receipt");
-                requireReceipt(db,Path.of(receipt),hash(runtimeJar()));
+                requireReceipt(db,Path.of(receipt),hash(runtimeJar()),CURRENT_VERSION);
             }
-            requireV10(db,ds.getUsername(),ds.getPassword());
-            LoggerFactory.getLogger(FileRuntimeConfiguration.class).info("V10 file runtime: profile={}, path={}, AUTO_COMPACT_FILL_RATE=0, migration=validate-only, pid={}",
+            requireCurrentSchema(db,ds.getUsername(),ds.getPassword());
+            LoggerFactory.getLogger(FileRuntimeConfiguration.class).info("V"+CURRENT_VERSION+" file runtime: profile={}, path={}, AUTO_COMPACT_FILL_RATE=0, migration=validate-only, pid={}",
                 String.join(",",env.getActiveProfiles()),db,ProcessHandle.current().pid());
             return ds;
         } catch(Exception e) {ds.close();throw e;}

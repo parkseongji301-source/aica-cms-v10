@@ -119,11 +119,40 @@ public class PostService extends EgovAbstractServiceImpl {
         CmsRules.revision(post.revision(),revision);
         Long author = policy.canManageAllPosts(actor.role()) ? null : actor.id();
         if (posts.softDelete(id, author) != 1) throw missing();
+        posts.markTrashed(id);
+        audit.record(actor,"콘텐츠 휴지통 이동","콘텐츠 #"+id,post.title());
+    }
+    @Transactional(readOnly=true)
+    public PostPage trash(AccountPrincipal principal,int page,String query) {
+        policy.requireDelete(current.require(principal,false));
+        if(page<0||page>100000)throw new BusinessException("페이지 번호가 올바르지 않습니다.");
+        String search=query==null?"":query.strip();
+        if(search.length()>100)throw new BusinessException("검색어는 100자 이하로 입력하세요.");
+        return new PostPage(posts.listTrashed(PAGE_SIZE,page*PAGE_SIZE,search),page,PAGE_SIZE,posts.countTrashed(search));
+    }
+    @Transactional(readOnly=true)
+    public Post trashed(AccountPrincipal principal,long id) {
+        var actor=current.require(principal,false);policy.requireDelete(actor);
+        var post=posts.findTrashed(id);if(post==null)throw missing();
+        policy.requirePostAccess(actor,post.authorId());return post;
+    }
+    @Transactional
+    public Post restoreTrash(AccountPrincipal principal,long id,Long revision) {
+        cms.lock();var post=trashed(principal,id);CmsRules.revision(post.revision(),revision);
+        // Restore the saved draft, never automatically make it public again.
+        cms.change("clearPostPublicationMedia",id);cms.change("clearPostPublication",id);
+        if(posts.restoreTrashed(id)!=1)throw missing();
+        posts.forgetTrash(id);
+        audit.record(current.require(principal,false),"콘텐츠 휴지통 복원","콘텐츠 #"+id,post.title()+" · 임시보관으로 복원");
+        return required(id);
+    }
+    @Transactional
+    public void purgeTrash(AccountPrincipal principal,long id,Long revision) {
+        cms.lock();var post=trashed(principal,id);CmsRules.revision(post.revision(),revision);
         history.purge(VersionKind.POST,id);
-        cms.change("postMetadata",values("id",id,"categoryId",null));
-        cms.change("clearPostMedia",id); cms.change("clearPostPublicationMedia",id); cms.change("clearPostPublication",id);
-        classifications.clear(id);restaurants.clear(id);
-        audit.record(actor,"콘텐츠 삭제","콘텐츠 #"+id,post.title());
+        // Post-owned rows cascade; media originals and page/template ID references remain.
+        if(posts.purgeTrashed(id)!=1)throw missing();
+        audit.record(current.require(principal,false),"콘텐츠 영구 삭제","콘텐츠 #"+id,post.title());
     }
     @Transactional
     public long save(AccountPrincipal principal, Long id, Long revision, String title, String content,

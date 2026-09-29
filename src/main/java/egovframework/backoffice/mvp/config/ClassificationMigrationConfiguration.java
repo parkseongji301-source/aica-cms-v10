@@ -20,8 +20,8 @@ public class ClassificationMigrationConfiguration {
                 flyway.migrate();
             } else {
                 flyway.validate();
-                FileDatabaseSafety.require(flyway.info().current()!=null && "10".equals(flyway.info().current().getVersion().getVersion()) && flyway.info().pending().length==0,
-                    "normal file runtime must already be V10; migration is disabled");
+                FileDatabaseSafety.require(flyway.info().current()!=null && FileDatabaseSafety.CURRENT_VERSION.equals(flyway.info().current().getVersion().getVersion()) && flyway.info().pending().length==0,
+                    "normal file runtime must already be V"+FileDatabaseSafety.CURRENT_VERSION+"; migration is disabled");
             }
         };
     }

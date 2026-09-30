@@ -334,3 +334,23 @@ CATEGORY 메뉴 2개 변환, 페이지 65의 카테고리 방식 블록, GENERAL
 - 8095(V13)는 `promote-v15-runtime.ps1`로 V13 → V14 → V15를 한 번에 사본에 적용한다. 8095 정상 정지·백업·새 RC 폴더가 필요하며 사용자 승인 후 진행한다. 되돌리기 대상은 V13 RC1(자기 DB 그대로).
 - 적용 직후 공개 메뉴는 바뀌지 않는다(구성 게시 전 fallback). 콘텐츠 작업 사이드바의 후기·FAQ·맛집 항목은 영역을 연결할 때까지 보이지 않는다.
 - 첫 구성 게시(4단계)는 공지사항(카테고리) 메뉴 2개를 공개 메뉴에서 뺀다. 카테고리 이관을 먼저 할지 결정이 필요하다.
+
+## 8095 V15 적용 결과 (2026-09-30)
+
+사용자 승인으로 적용했다. 첫 구성 게시·카테고리 이관·IA 입력은 하지 않았다(다음 단계).
+
+| 순서 | 결과 |
+|---|---|
+| push | `323bca4`…`bb747ce`(아래의 2단계 커밋 포함) → origin/main |
+| 적용 전 기록 | 공개 메뉴 5개(홈, 인사교 소개×2, 공지사항×2 CATEGORY), `/structure` 404, 홈·소개 페이지 응답 저장 |
+| V13 RC1 정상 종료 | 통과, 차가운 검사 `stopped-1790779607229.json`(이력 13, DB `6cb86f60…`) |
+| 백업 | `.cache/v12-release/backups/aica-local.before-V15-20260930-stopped-1790779607229.mv.db` + 검사 파일, 해시 일치 |
+| `promote-v15-runtime.ps1` | `.cache/v15-release/V15-RC1-20260930/runtime`(JAR `302b68ff…` = 리허설 JAR, commit `bb747ce`). V14(`MIGRATED_V14`, 이력 14) → V15(`MIGRATED_V15`, 이력 15). 두 도구의 기존 데이터 지문·새 값 검사 통과. V13 RC1 DB 불변 |
+| 선택·기동 | `current-ui.json` = `{kind:v15, runtime:.cache/v15-release/V15-RC1-20260930/runtime}`, 8095 ready |
+| 공개 API | 메뉴의 기존 계약 필드 8개가 적용 전과 동일(`key`=`menu:<id>`, `parentKey`=null만 추가), 공지사항 CATEGORY 2개 유지, `/structure` = `publishedAt:null, items:[]`, 홈·소개 페이지 응답 동일 |
+| 세 역할 | React 16·기존 5·API 11 모두 통과. SUPER_ADMIN은 쓰기 없음(읽기 전용 확인). ADMIN·SUPPORTER의 게시·구성 제거 쓰기 403 |
+| 구성 상태 | 게시본 없음, 페이지 1·65·97 모두 구성 포함·메뉴 숨김(기본값), 오류 0 |
+| 정상 종료 → 재시작 | 통과, 공개 메뉴 동일, 세 역할 통과, 실패 0 |
+| 임시 계정 | #37(v15-check-admin@example.com), #38(v15-check-supporter@example.com) 확인 후 비활성화. 비밀번호는 남기지 않았다 |
+
+되돌리기 대상: V13 RC1(`.cache/v13-release/V13-RC1-20260930/runtime`, 자기 DB 그대로, JAR `fe9a3508…`). `select-v12-runtime.ps1`로 선택한 뒤 START한다. 문제가 없어 되돌리기는 하지 않았다.

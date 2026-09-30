@@ -80,10 +80,10 @@ V1~V11은 V11 receipt와 같고, V12는 개발 실행본 receipt와 같다. pend
 - 8095: **V12 RC1**(`.cache/v12-release/V12-RC1-20260930/runtime`, JAR `3ba3a701…9eaf`)이 실행 중이다. `.cache/current-ui.json`은 `{"kind":"v12","runtime":".cache/v12-release/V12-RC1-20260930/runtime"}`, `runtime.json`의 포트는 8095다. 실행 중인 PID는 같은 폴더의 `active.json`에서 확인한다.
 - 2026-09-30 14:31 전환 기록(사용자 승인):
   1. 개발 실행본을 `STOP` 경로로 정상 종료하고 cold 검사했다.
-  2. 개발 DB의 37개 테이블 fingerprint가 개발 receipt와 같고(migration 뒤 새 작성 내용 없음), RC1 DB와도 같았다. 전환으로 잃은 내용은 없다.
+  2. 개발 DB와 개발 receipt·RC1 DB의 fingerprint를 비교했다. **정정(같은 날 17시 확인)**: 당시 비교 스크립트의 함수 이름 `Diff`가 PowerShell 기본 별칭 `diff`(Compare-Object)에 가려져 실제로는 비교하지 않았고, "차이 없음"은 잘못된 결과였다. 개발 DB에는 migration 뒤 13:28~13:55에 쓴 7건(글 #137 신규, 글 #135 수정, 페이지 #97 임시저장·버전 2건, 글쓰기 템플릿 #1 저장 2회)이 있었고 RC1 DB에는 없다. 사용자가 7건 모두 QA·테스트 데이터로 확인해 RC1로 옮기지 않기로 했다. 개발 DB는 그대로 보관한다.
   3. RC1 `runtime.json` 포트를 8095로 바꾸고 `current-ui.json`을 RC1로 바꾼 뒤 시작했다. 이전 설정은 `.cache/current-ui.before-rc1.json`에 보관했다.
   4. 시작 후 `V12 file runtime`·`AUTO_COMPACT_FILL_RATE=0`·validate-only 로그, `/login` 200, 공개 메뉴 API 200, 익명 글쓰기 템플릿 API 401, 로그인 스타일 제공을 확인했다.
-- V12 개발 실행본(`.cache/runtime-v12-writing-templates`)은 정상 종료 상태로 보관한다. 다시 쓰려면 RC1을 정상 종료한 뒤 `current-ui.json`을 `.cache/current-ui.before-rc1.json` 내용으로 되돌린다.
+- V12 개발 실행본(`.cache/runtime-v12-writing-templates`)은 **백업으로만 보관**한다(같은 폴더의 `ARCHIVED.json`, DB SHA-256 `5301809b…19b1`). 운영에 다시 쓰지 않는다. RC1은 전환 뒤 메뉴 변경 등 새 작업이 있어, 개발 DB로 되돌리면 그 내용이 빠진다. `.cache/current-ui.before-rc1.json`은 기록용이다.
 - `START.cmd`/`STOP.cmd` → `scripts/start-current-ui.ps1` → V12면 `scripts/start-v12-runtime.ps1`. 이 스크립트는 JAR·정상 종료 도구·오버레이 해시와 포트 사용 여부를 확인하고 receipt와 validate-only로 시작한다. 강제 종료하지 않는다.
 
 ## 보존 자료와 되돌리기

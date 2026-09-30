@@ -5,7 +5,7 @@ import {historyRequested,type RestoreResult} from './versionHistory';
 import type {EditorGuard,GuardRegistration} from './editorGuard';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import type {Bootstrap,PageDocument,PreviewDocument,Section,ImageFile,ComponentDefinition,PageTarget,ViewMode} from './types';
-import {ApiError,bootstrap,getPage,previewPage,savePage,uploadImage} from './api';
+import {ApiError,bootstrap,getPage,previewPage,publishPage,savePage,unpublishPage,uploadImage} from './api';
 import {RichEditor} from './RichEditor';
 import {newSection,changeSection,moveSection,insertDuplicate,removeSection} from './pageBlocks';
 import {addressableBlock,selectedBlockId,pageOutline} from './blockNavigation';
@@ -46,15 +46,24 @@ export function PageEditor({initial,definitions,categories,images:initialImages,
  const dirty=fingerprint(doc)!==saved;
  const change=(next:PageDocument)=>{stamp.current++;live.current=next;setDoc(next);if(!blocked)setError('');setMessage('변경사항 있음');};
  const sectionChange=(id:string,patch:Partial<Section>)=>change({...live.current,sections:changeSection(live.current.sections,id,patch)});
- async function save(automatic=false) {
-    if(historyOpen||automatic&&(!active||document.hidden))return;
+ const [unpublishOpen,setUnpublishOpen]=useState(false);
+ // Withdrawal hides the public copy only; the saved draft and history stay (PageService.unpublish).
+ async function unpublish() {
+  if(inFlight.current||pendingUpload.current||blocked||fingerprint(live.current)!==savedRef.current)return;
+  inFlight.current=true;setBusy(true);setError('');
+  try {const result=await unpublishPage(live.current.id,live.current.revision);stamp.current++;live.current=result;savedRef.current=fingerprint(result);setDoc(result);setSaved(savedRef.current);setMessage('공개를 중단했습니다 · 작성 내용과 이력은 유지됩니다');setAuthError(false);}
+  catch(e){const failure=e as ApiError;setError(failure.message);if([401,403,409].includes(failure.status)){setBlocked(true);setAuthError(failure.status!==409);}}
+  finally{inFlight.current=false;setBusy(false);setUnpublishOpen(false);}
+ }
+ async function save(automatic=false,publish=false) {
+    if(historyOpen||automatic&&(!active||document.hidden)||automatic&&publish)return;
   if(live.current.sections.some(s=>!addressableBlock(live.current.sections,s.id))||inFlight.current||pendingUpload.current||blocked||automatic&&fingerprint(live.current)===failed.current)return;
   if(!live.current.title.trim()){if(!automatic)setError('페이지 제목을 입력하세요.');return;}
   if(automatic&&fingerprint(live.current)===savedRef.current)return;
   const snapshot=live.current,submitted=stamp.current;inFlight.current=true;setBusy(true);setError('');
-  try {const result=await savePage(snapshot,automatic?'AUTOSAVE':'MANUAL_DRAFT');failed.current='';setSaved(fingerprint(result));
+  try {const result=await (publish?publishPage(snapshot):savePage(snapshot,automatic?'AUTOSAVE':'MANUAL_DRAFT'));failed.current='';setSaved(fingerprint(result));
    live.current=submitted===stamp.current?result:{...live.current,revision:result.revision,status:result.status,publishedRevision:result.publishedRevision,pending:result.pending};setDoc(live.current);
-   onTitle(result.title);setMessage((automatic?'자동저장 완료 · ':'임시보관 완료 · 버전 저장 · ')+savedTime());setAuthError(false);
+   onTitle(result.title);setMessage((publish?'게시 완료 · 공개본에 반영 · ':automatic?'자동저장 완료 · ':'임시보관 완료 · 버전 저장 · ')+savedTime());setAuthError(false);
   }catch(e){failed.current=fingerprint(snapshot);const failure=e as ApiError;setError(failure.message);setMessage('저장되지 않음');if([401,403,409].includes(failure.status)){setBlocked(true);setAuthError(failure.status!==409);}}
   finally{inFlight.current=false;setBusy(false);}
  }
@@ -92,8 +101,9 @@ export function PageEditor({initial,definitions,categories,images:initialImages,
  const controlsDisabled=busy||uploading||blocked||identityIssue;
  return <section className={'page-editor block-editor pages-editor-workspace'+(previewOpen?' with-page-preview':'')} data-testid="page-editor" data-page-id={doc.id}>
   <div className="editor-heading"><div><p className="eyebrow">페이지 편집</p><h1>{doc.title.trim()||initial.title}</h1><p className="target-caption">블록을 선택해 이 페이지의 내용과 배치를 편집하세요.</p></div></div>
-  <div className="editor-actions"><div><span className="status-tag">{doc.status==='PUBLISHED'?'게시됨':doc.status==='PRIVATE'?'비공개':'임시보관'}</span>{(doc.pending||doc.status==='PUBLISHED'&&dirty)&&<span className="pending-tag">미게시 수정 있음</span>}<span className="save-message" role="status">{busy?'저장 중…':uploading?'이미지 업로드 중…':message}</span></div><div className="action-buttons"><button disabled={busy||uploading} onClick={()=>{if(dirty)setError('임시보관한 뒤 버전 이력을 열어 주세요.');else setHistoryOpen(true);}}>버전 이력</button><button type="button" className="secondary" disabled={busy||uploading} onClick={()=>void reload()}>다시 불러오기</button><button type="button" aria-expanded={previewOpen} aria-controls={'page-preview-'+doc.id} onClick={()=>setPreviewOpen(value=>!value)}>{previewOpen?'미리보기 닫기':'미리보기'}</button><button type="button" className="primary" disabled={controlsDisabled} onClick={()=>void save()}>임시보관</button><a className="legacy-link" aria-disabled={dirty||busy||uploading||blocked} href={dirty||busy||uploading||blocked?undefined:'/admin/pages/'+doc.id+'/edit'} target="_blank" rel="noopener noreferrer">게시 관리 ↗</a></div></div>
-  <p className="page-save-explainer">입력은 자동저장됩니다. 임시보관을 누르면 버전 이력에도 남습니다. 공개 반영은 저장 후 게시 관리에서 진행하세요.</p>
+  <div className="editor-actions"><div><span className="status-tag">{doc.status==='PUBLISHED'?'게시됨':doc.status==='PRIVATE'?'비공개':'임시보관'}</span>{(doc.pending||doc.status==='PUBLISHED'&&dirty)&&<span className="pending-tag">미게시 수정 있음</span>}<span className="save-message" role="status">{busy?'저장 중…':uploading?'이미지 업로드 중…':message}</span></div><div className="action-buttons"><button disabled={busy||uploading} onClick={()=>{if(dirty)setError('임시보관한 뒤 버전 이력을 열어 주세요.');else setHistoryOpen(true);}}>버전 이력</button><button type="button" className="secondary" disabled={busy||uploading} onClick={()=>void reload()}>다시 불러오기</button><button type="button" aria-expanded={previewOpen} aria-controls={'page-preview-'+doc.id} onClick={()=>setPreviewOpen(value=>!value)}>{previewOpen?'미리보기 닫기':'미리보기'}</button><button type="button" className="primary" disabled={controlsDisabled} onClick={()=>void save()}>임시보관</button>{doc.status==='PUBLISHED'&&<button type="button" className="secondary" disabled={controlsDisabled||dirty} title={dirty?'변경사항을 저장한 뒤 공개를 중단할 수 있습니다.':undefined} onClick={()=>{setError('');setUnpublishOpen(true);}}>공개 중단</button>}<button type="button" className="primary" disabled={controlsDisabled||!doc.title.trim()||doc.status==='PUBLISHED'&&!doc.pending&&!dirty} onClick={()=>void save(false,true)}>{doc.status==='PUBLISHED'?'수정 내용 게시':'게시'}</button></div></div>
+  <p className="page-save-explainer">입력은 자동저장됩니다. 임시보관을 누르면 버전 이력에도 남습니다. 게시를 누르면 현재 내용을 저장하고 공개본에 반영합니다. 페이지 주소는 바뀌지 않습니다.</p>
+  {unpublishOpen&&<BlockDialog active={active} title="페이지 공개 중단" onClose={()=>{if(!inFlight.current)setUnpublishOpen(false);}}><p><strong>{doc.title}</strong></p><p>방문자에게 보이는 공개본을 내리고 비공개로 바꿉니다. 작성 내용과 버전 이력은 그대로 남으며 다시 게시할 수 있습니다.</p><div className="dialog-actions"><button type="button" disabled={busy} onClick={()=>setUnpublishOpen(false)}>취소</button><button type="button" className="danger" disabled={busy} onClick={()=>void unpublish()}>{busy?'공개 중단 중…':'공개 중단'}</button></div></BlockDialog>}
   {error&&<div className="error-box" role="alert">{error}{authError&&<div><a href="/login" target="_blank" rel="noopener">새 탭에서 로그인</a><button type="button" onClick={()=>void bootstrap().then(()=>{setBlocked(false);setAuthError(false);setError('');}).catch(e=>setError(e.message))}>로그인 상태 다시 확인</button></div>}</div>}
   <section className="card title-card"><label htmlFor={'page-title-'+initial.id}>페이지 제목</label><input id={'page-title-'+initial.id} value={doc.title} maxLength={200} required onChange={e=>change({...live.current,title:e.target.value})}/></section>
   {(templateUse||templateManage)&&<div className="template-actions">{templateUse&&<button type="button" disabled={controlsDisabled} onClick={()=>setTemplateDialog('load')}>템플릿 불러오기</button>}{templateManage&&<button type="button" disabled={controlsDisabled} onClick={()=>setTemplateDialog('save')}>현재 구성을 템플릿으로 저장</button>}</div>}

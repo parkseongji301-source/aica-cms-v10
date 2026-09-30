@@ -165,3 +165,50 @@ API 목록 행은 `sort_order, id` 순서의 평평한 목록이다(상위와 �
   - 상위와 하위 2개를 함께 선택하면 확인 화면이 후기 → FAQ → 인사교 소개 순서로 보여 주고 "3개 삭제 완료"
 - 새로 발급한 ADMIN은 계층을 조회만 한다(위치·↑↓·선택 칸·새 페이지 없음, 순서 API 403).
 - 좁은 화면에서 선택 칸이 넓어지고 ↑↓가 세로로 쌓이던 문제를 찾아 고쳤다.
+
+## 3단계: 적용 도구와 리허설 (2026-09-30, PASS)
+
+### 도구
+
+| 파일 | 내용 |
+|---|---|
+| `scripts/promote-v13-runtime.ps1 -Source <정상 종료된 V12 runtime> -Target <새 V13 runtime> -AuthorizeMigration` | 조건을 모두 확인한 뒤 V12 DB를 새 runtime의 `db/`로 **복사**하고, 그 사본에만 `V13PromotionTool` plan → migrate를 실행해 `MIGRATED_V13` receipt와 `promotion.json`을 남긴다. 확인 조건: V12 runtime 정상 종료, DB를 쓰는 Java 프로세스 없음, DB가 마지막 cold 검사와 같음, V13 JAR의 migration이 V12 JAR과 바이트 동일하고 `h2/V13__page_hierarchy.sql` 하나만 추가, 로그인 스타일 오버레이. V12 runtime·DB·receipt는 쓰지 않는다 |
+| `start-current-ui.ps1`·`start-v12-runtime.ps1` | `current-ui.json` kind `v13`도 같은 실행 스크립트로 시작. 서버에 `AICA_V13_PROMOTION_ENABLED=false` 전달 |
+| `select-v12-runtime.ps1` | `MIGRATED_V12`/`MIGRATED_V13` receipt를 받고, V13이면 kind `v13`으로 기록 |
+| `swap-v12-jar.ps1`·`relocate-v12-runtime.ps1` | 같은 schema 안의 JAR 교체·이관을 V13에도 적용(발급 receipt는 원래 schema 상태 유지) |
+
+### 최신 V12 백업 (8095, 사용자 승인)
+
+- 8095 RC2를 정상 종료했다. cold 검사 `stopped-1790769495404.json`, DB SHA-256 `8325b5639239652ba760354b1cc5500784fa1e71af265513eb0edff7c852168c` = 종료 기록.
+- 백업 파일: `.cache/v12-release/backups/aica-local.before-V13-20260930-stopped-1790769495404.mv.db`(같은 해시), 종료 기록·RC2 receipt 사본.
+- RC2를 바로 다시 시작했다. `/login` 200, 공개 API 200. 중단은 약 2분이었다. RC2 receipt는 바뀌지 않았다.
+
+### V13 RC
+
+`350be93`을 깨끗한 worktree에서 Vite 빌드 후 `mvnw -o package`(테스트 202개, 실패 0, 제외 6)로 만들었다. JAR SHA-256 `fe9a3508b53e5ab30de994bfa503f6d07c056340342e86d8b09ba25aebb27b51`. 정상 종료 도구와 로그인 스타일 오버레이(`e94da365…`)는 RC1·RC2와 같다. JAR은 리허설 runtime(`.cache/v13-rehearsal-20260930/v13/runtime/server.jar`)에 보관했다.
+
+### 리허설 (`.cache/v13-rehearsal-20260930/`, 모두 사본)
+
+| 순서 | 결과 |
+|---|---|
+| V12 rollback용 사본(8096): 최신 백업 사본 + RC2 JAR, `relocate-v12-runtime.ps1` | 통과 |
+| `promote-v13-runtime.ps1` V12 사본 → V13(8097) | 통과. V13만 적용(Flyway 13개 validate), receipt `MIGRATED_V13`, 기존 페이지 모두 최상위·순서 0, V12 사본 해시 불변 |
+| RC2 JAR로 V13 DB 검사(음성 시험) | **거부**: "runtime requires V12". V13 DB 바이트 불변 |
+| V13 시작 | "V13 file runtime … validate-only", `/login` 200, 공개 메뉴·페이지 API 200 |
+| 3개 역할(SUPER_ADMIN 실계정 사본 + 사본에만 발급한 ADMIN #35·SUPPORTER #36) | 역할마다 React 주소 16개 200, 기존 화면 5개·API 8개 권한 일치, 순서 API: SUPER_ADMIN 검증 오류(권한 통과), ADMIN·SUPPORTER 403 |
+| 계층 쓰기(사본) | 인사교 소개 #65 아래 새 하위 #98 생성, dd #97을 #65 아래로 이동, 형제 순서 저장 → `1:-:0 97:65:0 65:-:1 98:65:1`. 홈 이동 거부, 3단계 거부, 오래된 화면 409, ADMIN 이동 403, #65 삭제 영향에 하위 페이지 2개와 메뉴 2개 |
+| 정상 종료 → 재시작 → 재확인 → 정상 종료 | 통과. 계층 그대로, 3개 역할 실패 0 |
+| runtime 선택 V12 → V13 → V12 | kind `v13`/`v12`로 기록 |
+| rollback: V12 사본 시작(8096) | 통과. 페이지 3개(#1·#65·#97), 계층 필드 없음, `/admin/pages`·`/admin/legacy/pages` 200. V13 이후 작성분(#98, 위치 변경, 계정 #35·#36)은 없음 = 수용한 rollback 조건 |
+
+8095는 RC2로 계속 실행 중이다. **실제 V13 적용은 하지 않았다.**
+
+### 실제 적용 시 절차 (승인 후)
+
+1. `STOP.cmd`로 RC2 정상 종료 → 최신 백업
+2. `.cache/v13-release/V13-RC1-20260930/runtime`에 V13 JAR·정상 종료 도구·오버레이·`runtime.json`(포트 8095, `database` 없음) 준비
+3. `promote-v13-runtime.ps1 -Source .cache\v12-release\V12-RC2-20260930\runtime -Target .cache\v13-release\V13-RC1-20260930\runtime -AuthorizeMigration`
+4. `select-v12-runtime.ps1 -Runtime .cache\v13-release\V13-RC1-20260930\runtime -AuthorizeSelection` → `START.cmd`
+5. 3개 역할 확인, 정상 종료·재시작
+
+rollback: `STOP.cmd` → `select-v12-runtime.ps1 -Runtime .cache\v12-release\V12-RC2-20260930\runtime -AuthorizeSelection` → `START.cmd`. RC2는 적용 직전 V12 DB로 시작하며, V13 적용 뒤 작성분은 활동 이력(적용 시각 이후)을 보고 다시 입력한다.

@@ -24,6 +24,8 @@ RC2 receipt에는 교체 대상(RC1 폴더·JAR 해시·receipt 해시), 사용�
 
 `relocate-v12-runtime.ps1`은 DB를 가진 runtime만 옮긴다. `database`를 쓰는 runtime은 거부한다(DB를 가진 runtime을 옮긴 뒤 교체를 다시 발급한다).
 
+2026-09-30 V13 준비: 세 스크립트와 실행 스크립트는 `MIGRATED_V13` receipt도 받는다. JAR 교체는 같은 schema 안에서만 하며, 발급하는 receipt는 원래 schema 상태를 유지한다. V12 → V13은 JAR 교체가 아니라 DB 사본 migration이므로 `scripts/promote-v13-runtime.ps1`을 쓴다([V13 페이지 계층](V13_PAGE_HIERARCHY.md)).
+
 **검사 비교 수정**: V12 검사 파일의 표별 지문은 Java `Map.of`로 출력되어 JVM 실행마다 키 순서(`rows`, `sha256`)가 바뀐다. `relocate-v12-runtime.ps1`은 JSON 문자열을 그대로 비교해서, 값이 같아도 키 순서가 다르면 거부할 수 있었다(리허설에서 실제로 발생). 두 스크립트 모두 객체 키를 정렬한 뒤 비교하도록 고쳤다. 배열 순서(migration 이력 순서)는 그대로 비교한다.
 
 ## 실제 적용 절차 (8095)

@@ -88,3 +88,55 @@ export function childrenAllSelected(pages:PageRow[],id:number,selectedIds:number
 export function homeCandidates(pages:PageRow[],current:string){
   return pages.filter(p=>!isGroup(p)&&p.status==='PUBLISHED'&&(p.parentId==null&&childrenOf(pages,p.id).length===0||String(p.id)===current));
 }
+
+// 사이트 구조 화면 규칙 (검수 전 UX): top-level items are the fixed site sections. The screen offers no way to
+// create, delete, nest or remove them (the server keeps those functions); the home page is completely fixed.
+export const isTopLevel=(page:PageRow)=>page.parentId==null;
+/** Top-level items that take "+ 하위 페이지": every one except the home page and areas removed from the structure. */
+export const childHost=(page:PageRow,homePageId:number|null)=>isTopLevel(page)&&page.id!==homePageId&&page.inStructure!==false;
+/** Rows the screen lets the operator drag: top-level items except home, and second-level pages. */
+export function draggable(pages:PageRow[],page:PageRow,homePageId:number|null){
+  if(page.id===homePageId)return false;
+  return isTopLevel(page)||depthOf(pages,page.id)===2;
+}
+export type DropRequest={overId:number;after:boolean};
+export type DropPlan={pageId:number;parentId:number|null;ids:number[];moved:boolean};
+/**
+ * Where a dragged row lands. A top-level item moves only among top-level items and never ahead of the home
+ * page. A second-level page moves before/after another second-level page (in that page's parent) or, dropped
+ * on a top-level item, to the end of that item's children. Returns null when the drop changes nothing and a
+ * message when the screen does not allow it; the server still checks every placement.
+ */
+export function dropPlan(pages:PageRow[],homePageId:number|null,dragId:number,drop:DropRequest):DropPlan|string|null {
+  const dragged=pages.find(p=>p.id===dragId),over=pages.find(p=>p.id===drop.overId);
+  if(!dragged||!over)return '목록이 바뀌었습니다. 새로 고친 뒤 다시 옮기세요.';
+  if(!draggable(pages,dragged,homePageId))return dragged.id===homePageId?'홈(첫 화면)은 맨 위에 고정됩니다.':'이 페이지는 위치 버튼으로 옮기세요.';
+  if(dragged.id===over.id)return null;
+  const place=(parentId:number|null,beforeId:number|null)=>{
+    const ids=childrenOf(pages,parentId).map(p=>p.id).filter(id=>id!==dragId);
+    const at=beforeId==null?ids.length:ids.indexOf(beforeId);ids.splice(at<0?ids.length:at,0,dragId);
+    const moved=(dragged.parentId??null)!==parentId,current=childrenOf(pages,parentId).map(p=>p.id);
+    if(!moved&&current.join(',')===ids.join(','))return null;
+    return {pageId:dragId,parentId,ids,moved};
+  };
+  const nextSibling=(page:PageRow)=>{const ids=childrenOf(pages,page.parentId??null).map(p=>p.id).filter(id=>id!==dragId);const i=ids.indexOf(page.id);return i<0||i+1>=ids.length?null:ids[i+1];};
+  if(isTopLevel(dragged)){
+    if(!isTopLevel(over))return '최상위 항목은 최상위 항목 사이에서만 순서를 바꿀 수 있습니다.';
+    const plan=place(null,drop.after?nextSibling(over):over.id);
+    if(plan&&homePageId!=null&&plan.ids.includes(homePageId)&&plan.ids[0]!==homePageId)return '홈(첫 화면)은 맨 위에 고정됩니다. 그 아래로 옮기세요.';
+    return plan;
+  }
+  if(isTopLevel(over)){
+    if(!childHost(over,homePageId))return over.id===homePageId?'홈(첫 화면) 아래에는 하위 페이지를 둘 수 없습니다.':'구성에서 제거된 항목 아래로는 옮길 수 없습니다.';
+    if((dragged.parentId??null)===over.id)return null;
+    return place(over.id,null);
+  }
+  if(depthOf(pages,over.id)!==2)return '하위 페이지는 다른 하위 페이지 앞뒤나 최상위 항목 위에 놓으세요.';
+  const parent=pages.find(p=>p.id===over.parentId);
+  if(!parent||!childHost(parent,homePageId))return '구성에서 제거된 항목 아래로는 옮길 수 없습니다.';
+  return place(parent.id,drop.after?nextSibling(over):over.id);
+}
+/** Keyboard alternative for a second-level page: its possible parents are the top-level items only. */
+export function childParentOptions(pages:PageRow[],pageId:number,homePageId:number|null):ParentOption[] {
+  return parentOptions(pages,pageId,homePageId).filter(option=>{const p=pages.find(x=>x.id===option.id);return !!p&&isTopLevel(p)&&p.id!==homePageId;});
+}

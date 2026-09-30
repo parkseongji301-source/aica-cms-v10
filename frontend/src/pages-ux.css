@@ -132,3 +132,15 @@
 .phase-two .content-node-form label {display:flex;flex-direction:column;gap:4px;margin:0;font-size:13px;}
 .phase-two .content-node-form-actions {display:inline-flex;gap:6px;}
 @media (max-width:680px){.phase-two .content-node-form {grid-template-columns:1fr;}}
+/* 사이트 구조 (검수 전 UX): fixed top level, "+ 하위 페이지", drag and drop. */
+.phase-two .pages-table tr.page-top-row > td {background:var(--ui-soft);}
+.phase-two .pages-table tr.page-top-row .text-link {font-weight:700;}
+.phase-two .pages-table tr[draggable="true"] {cursor:grab;}
+.phase-two .pages-table tr.page-dragging {opacity:.45;}
+.phase-two .pages-table tr.page-drop-before > td {box-shadow:inset 0 3px 0 var(--ui-accent,#2f5bd3);}
+.phase-two .pages-table tr.page-drop-after > td {box-shadow:inset 0 -3px 0 var(--ui-accent,#2f5bd3);}
+.phase-two .page-drag-handle {display:inline-block;margin-right:6px;color:var(--ui-muted);cursor:grab;}
+.phase-two .page-drag-note {margin:0 0 8px;font-size:12px;}
+.phase-two .page-create-parent {display:flex;gap:8px;align-items:baseline;margin:0 0 4px;font-size:13px;}
+.phase-two .page-create-parent span {color:var(--ui-muted);}
+.phase-two .page-create-template .template-contents {max-height:220px;overflow:auto;}

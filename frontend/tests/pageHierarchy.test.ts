@@ -75,3 +75,40 @@ test('new pages send a parent only when one is chosen',()=>{
   assert.equal(pageDraftForm('후기','',[]).has('parentId'),false);
   assert.equal(pageDraftForm('후기','',[],65).get('parentId'),'65');
 });
+
+import {childHost,childParentOptions,draggable,dropPlan} from '../src/pageHierarchy.ts';
+// 사이트 구조 (검수 전 UX): fixed top level, home fixed first, second-level pages move by drag.
+const site=[page(1,'홈',null,0),page(65,'소개',null,1),page(98,'후기',null,2),page(81,'지원',null,3),page(66,'연혁',65,0),page(67,'오시는 길',65,1),page(99,'프로젝트',98,0),page(90,'묶음',null,4,'DRAFT','GROUP'),page(91,'셋째',66,0)];
+const removed={...page(82,'빠진 항목',null,5),inStructure:false};
+
+test('the home page is completely fixed and top-level items only take children',()=>{
+  assert.equal(draggable(site,site[0],1),false);
+  assert.equal(draggable(site,site[1],1),true);assert.equal(draggable(site,site[4],1),true);
+  assert.equal(draggable(site,site[8],1),false);
+  assert.equal(childHost(site[0],1),false);assert.equal(childHost(site[2],1),true);assert.equal(childHost(site[4],1),false);assert.equal(childHost(removed,1),false);
+  assert.match(dropPlan(site,1,1,{overId:65,after:true}) as string,/맨 위에 고정/);
+});
+
+test('top-level items reorder among themselves and never ahead of home',()=>{
+  assert.deepEqual(dropPlan(site,1,81,{overId:65,after:false}),{pageId:81,parentId:null,ids:[1,81,65,98,90],moved:false});
+  assert.deepEqual(dropPlan(site,1,65,{overId:90,after:true}),{pageId:65,parentId:null,ids:[1,98,81,90,65],moved:false});
+  assert.match(dropPlan(site,1,98,{overId:1,after:false}) as string,/맨 위에 고정/);
+  assert.deepEqual(dropPlan(site,1,98,{overId:1,after:true}),{pageId:98,parentId:null,ids:[1,98,65,81,90],moved:false});
+  assert.match(dropPlan(site,1,81,{overId:66,after:false}) as string,/최상위 항목 사이에서만/);
+  assert.equal(dropPlan(site,1,65,{overId:65,after:false}),null);
+  assert.equal(dropPlan(site,1,98,{overId:65,after:true}),null);
+});
+
+test('second-level pages reorder in their parent or move under another top-level item',()=>{
+  assert.deepEqual(dropPlan(site,1,67,{overId:66,after:false}),{pageId:67,parentId:65,ids:[67,66],moved:false});
+  assert.equal(dropPlan(site,1,66,{overId:67,after:false}),null);
+  assert.deepEqual(dropPlan(site,1,66,{overId:99,after:true}),{pageId:66,parentId:98,ids:[99,66],moved:true});
+  assert.deepEqual(dropPlan(site,1,66,{overId:81,after:false}),{pageId:66,parentId:81,ids:[66],moved:true});
+  assert.equal(dropPlan(site,1,66,{overId:65,after:false}),null);
+  assert.match(dropPlan(site,1,66,{overId:1,after:false}) as string,/홈\(첫 화면\) 아래/);
+  assert.match(dropPlan([...site,removed],1,66,{overId:82,after:false}) as string,/구성에서 제거된/);
+  assert.match(dropPlan(site,1,66,{overId:91,after:false}) as string,/하위 페이지는/);
+  assert.match(dropPlan(site,1,91,{overId:99,after:false}) as string,/위치 버튼/);
+  // Keyboard alternative: parents are the top-level items except home.
+  assert.deepEqual(childParentOptions(site,66,1).map(o=>o.id),[65,98,81,90]);
+});

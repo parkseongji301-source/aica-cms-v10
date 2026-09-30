@@ -48,6 +48,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/admin-next/trash", "/api/admin/next/posts/trash", "/api/admin/next/posts/*/trash", "/api/admin/next/posts/*/restore").hasAuthority(AccessPolicy.Capability.DELETE_PERMANENT.name())
                         .requestMatchers("/admin/posts/*/unpublish").hasAuthority(AccessPolicy.Capability.PUBLISH_POSTS.name())
                         .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/admin/next/posts/*/publish").hasAuthority(AccessPolicy.Capability.PUBLISH_POSTS.name())
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/admin/next/posts/*/unpublish").hasAuthority(AccessPolicy.Capability.PUBLISH_POSTS.name())
                         .requestMatchers("/api/admin/next/version-baseline").hasAuthority(AccessPolicy.Capability.MANAGE_ACCOUNTS.name())
                         .requestMatchers("/api/admin/next/posts/*/versions", "/api/admin/next/posts/*/versions/**").authenticated()
                         .requestMatchers("/admin-next/design/templates", "/api/admin/next/page-templates", "/api/admin/next/page-templates/**").hasAuthority(AccessPolicy.Capability.MANAGE_ACCOUNTS.name())

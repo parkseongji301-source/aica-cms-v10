@@ -33,6 +33,7 @@ public class NextPostApi {
     public record SaveRequest(Long revision,String title,String content,String richContent,Long categoryId,List<Long> mediaIds,JsonNode classification,JsonNode restaurant,String saveIntent) {}
     public record PreviewRequest(String title,String content,String richContent,List<Long> mediaIds,JsonNode classification,JsonNode restaurant) {}
     public record TrashRequest(Long revision,boolean confirmed) {}
+    public record RevisionRequest(Long revision) {}
     public record TrashRow(long id,String title,String authorName,Long categoryId,String status,long revision,LocalDateTime deletedAt) {}
 
     @ModelAttribute public void noStore(HttpServletResponse response) { response.setHeader("Cache-Control","no-store"); }
@@ -93,6 +94,14 @@ public class NextPostApi {
             input.categoryId(),input.mediaIds(),"publish",input.richContent(),classifications.parse(input.classification()),
             restaurants.parse(input.restaurant()),egovframework.backoffice.mvp.version.SaveIntent.MANUAL_DRAFT);
         return document(actor,published);
+    }
+
+    /** Same withdrawal as the legacy detail screen: the draft and history stay, only the public copy is removed. */
+    @PostMapping(value="/{id}/unpublish",consumes="application/json")
+    public PostDocument unpublish(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody RevisionRequest input) {
+        if(input.revision()==null) throw new BusinessException("저장 버전이 필요합니다. 내용을 다시 조회하세요.");
+        posts.unpublish(actor,id,input.revision());
+        return document(actor,posts.get(actor,id));
     }
 
     @GetMapping("/{id}/preview")

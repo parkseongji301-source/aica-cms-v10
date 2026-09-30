@@ -54,6 +54,28 @@ public class NextPageApi {
         // Neither creation, publishing, slug changes nor a caller-supplied target ID are accepted here.
         return document(pages.saveDocument(actor,id,input.revision(),input.title(),existing.slug(),source(input.sections()),"save",egovframework.backoffice.mvp.version.SaveIntent.request(input.saveIntent())));
     }
+    public record PublishRequest(Long revision,String title,String slug,List<Section> sections) {}
+    public record RevisionRequest(Long revision) {}
+    /** Saves the submitted editor contents and publishes them in PageService's existing transaction. */
+    @PostMapping(value="/pages/{id}/publish",consumes="application/json")
+    public PageDocument publish(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody PublishRequest input) {
+        Page existing=current(actor,id,input.revision());
+        // Omitted slug keeps the address; PageService still requires structure permission for a different one.
+        String slug=input.slug()==null?existing.slug():input.slug();
+        return document(pages.saveDocument(actor,id,input.revision(),input.title(),slug,source(input.sections()),"publish",egovframework.backoffice.mvp.version.SaveIntent.MANUAL_DRAFT));
+    }
+    /** Same withdrawal as the legacy page screen: the draft and history stay. */
+    @PostMapping(value="/pages/{id}/unpublish",consumes="application/json")
+    public PageDocument unpublish(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody RevisionRequest input) {
+        current(actor,id,input.revision());pages.unpublish(actor,id,input.revision());
+        return document(target(actor,id));
+    }
+    private Page current(AccountPrincipal actor,long id,Long revision) {
+        Page existing=target(actor,id);
+        if(revision==null)throw new BusinessException("저장 버전이 필요합니다.");
+        if(revision!=existing.revision())throw new ResponseStatusException(HttpStatus.CONFLICT,"다른 창에서 변경되었습니다. 작성 내용을 보관한 뒤 다시 조회하세요.");
+        return existing;
+    }
     @GetMapping("/pages/{id}/preview")
     public PreviewDocument savedPreview(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {
         Page page=target(actor,id);return preview(actor,page.title(),pages.sections(page.sectionsJson()));

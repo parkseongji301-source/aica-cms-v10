@@ -45,6 +45,36 @@ class NextAdminIntegrationTest {
     private JsonNode ok(HttpResponse<String> response)throws Exception {assertThat(response.statusCode()).as(response.body()).isEqualTo(200);return json.readTree(response.body());}
     private void error(HttpResponse<String> response,int status)throws Exception {assertThat(response.statusCode()).as(response.body()).isEqualTo(status);assertThat(response.headers().firstValue("content-type").orElse("")).contains("application/json");assertThat(json.readTree(response.body()).hasNonNull("code")).isTrue();}
 
+    @Test void reactPublishWithdrawAndAddressChangeFollowTheLegacyPageRules()throws Exception {
+        var admin=login("ADMIN");String csrf=token(admin);
+        var draft=ok(admin.json("PUT",API+"/pages/65",edit("새 초안 제목",4).toString(),csrf));
+        long revision=draft.path("revision").asLong();assertThat(draft.path("pending").asBoolean()).isTrue();
+        assertThat(ok(admin.get(API+"/pages/65/publication")).path("title").asText()).isEqualTo("인사교 소개");
+        var moved=edit("새 초안 제목",revision);moved.put("slug","new-about");
+        error(admin.json("POST",API+"/pages/65/publish",moved.toString(),csrf),403);
+        var supporter=login("SUPPORTER");String supporterCsrf=token(supporter);
+        error(supporter.json("POST",API+"/pages/65/publish",edit("지원자",revision).toString(),supporterCsrf),403);
+        error(admin.json("POST",API+"/pages/65/publish",edit("CSRF 없음",revision).toString(),null),403);
+        error(admin.json("POST",API+"/pages/65/publish",edit("오래된 버전",revision-1).toString(),csrf),409);
+        assertThat(jdbc.queryForObject("SELECT slug FROM site_pages WHERE id=65",String.class)).isEqualTo("about");
+        assertThat(ok(admin.get(API+"/pages/65/publication")).path("title").asText()).isEqualTo("인사교 소개");
+        var published=ok(admin.json("POST",API+"/pages/65/publish",edit("새 초안 제목",revision).toString(),csrf));
+        assertThat(published.path("status").asText()).isEqualTo("PUBLISHED");assertThat(published.path("pending").asBoolean()).isFalse();
+        var publication=ok(admin.get(API+"/pages/65/publication"));
+        assertThat(publication.path("title").asText()).isEqualTo("새 초안 제목");assertThat(publication.path("slug").asText()).isEqualTo("about");
+        var root=login("SUPER_ADMIN");String rootCsrf=token(root);
+        var renamed=edit("새 초안 제목",published.path("revision").asLong());renamed.put("slug","new-about");
+        var addressed=ok(root.json("POST",API+"/pages/65/publish",renamed.toString(),rootCsrf));
+        assertThat(addressed.path("slug").asText()).isEqualTo("new-about");
+        assertThat(ok(root.get(API+"/pages/65/publication")).path("slug").asText()).isEqualTo("new-about");
+        long current=addressed.path("revision").asLong();
+        error(admin.json("POST",API+"/pages/65/unpublish",json.writeValueAsString(Map.of("revision",current-1)),csrf),409);
+        error(supporter.json("POST",API+"/pages/65/unpublish",json.writeValueAsString(Map.of("revision",current)),supporterCsrf),403);
+        var withdrawn=ok(admin.json("POST",API+"/pages/65/unpublish",json.writeValueAsString(Map.of("revision",current)),csrf));
+        assertThat(withdrawn.path("status").asText()).isNotEqualTo("PUBLISHED");assertThat(withdrawn.path("title").asText()).isEqualTo("새 초안 제목");
+        assertThat(withdrawn.path("status").asText()).isEqualTo("PRIVATE");
+        assertThat(new HttpBrowser(port).get("/api/public/v1/pages/65").statusCode()).isNotEqualTo(200);
+    }
     @Test void bothEntrancesShareThePageAndSavingRoundTripsThroughLegacyEditor()throws Exception {
         var admin=login("ADMIN");var boot=boot(admin);String csrf=boot.path("csrf").path("token").asText();
         assertThat(boot.path("pages").get(0).path("id").asLong()).isEqualTo(65);

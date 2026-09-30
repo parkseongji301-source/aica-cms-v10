@@ -127,6 +127,21 @@ class NextPostIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publications",Integer.class)).isEqualTo(publications);
         assertThat(read(b,publishedId).path("title").asText()).isEqualTo("React 초안 제목");
     }
+    @Test void reactUnpublishWithdrawsOnlyThePublicCopyWithPublishPermission()throws Exception {
+        var admin=login("ADMIN");String csrf=token(admin);var before=read(admin,publishedId);long revision=before.path("revision").asLong();
+        var supporter=login("SUPPORTER");
+        error(supporter.json("POST",API+"/"+publishedId+"/unpublish",json.writeValueAsString(Map.of("revision",revision)),token(supporter)),403,"FORBIDDEN_OR_CSRF");
+        error(admin.json("POST",API+"/"+publishedId+"/unpublish",json.writeValueAsString(Map.of("revision",revision)),null),403,"FORBIDDEN_OR_CSRF");
+        error(admin.json("POST",API+"/"+publishedId+"/unpublish",json.writeValueAsString(Map.of("revision",revision-1)),csrf),409,"REVISION_CONFLICT");
+        error(admin.json("POST",API+"/"+publishedId+"/unpublish","{}",csrf),400,"VALIDATION_ERROR");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publications WHERE post_id=?",Integer.class,publishedId)).isEqualTo(1);
+        var after=ok(admin.json("POST",API+"/"+publishedId+"/unpublish",json.writeValueAsString(Map.of("revision",revision)),csrf));
+        assertThat(after.path("status").asText()).isEqualTo("PRIVATE");
+        assertThat(after.path("title")).isEqualTo(before.path("title"));assertThat(after.path("content")).isEqualTo(before.path("content"));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publications WHERE post_id=?",Integer.class,publishedId)).isEqualTo(1);
+        error(admin.get(API+"/"+publishedId+"/publication/view"),404,"NOT_FOUND");
+        assertThat(admin.get("/admin/posts/"+publishedId+"/publication").statusCode()).isEqualTo(404);
+    }
     @Test void richDraftKeepsImagesFilesFormattingAndExistingPublicationMedia()throws Exception {
         var b=login("ADMIN");var fields=input(read(b,publishedId));fields.put("richContent",richDocument());fields.put("mediaIds",List.of());
         var after=ok(put(b,publishedId,fields,token(b)));

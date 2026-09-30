@@ -5,7 +5,7 @@ import {getPost,send} from './api';
 import type {ActivityList,Bootstrap,Dashboard,Go,PostList,PostRow,RoleRow,ClassificationCatalog} from './types';
 import {postTypeFilterChange} from './postListFilters';
 import {AppliedPostFilters,ContentListTable,PostListFilters,postStatusLabels} from './PostListPresentation';
-import {contextualPostPath,filterValues,contentContext,draftSelection,scopedPostParams,contentSections,contentLocationLabel} from './contentNavigation';
+import {contextualPostPath,filterValues,contentContext,draftSelection,locationQuery,scopedPostParams,contentLocationLabel} from './contentNavigation';
 import type {ContentContext} from './contentNavigation';
 import {CreateContentDraft} from './CreateContentDraft';
 import {listDraftSelection} from './draftCreation';
@@ -30,7 +30,7 @@ export function PostsPanel({active,version,data,go,search,onChanged,registerGuar
   const q=search.get('q')||'',status=search.get('status')||'',category=search.get('categoryId')||'',page=Math.max(0,Number(search.get('page')||0)||0);
   const [term,setTerm]=useState(q);useEffect(()=>setTerm(q),[q]);
   const catalog=useRemote<ClassificationCatalog>('/classifications',active,version);
-  const scope=contentContext(search,catalog.data),section=scope?contentSections[scope.type]:null;
+  const scope=contentContext(search,catalog.data,data.contentAreas??[]);
   const params=scopedPostParams(search,scope);
   const multi=(key:string)=>filterValues(params,key);
   const selectedTypes=multi('typeCodes');
@@ -41,7 +41,7 @@ export function PostsPanel({active,version,data,go,search,onChanged,registerGuar
     onDone:ids=>{ids.forEach(onChanged);if(page>0&&ids.length===result.data?.items.length)change({page:String(page-1)});else result.reload();},
     description:'선택한 콘텐츠가 목록과 공개 화면에서 사라집니다. 본문·첨부·분류·버전 이력은 보관하며 휴지통에서 복원할 수 있습니다.'});
   const [creating,setCreating]=useState(false);
-  const change=(values:Record<string,string>)=>{const p=new URLSearchParams(params);Object.entries({page:'0',...values}).forEach(([k,v])=>v?p.set(k,v):p.delete(k));if(scope)p.set(scope.param,scope.key);go('/posts?'+p);};
+  const change=(values:Record<string,string>)=>{const p=new URLSearchParams(params);Object.entries({page:'0',...values}).forEach(([k,v])=>v?p.set(k,v):p.delete(k));if(scope)Object.entries(locationQuery(scope)).forEach(([k,v])=>p.set(k,v));go('/posts?'+p);};
   const toggle=(key:string,value:string)=>change({[key]:(multi(key).includes(value)?multi(key).filter(v=>v!==value):[...multi(key),value]).join(',')});
   const selectTypes=(types:string[])=>{if(catalog.data&&!scope)change(postTypeFilterChange(params,types,catalog.data));};
   const categoryName=data.categories.find(c=>String(c.id)===category)?.name;
@@ -49,7 +49,7 @@ export function PostsPanel({active,version,data,go,search,onChanged,registerGuar
   const resetFilters=()=>{setTerm('');change({q:'',status:'',categoryId:'',typeCodes:scope?.type||'',cohortIds:'',topicIds:scope?.topicId?String(scope.topicId):''});};
   const filtered=!!(q||status||!scope&&category||!scope&&selectedTypes.length||multi('cohortIds').length||scope?.topicId==null&&multi('topicIds').length);
   const filters={params,scope,catalog:catalog.data,categories:data.categories,change,selectTypes,toggle};
-  return <section className="content-workspace posts-workspace"><Heading title={listTitle} note={scope?`유형: ${section!.label}${scope.key==='all'?'':` · 주제: ${scope.label}`} · 저장된 작성본 기준`:'필요한 글을 찾고, 이어 쓰고, 게시하세요.'} actions={<button className="primary" disabled={!!scope?.error||!catalog.data||!!catalog.error||catalog.loading} onClick={()=>setCreating(true)}>＋ 새 {scope?listTitle:'콘텐츠'} 작성</button>}/>
+  return <section className="content-workspace posts-workspace"><Heading title={listTitle} note={scope?`${scope.areaLabel}${scope.key==='all'?'':` · 주제: ${scope.label}`} · 저장된 작성본 기준`:'필요한 글을 찾고, 이어 쓰고, 게시하세요.'} actions={<button className="primary" disabled={!!scope?.error||!catalog.data||!!catalog.error||catalog.loading} onClick={()=>setCreating(true)}>＋ 새 {scope?listTitle:'콘텐츠'} 작성</button>}/>
     {active&&creating&&catalog.data&&!scope?.error&&<CreateContentDraft contextLabel={scope?listTitle:undefined} selection={scope?draftSelection(scope):listDraftSelection(selectedTypes,catalog.data)} catalog={catalog.data} allowTypeSelection={!scope} categoryId={scope?null:category?Number(category):null} onClose={()=>setCreating(false)} onCreated={post=>{setCreating(false);result.reload();go(contextualPostPath(post.id,scope));}}/>}
     {scope?.error&&<Feedback error={catalog.error||scope.error}/>}
     <section className="card posts-list-card">

@@ -1,8 +1,10 @@
 import type {PageRow} from './types';
 
 // Mirrors the server's PageHierarchy rules so the screen can explain them; the server still decides.
-// Current operating limit: top-level pages and one level of child pages. The home page stays top-level.
-export const MAX_PAGE_DEPTH=2;
+// Current operating limit: three levels (V14). The home page stays top-level. GROUP areas are structure
+// nodes only: they can hold areas, but have no screen, publication or home/menu-target role.
+export const MAX_PAGE_DEPTH=3;
+export const isGroup=(page:PageRow)=>page.areaKind==='GROUP';
 
 export type PageTreeRow={page:PageRow;depth:number;parent:PageRow|null;children:number};
 
@@ -47,7 +49,7 @@ export function parentOptions(pages:PageRow[],pageId:number|null,homePageId:numb
     if(pageId!=null&&pageId===homePageId)reason='홈(첫 화면) 페이지는 최상위에 고정됩니다.';
     else if(candidate.id===homePageId)reason='홈(첫 화면) 페이지 아래에는 하위 페이지를 둘 수 없습니다.';
     else if(pageId!=null&&isWithin(pages,candidate.id,pageId))reason='자기 하위 페이지 아래로는 옮길 수 없습니다.';
-    else if(depthOf(pages,candidate.id)+levels>MAX_PAGE_DEPTH)reason=levels>1?'하위 페이지가 있는 페이지는 다른 페이지 아래로 옮길 수 없습니다.':'하위 페이지 아래에는 페이지를 둘 수 없습니다.';
+    else if(depthOf(pages,candidate.id)+levels>MAX_PAGE_DEPTH)reason=levels>1?`최대 ${MAX_PAGE_DEPTH}단계를 넘습니다(이 페이지와 그 하위 페이지).`:`최대 ${MAX_PAGE_DEPTH}단계라 그 아래에는 더 둘 수 없습니다.`;
     return {id:candidate.id,title:pageLocation(pages,candidate.id),reason};
   });
 }
@@ -82,5 +84,5 @@ export function childrenAllSelected(pages:PageRow[],id:number,selectedIds:number
 }
 /** First-screen choices: published top-level pages without child pages (the current value stays selectable). */
 export function homeCandidates(pages:PageRow[],current:string){
-  return pages.filter(p=>p.status==='PUBLISHED'&&(p.parentId==null&&childrenOf(pages,p.id).length===0||String(p.id)===current));
+  return pages.filter(p=>!isGroup(p)&&p.status==='PUBLISHED'&&(p.parentId==null&&childrenOf(pages,p.id).length===0||String(p.id)===current));
 }

@@ -35,6 +35,9 @@ export const createPage=(title:string,slug='',sections:unknown[]=[],parentId:num
 });
 // Hierarchy changes are SUPER_ADMIN structure actions; expectedParentId is the parent this screen showed.
 export const placePage=(id:number,parentId:number|null,expectedParentId:number|null)=>request<PageRow[]>(`${base}/pages/${id}/placement`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({parentId,expectedParentId})});
+// Site composition (SUPER_ADMIN): GROUP areas and each area's content-work link, menu visibility and label.
+export const createPageGroup=(name:string,parentId:number|null)=>request<PageRow[]>(`${base}/page-groups`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,parentId})});
+export const saveComposition=(id:number,value:{contentTypeCode:string|null;menuVisible:boolean;menuLabel:string|null;name:string|null})=>request<PageRow[]>(`${base}/pages/${id}/composition`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
 export const reorderPages=(parentId:number|null,pageIds:number[])=>request<PageRow[]>(`${base}/page-order`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({parentId,pageIds})});
 // Publishing keeps the page address; address changes stay a separate SUPER_ADMIN action.
 export const publishPage=(page:PageDocument)=>request<PageDocument>(`${base}/pages/${page.id}/publish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:page.title,revision:page.revision,sections:page.sections})});

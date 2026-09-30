@@ -8,12 +8,16 @@ export type BlockTarget = {kind:'block';label:string;pageId:number;blockId:strin
 export type PageTarget = {kind:'page';label:string;pageId:number;blocks:BlockTarget[];issue:string|null};
 export type StructureTarget = PageTarget|BlockTarget|{kind:'content-list';label:string;filters:{typeCodes?:string[];cohortIds?:number[];topicIds?:number[];categoryId?:number}};
 // parentId null = top level; rows arrive in sibling order (sortOrder, then id).
-export type PageRow = {id:number;title:string;slug:string;status:string;revision:number;pending:boolean;updatedAt:string;parentId:number|null;sortOrder:number};
+// areaKind GROUP is a structure node without a screen; contentTypeCode marks the type's representative work area.
+export type PageRow = {id:number;title:string;slug:string;status:string;revision:number;pending:boolean;updatedAt:string;parentId:number|null;sortOrder:number;
+  areaKind:'PAGE'|'GROUP';contentTypeCode:string|null;menuVisible:boolean;menuLabel:string|null};
+// Sent to every role: the 콘텐츠 작업 sidebar follows the site composition. groups are the ancestor titles.
+export type ContentArea = {pageId:number;typeCode:string;label:string;groups:string[]};
 export type ImageFile = {id:number;name:string;alt:string;mime:string;byteSize?:number;ownerName?:string;createdAt?:string};
 export type Category = {id:number;name:string};
 export type Menu = {id:number;label:string;kind:'PAGE'|'CATEGORY'|'LINK';targetId:number|null;url:string;sortOrder:number;visible:boolean};
 export type LinkItem = {id:number;label:string;url:string;sortOrder:number};
-export type Bootstrap = {timeZone?:string;user:{id:number;name:string;role:string;roleLabel:string};permissions:{site:boolean;operations:boolean;templateManage?:boolean;templateUse?:boolean;structure?:boolean;publish?:boolean;permanentDelete?:boolean};csrf:{headerName:string;token:string};pages:PageRow[];homePageId?:number;menus:Menu[];categories:Category[];images:ImageFile[]};
+export type Bootstrap = {timeZone?:string;user:{id:number;name:string;role:string;roleLabel:string};permissions:{site:boolean;operations:boolean;templateManage?:boolean;templateUse?:boolean;structure?:boolean;publish?:boolean;permanentDelete?:boolean};csrf:{headerName:string;token:string};pages:PageRow[];homePageId?:number;contentAreas?:ContentArea[];menus:Menu[];categories:Category[];images:ImageFile[]};
 export type ClassificationSelection = {typeCode:string;cohortIds:number[];topicIds:number[]};
 export type ClassificationTerm = {id:number;code:string;name:string;active:boolean};
 export type Classification = ClassificationSelection & {typeName:string;cohorts:ClassificationTerm[];topics:ClassificationTerm[]};

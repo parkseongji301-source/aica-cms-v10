@@ -1,16 +1,14 @@
-import type {ClassificationCatalog,Go,ViewMode} from './types';
-import {contentContext,contentSections,sectionPath} from './contentNavigation';
+import type {ClassificationCatalog,ContentArea,Go,ViewMode} from './types';
+import {contentContext,sectionPath} from './contentNavigation';
 import {managementGroups,workspaceHome} from './navigation';
 
-export function WorkspaceBreadcrumbs({mode,path,query,title,catalog,listPath,categoryLabel,pageSelected,go}:{mode:ViewMode;path:string;query:string;title:string;catalog:ClassificationCatalog|null;listPath:string;categoryLabel?:string;pageSelected:boolean;go:Go}) {
+export function WorkspaceBreadcrumbs({mode,path,query,title,catalog,areas=[],listPath,categoryLabel,pageSelected,go}:{mode:ViewMode;path:string;query:string;title:string;catalog:ClassificationCatalog|null;areas?:ContentArea[];listPath:string;categoryLabel?:string;pageSelected:boolean;go:Go}) {
   const items:{label:string;path?:string}[]=[{label:mode==='manage'?'사이트 관리':'콘텐츠 작업',path:workspaceHome(mode)}];
-  const postEditor=/^\/posts\/\d+\/edit$/.test(path),scope=contentContext(new URLSearchParams(query),catalog);
-  if((path==='/posts'||postEditor)&&scope){
-    const section=contentSections[scope.type];
-    items.push({label:section.parent});
-    if('group' in section)items.push({label:section.group});
-    items.push({label:section.label,path:sectionPath(scope.type,'all',catalog)||undefined});
-    if(scope.key!=='all')items.push({label:scope.label,path:sectionPath(scope.type,scope.key,catalog)||undefined});
+  const postEditor=/^\/posts\/\d+\/edit$/.test(path),scope=contentContext(new URLSearchParams(query),catalog,areas),area=scope?areas.find(a=>a.pageId===scope.pageId):undefined;
+  if((path==='/posts'||postEditor)&&scope&&area){
+    for(const group of area.groups)items.push({label:group});
+    items.push({label:area.label,path:sectionPath(area,'all',catalog,areas)||undefined});
+    if(scope.key!=='all')items.push({label:scope.label,path:sectionPath(area,scope.key,catalog,areas)||undefined});
     if(postEditor){items[items.length-1].path=listPath;items.push({label:title});}
   }else if(path==='/posts'||postEditor){
     items.push({label:'전체 콘텐츠',path:postEditor&&!categoryLabel?listPath:'/posts'});

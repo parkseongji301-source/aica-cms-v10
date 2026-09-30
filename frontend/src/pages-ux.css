@@ -93,3 +93,8 @@
 /* With the selection column first, keep it narrow and give the page title the 30% width. */
 .phase-two .pages-table th.bulk-cell:first-child {width:44px;}
 .phase-two .pages-table th.bulk-cell + th {width:30%;}
+/* V14 site composition: GROUP areas and each area's content-work link / menu settings. */
+.phase-two .page-composition-meta {display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:12px;}
+.phase-two .page-composition-meta span {padding:1px 6px;border-radius:3px;background:var(--ui-soft);color:var(--ui-ink);}
+.phase-two .status-tag.state-group {background:var(--ui-soft);color:var(--ui-muted);}
+.phase-two .page-create-form .checkbox-row {display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px;}

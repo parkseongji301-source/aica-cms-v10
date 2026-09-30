@@ -14,7 +14,6 @@ import {AccountsPanel} from './AccountManager';
 import {LinkManager,MediaPanel,SettingsPanel} from './EditPanels';
 import {canOpen,contentPath,entries,managementGroups,pagePath,pageOverviewPath,pageOverviewId,workspaceHome,workspaceView} from './navigation';
 import {Empty,Feedback,Heading,messageOf,useRemote,setOperatingZone} from './ui';
-import {ReviewTree} from './ReviewTree';
 import {useWorkspaceRoutes} from './useWorkspaceRoutes';
 import {routePath} from './adminBase';
 import {pageLocation,publishedChildren} from './pageHierarchy';
@@ -23,7 +22,7 @@ import {BlockDialog} from './BlockDialog';
 import {ContentTree} from './ContentTree';
 import {NavigationIcon,managementIcons} from './NavigationIcon';
 import {WorkspaceBreadcrumbs} from './WorkspaceBreadcrumbs';
-import {contentSections,sectionType,returnSectionPath} from './contentNavigation';
+import {contentContext,hasContentLocation,returnSectionPath} from './contentNavigation';
 import './styles.css';
 import './workspace.css';
 import './design.css';
@@ -48,12 +47,13 @@ function PagePanel({id,active,data,onTitle,go,blockId,viewMode,onSelectBlock,onO
   const [definitions,setDefinitions]=useState<ComponentDefinition[]>([]);
   const [document,setDocument]=useState<PageDocument|null>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
   useEffect(()=>{
-    if(document||!active)return;let cancelled=false;
+    if(document||!active||data.pages.find(p=>p.id===id)?.areaKind==='GROUP')return;let cancelled=false;
     void Promise.all([getPage(id),get<ComponentDefinition[]>('/page-components')]).then(([value,catalog])=>{if(!cancelled){setDefinitions(catalog);setDocument(value);}}).catch(e=>{if(!cancelled)setError(e.message);});
     return()=>{cancelled=true;};
   },[id,active,document,retry]);
   const row=data.pages.find(p=>p.id===id),parent=row?.parentId==null?null:data.pages.find(p=>p.id===row.parentId)??null;
   const location={parent:parent?pageLocation(data.pages,parent.id):null,parentPublished:!parent||parent.status==='PUBLISHED',publishedChildren:publishedChildren(data.pages,id)};
+  if(row?.areaKind==='GROUP')return <><Heading title={row.title}/><Empty><p>묶음은 화면이 없는 구조 항목이라 편집할 내용이 없습니다. 이름·위치·메뉴 노출은 전체 페이지 현황에서 바꿉니다.</p><button type="button" className="secondary" onClick={()=>go('/pages')}>전체 페이지 현황으로</button></Empty></>;
   return document?<PageEditor location={location} canChangeAddress={!!data.permissions.structure} templateUse={data.permissions.templateUse} templateManage={data.permissions.templateManage} blockId={blockId} viewMode={viewMode} onSelectBlock={onSelectBlock} onOutline={onOutline} onGuard={onGuard} initial={document} definitions={definitions} active={active} categories={data.categories} images={data.images} onTitle={onTitle} onContent={category=>go(contentPath(category))}/>:<><Feedback error={error} loading={!error}/>{error&&<button onClick={()=>{setError('');setRetry(n=>n+1);}}>다시 시도</button>}</>;
 }
 
@@ -95,21 +95,20 @@ function Workspace({initial}:{initial:Bootstrap}) {
   useEffect(()=>{window.addEventListener('focus',refresh);return()=>window.removeEventListener('focus',refresh);},[refresh]);
   useEffect(()=>{try{sessionStorage.setItem('aica-next-view-'+data.user.id,mode);}catch{}},[mode,data.user.id]);
   const structure=useRemote<PageTarget[]>('/page-structure',data.permissions.site&&mode==='structure',version);
-  const navType=sectionType(new URLSearchParams(route.query));
+  // 콘텐츠 작업 locations follow the site composition (representative work areas).
+  const areas=data.contentAreas??[];
+  const navType=hasContentLocation(new URLSearchParams(route.query));
   const reviewCatalog=useRemote<ClassificationCatalog>('/classifications',mode==='structure'||!!navType,version);
-  const reviewKey=new URLSearchParams(route.query).get('reviewSection');
-  const faqKey=new URLSearchParams(route.query).get('faqSection');
-  const restaurantKey=new URLSearchParams(route.query).get('restaurantSection');
-  const section=navType?contentSections[navType]:null,sectionKey=section?new URLSearchParams(route.query).get(section.param):null;
+  const contentLocation=navType?contentContext(new URLSearchParams(route.query),reviewCatalog.data,areas):null;
   const activePage=/^\/pages\/(\d+)\/edit$/.exec(route.path);
   const activeBlock=new URLSearchParams(route.query).get('block');
   const inspectedPageId=mode==='structure'&&route.path==='/pages'?pageOverviewId(new URLSearchParams(route.query)):null;
   const activePageId=activePage?Number(activePage[1]):inspectedPageId;
   const activePost=/^\/posts\/(\d+)\/edit$/.exec(route.path);
-  const listForPost=(path:string,query:string)=>postOrigins[path]||returnSectionPath(new URLSearchParams(query),reviewCatalog.data)||'/posts';
+  const listForPost=(path:string,query:string)=>postOrigins[path]||returnSectionPath(new URLSearchParams(query),reviewCatalog.data,areas)||'/posts';
   const activeListSearch=new URLSearchParams(activePost?listForPost(route.path,route.query).split('?')[1]:route.query);
   const wholeContentSelected=(route.path==='/posts'||!!activePost)&&!navType&&!activeListSearch.has('categoryId');
-  const title=activePost?contentTargets[Number(activePost[1])]?.title||'콘텐츠 편집':activePageId!==null?data.pages.find(p=>p.id===activePageId)?.title||(activePage?'페이지 편집':'페이지 구조'):route.path==='/posts'&&section?(section.label+(sectionKey==='all'?'':' · '+(section.nodes.find(n=>n.key===sectionKey)?.label||''))):entries.find(e=>e.path===route.path)?.label||'화면을 찾을 수 없습니다';
+  const title=activePost?contentTargets[Number(activePost[1])]?.title||'콘텐츠 편집':activePageId!==null?data.pages.find(p=>p.id===activePageId)?.title||(activePage?'페이지 편집':'페이지 구조'):route.path==='/posts'&&contentLocation&&!contentLocation.error?(contentLocation.areaLabel+(contentLocation.key==='all'?'':' · '+contentLocation.label)):entries.find(e=>e.path===route.path)?.label||'화면을 찾을 수 없습니다';
   const editPage=(id:number,block?:string)=>{navigate(pagePath(id,block),false,false,'manage');setSidebarOpen(false);};
   const switchMode=(next:ViewMode)=>{
     if(next===mode)return;
@@ -146,13 +145,11 @@ function Workspace({initial}:{initial:Bootstrap}) {
     {mode==='manage'?<nav className="management-navigation" aria-label="사이트 관리">{managementGroups.map((group,index)=><div className={'nav-group'+(group.label?' nav-group-labeled':'')} key={index}>{group.label&&<h2><NavigationIcon name={managementIcons[group.label]??'folder'}/><span>{group.label}</span></h2>}{group.items.map(item=><button key={item.path} className={route.path===item.path||item.path==='/pages'&&activePage||item.path==='/posts'&&activePost?'selected':''} aria-current={route.path===item.path?'page':undefined} disabled={!!item.access&&!data.permissions[item.access]} title={item.access&&!data.permissions[item.access]?'이 계정에는 권한이 없습니다.':undefined} onClick={()=>go(item.path)}>{!group.label&&<NavigationIcon name={item.path==='/dashboard'?'dashboard':'link'}/>}<span className="nav-item-copy"><span>{item.label}</span>{item.access&&!data.permissions[item.access]&&<small>권한 없음</small>}</span></button>)}</div>)}</nav>:<nav className="structure-navigation" aria-label="콘텐츠 작업">
       <button className={'content-work-home'+(wholeContentSelected?' selected':'')} aria-current={wholeContentSelected?'page':undefined} onClick={()=>go('/posts')}><NavigationIcon name="content"/><span className="nav-item-copy"><span>전체 콘텐츠</span></span></button>
       {data.permissions.site&&<>
-      <ReviewTree catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?reviewKey:null} go={go} error={reviewCatalog.error}/>
-      <ContentTree type="FAQ" catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?faqKey:null} go={go} error=""/>
-      <ContentTree type="RESTAURANT" catalog={reviewCatalog.data} selected={route.path==='/posts'||activePost?restaurantKey:null} go={go} error=""/>
+      {areas.map((area,index)=><ContentTree key={area.pageId} area={area} areas={areas} catalog={reviewCatalog.data} selected={(route.path==='/posts'||activePost)&&contentLocation?.pageId===area.pageId?contentLocation.key:null} go={go} error={index===0?reviewCatalog.error:''}/>)}
       {data.categories.map(category=><button key={category.id} data-category-id={category.id} className={selected(contentPath(category.id))?'selected':''} aria-current={selected(contentPath(category.id))?'page':undefined} onClick={()=>go(contentPath(category.id))}><NavigationIcon name="folder"/><span className="nav-item-copy"><span>{category.name}</span></span></button>)}
       </>}
     </nav>}</div><div className="sidebar-footer"><span>홈페이지 연결 전</span><small>동일한 원본 · 두 가지 탐색</small></div></aside>
-    <main id="next-workspace"><WorkspaceBreadcrumbs mode={mode} path={route.path} query={route.query} title={title} catalog={reviewCatalog.data} listPath={listForPost(route.path,route.query)} categoryLabel={data.categories.find(c=>String(c.id)===activeListSearch.get('categoryId'))?.name} pageSelected={activePageId!==null} go={go}/><Feedback error={navigationError}/>
+    <main id="next-workspace"><WorkspaceBreadcrumbs mode={mode} path={route.path} query={route.query} title={title} catalog={reviewCatalog.data} areas={areas} listPath={listForPost(route.path,route.query)} categoryLabel={data.categories.find(c=>String(c.id)===activeListSearch.get('categoryId'))?.name} pageSelected={activePageId!==null} go={go}/><Feedback error={navigationError}/>
       {Object.entries(visited).map(([key,savedRoute])=>{
         const active=key===route.path,match=/^\/pages\/(\d+)\/edit$/.exec(key),postMatch=/^\/posts\/(\d+)\/edit$/.exec(key);
         const inspectedId=mode==='structure'&&key==='/pages'?pageOverviewId(new URLSearchParams(savedRoute.query)):null;

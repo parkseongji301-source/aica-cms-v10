@@ -1,4 +1,9 @@
 /* Pages and templates: presentation and workspace layout only. */
+.phase-two .page-create-form {width:100%;word-break:keep-all;}
+.phase-two .page-create-form>label {display:grid;gap:8px;margin:20px 0 8px;font-size:14px;font-weight:600;}
+.phase-two .page-create-form label small {font-weight:400;color:var(--ui-muted);}
+.phase-two .page-create-form .page-create-help {font-size:13px;line-height:1.7;color:var(--ui-muted);margin:8px 0 24px;}
+.phase-two .page-create-form .dialog-actions {flex-wrap:wrap;}
 .phase-two .page-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .phase-two .page-row-actions button { white-space: nowrap; border-radius: 3px; min-height: 36px; font-size: 13px; }
 .phase-two .page-menu-label { display: block; line-height: 1.7; }

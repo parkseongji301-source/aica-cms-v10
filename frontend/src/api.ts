@@ -1,4 +1,6 @@
 import {restaurantPayload} from './restaurantFields';
+import {pageDraftForm} from './pageCreation';
+import type {CreatedPage} from './pageCreation';
 import type {Bootstrap, PageDocument, PreviewDocument, ImageFile,PostDocument,PostPreview,ClassificationCatalog,PostPublication,ClassificationSelection} from './types';
 import {classificationSelection} from './classification';
 let csrf: Bootstrap['csrf']|null = null;
@@ -28,6 +30,9 @@ export async function deletePage(id:number,revision:number) {
 
 export const bootstrap=async()=>{const data=await request<Bootstrap>(base+'/bootstrap');csrf=data.csrf;return data;};
 export const getPage=(id:number)=>request<PageDocument>(`${base}/pages/${id}`);
+export const createPage=(title:string,slug='')=>request<CreatedPage>('/admin/pages/save-json',{
+  method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:pageDraftForm(title,slug)
+});
 export const savePage=(page:PageDocument,saveIntent:'AUTOSAVE'|'MANUAL_DRAFT'='MANUAL_DRAFT')=>request<PageDocument>(`${base}/pages/${page.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({saveIntent,title:page.title,revision:page.revision,sections:page.sections})});
 export const previewPage=(page:PageDocument,signal?:AbortSignal)=>request<PreviewDocument>(`${base}/pages/${page.id}/preview`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:page.title,sections:page.sections}),signal});
 export const uploadImage=(file:File)=>{const data=new FormData();data.append('file',file);data.append('imageOnly','true');return request<ImageFile>('/admin/media/upload',{method:'POST',body:data});};

@@ -11,6 +11,10 @@
  <select id="draftTopics" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT t.id,t.code,t.name,t.active FROM post_topics pt JOIN topics t ON t.id=pt.topic_id WHERE pt.post_id=#{value} ORDER BY t.id</select>
  <select id="publishedCohorts" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT c.id,c.code,pc.name_snapshot AS name,c.active FROM post_publication_cohorts pc JOIN cohorts c ON c.id=pc.cohort_id WHERE pc.post_id=#{value} ORDER BY c.id</select>
  <select id="publishedTopics" resultType="egovframework.backoffice.mvp.classification.ClassificationModels$Term">SELECT t.id,t.code,pt.name_snapshot AS name,t.active FROM post_publication_topics pt JOIN topics t ON t.id=pt.topic_id WHERE pt.post_id=#{value} ORDER BY t.id</select>
+ <!-- Add-only topic registration (operating data). New topics go to the end of the dictionary order. -->
+ <insert id="addTopic">INSERT INTO topics(code,name,description,active,sort_order) VALUES(#{code},#{name},#{description},TRUE,(SELECT COALESCE(MAX(sort_order),0)+1 FROM topics))</insert>
+ <select id="topicId" resultType="long">SELECT id FROM topics WHERE code=#{value}</select>
+ <insert id="allowTopic">INSERT INTO content_type_topics(type_code,topic_id) VALUES(#{typeCode},#{topicId})</insert>
  <update id="type">UPDATE posts SET content_type_code=#{typeCode} WHERE id=#{postId}</update>
  <delete id="clearCohorts">DELETE FROM post_cohorts WHERE post_id=#{value}</delete>
  <delete id="clearTopics">DELETE FROM post_topics WHERE post_id=#{value}</delete>

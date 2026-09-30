@@ -42,7 +42,7 @@ class PostTrashIntegrationTest {
         for(String role:List.of("SUPER_ADMIN","ADMIN","SUPPORTER"))jdbc.update("INSERT INTO users(email,display_name,password_hash,role,password_change_required) VALUES(?,?,?,?,FALSE)",email(role),role,hash,role);
         jdbc.update("INSERT INTO categories(id,name) VALUES(11,'식당')");
         file=media.upload(actor("ADMIN"),new MockMultipartFile("file","menu.txt","text/plain","메뉴".getBytes(java.nio.charset.StandardCharsets.UTF_8)),"");
-        id=posts.save(actor("ADMIN"),null,null,"공개된 식당","공개 본문",11L,List.of(file),"publish",null,new Selection("RESTAURANT",List.of(),List.of()),new Details("광주 테스트로 1"),SaveIntent.MANUAL_DRAFT);
+        id=LegacyCategories.assign(jdbc,11L,posts.save(actor("ADMIN"),null,null,"공개된 식당","공개 본문",null,List.of(file),"publish",null,new Selection("RESTAURANT",List.of(),List.of()),new Details("광주 테스트로 1"),SaveIntent.MANUAL_DRAFT));
         String rich=json.writeValueAsString(Map.of("ops",List.of(Map.of("insert","보관할 본문","attributes",Map.of("bold",true)),Map.of("insert","\n"),Map.of("insert",Map.of("aicaFile",Map.of("id",file,"label","메뉴"))),Map.of("insert","\n"))));
         posts.save(actor("ADMIN"),id,liveRevision(),"수정 중인 식당 100%_","",11L,List.of(file),"save",rich,null,new Details("광주 테스트로 2"),SaveIntent.MANUAL_DRAFT);
         oldDeleted=posts.create(actor("ADMIN"),"이전에 영구삭제한 글","복원하면 안 되는 기록");

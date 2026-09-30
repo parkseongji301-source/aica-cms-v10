@@ -44,11 +44,11 @@ class PostsBlockQueryIntegrationTest {
   restaurant=create("맛집","RESTAURANT",List.of(),List.of(),"publish");
   create("미발행 후기","REVIEW",List.of(102L),List.of(201L),"save");
   jdbc.update("UPDATE post_publications SET published_at=TIMESTAMP '2026-01-01 10:00:00'");
-  page=pages.save(root(),null,null,"조건 연결","query-test","[{\"type\":\"POSTS\",\"heading\":\"기존 목록\",\"categoryId\":11,\"visible\":true}]","publish");
+  page=LegacyCategories.page(jdbc,"[{\"type\":\"POSTS\",\"heading\":\"기존 목록\",\"categoryId\":11,\"visible\":true}]",s->pages.save(root(),null,null,"조건 연결","query-test",s,"publish"));
  }
  AccountPrincipal root(){return new AccountPrincipal(accounts.findByEmail("super_admin@query.test"));}
  AccountPrincipal actor(){return new AccountPrincipal(accounts.findByEmail("admin@query.test"));}
- long create(String title,String type,List<Long> cohorts,List<Long> topics,String action){return posts.save(actor(),null,null,title,"발행 본문",11L,List.of(),action,null,new Selection(type,cohorts,topics));}
+ long create(String title,String type,List<Long> cohorts,List<Long> topics,String action){return LegacyCategories.assign(jdbc,11L,posts.save(actor(),null,null,title,"발행 본문",null,List.of(),action,null,new Selection(type,cohorts,topics)));}
  HttpBrowser login(String role)throws Exception{var b=new HttpBrowser(port);b.login(role+"@query.test",PASSWORD,"/admin");return b;}
  JsonNode ok(java.net.http.HttpResponse<String> r)throws Exception{assertThat(r.statusCode()).as(r.body()).isEqualTo(200);return json.readTree(r.body());}
  JsonNode get(HttpBrowser b,String path)throws Exception{return ok(b.get(path));}
@@ -92,7 +92,7 @@ class PostsBlockQueryIntegrationTest {
  }
  @Test void queryFollowsBlockIdentityAcrossIndependentDuplicationAndReordering()throws Exception {
   var b=login("admin");var saved=save(b,configure(input(b),"REVIEW",List.of(101L,102L),List.of(201L,202L),6));var source=pages.sections(pages.get(actor(),page).sectionsJson()).get(0);var clone=PageBlockService.duplicate(source);assertThat(clone.id()).isNotEqualTo(source.id());assertThat(clone.query()).isEqualTo(source.query());
-  var document=(ObjectNode)saved.deepCopy();var copy=(ObjectNode)json.valueToTree(clone);((ObjectNode)copy.path("query")).put("limit",2);document.set("sections",json.createArrayNode().add(copy).add(saved.path("sections").get(0)));var moved=save(b,document);
+  var document=(ObjectNode)saved.deepCopy();var copy=(ObjectNode)json.valueToTree(clone);copy.putNull("categoryId");((ObjectNode)copy.path("query")).put("limit",2);document.set("sections",json.createArrayNode().add(copy).add(saved.path("sections").get(0)));var moved=save(b,document);
   assertThat(moved.path("sections").get(0).path("id").asText()).isEqualTo(clone.id());assertThat(moved.path("sections").get(1)).isEqualTo(saved.path("sections").get(0));
   assertThat(get(b,API+page).path("sections")).isEqualTo(moved.path("sections"));
   for(String view:List.of("manage","structure"))assertThat(get(b,API+page+"?view="+view).path("sections")).isEqualTo(moved.path("sections"));

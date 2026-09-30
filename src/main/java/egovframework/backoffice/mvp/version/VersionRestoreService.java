@@ -35,7 +35,9 @@ public class VersionRestoreService {
   if(kind==VersionKind.POST){
    var p=snapshots.read(payload,VersionSnapshots.PostSnapshot.class);var c=p.classification();
    var details=p.restaurant()==null?new Details(""):p.restaurant();
-   posts.save(principal,id,expectedRevision,p.title(),p.content(),p.categoryId(),p.mediaIds(),"save",p.richContent(),new Selection(c.typeCode(),c.cohortIds(),c.topicIds()),details,SaveIntent.LEGACY);
+   // Legacy categories are retired: a snapshot's category is kept only if the post still has that same category.
+   Long category=Objects.equals(p.categoryId(),posts.get(principal,id).categoryId())?p.categoryId():null;
+   posts.save(principal,id,expectedRevision,p.title(),p.content(),category,p.mediaIds(),"save",p.richContent(),new Selection(c.typeCode(),c.cohortIds(),c.topicIds()),details,SaveIntent.LEGACY);
   }else if(kind==VersionKind.PAGE){
    var p=snapshots.read(payload,VersionSnapshots.PageSnapshot.class);var current=pages.get(principal,id);
    var copies=blocks.restore(id,pages.sections(current.sectionsJson()),p.sections());changed=copies.changedIds();

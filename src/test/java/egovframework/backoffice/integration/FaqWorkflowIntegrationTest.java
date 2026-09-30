@@ -38,8 +38,10 @@ class FaqWorkflowIntegrationTest {
     String csrf(HttpBrowser b)throws Exception{return get(b,"/api/admin/next/bootstrap").path("csrf").path("token").asText();}
     Map<String,Object> body(String type,String question,String answer,List<Long> topics){return new LinkedHashMap<>(Map.of("title",question,"content",answer,"categoryId",11,"mediaIds",List.of(),"classification",Map.of("typeCode",type,"cohortIds",List.of(),"topicIds",topics)));}
     JsonNode create(HttpBrowser b,String question,List<Long> topics)throws Exception {
-        var r=b.json("POST",API,json.writeValueAsString(body("FAQ",question,"검증용 답변입니다. 실제 지원 안내가 아닙니다.",topics)),csrf(b));
-        assertThat(r.statusCode()).as(r.body()).isEqualTo(201);return json.readTree(r.body());
+        var value=body("FAQ",question,"검증용 답변입니다. 실제 지원 안내가 아닙니다.",topics);value.put("categoryId",null);
+        var r=b.json("POST",API,json.writeValueAsString(value),csrf(b));
+        assertThat(r.statusCode()).as(r.body()).isEqualTo(201);
+        long id=LegacyCategories.assign(jdbc,11L,json.readTree(r.body()).path("id").asLong());return get(b,API+"/"+id);
     }
     JsonNode save(HttpBrowser b,JsonNode old,String question,String answer,List<Long> topics)throws Exception {
         var value=body("FAQ",question,answer,topics);value.put("revision",old.path("revision").asLong());
@@ -62,7 +64,8 @@ class FaqWorkflowIntegrationTest {
     @Test void fourQuestionsAllSevenFiltersCountsAndReviewLifeAreIsolated()throws Exception {
         var b=login();create(b,"포트폴리오가 꼭 필요한가요?",List.of(preparation));create(b,"코딩테스트 많이 어렵나요?",List.of(preparation));
         var parking=create(b,"주차 공간이 있나요?",List.of(life));create(b,"팀 구성은 어떻게 하나요?",List.of(project));
-        var review=b.json("POST",API,json.writeValueAsString(body("REVIEW","생활 후기","후기 본문",List.of(reviewLife))),csrf(b));assertThat(review.statusCode()).isEqualTo(201);
+        var reviewBody=body("REVIEW","생활 후기","후기 본문",List.of(reviewLife));reviewBody.put("categoryId",null);
+        var review=b.json("POST",API,json.writeValueAsString(reviewBody),csrf(b));assertThat(review.statusCode()).isEqualTo(201);
         assertThat(get(b,API+"?typeCodes=FAQ").path("total").asInt()).isEqualTo(4);
         for(String code:List.of("FAQ_PREPARATION","FAQ_APPLICATION","FAQ_CLASS","FAQ_LIFE","FAQ_EMPLOYMENT","FAQ_ALLOWANCE","FAQ_PROJECT")) {
             int count=code.equals("FAQ_PREPARATION")?2:List.of("FAQ_LIFE","FAQ_PROJECT").contains(code)?1:0;
@@ -94,7 +97,7 @@ class FaqWorkflowIntegrationTest {
         assertThat(b.json("PUT",API+"/"+id,json.writeValueAsString(stale),csrf(b)).statusCode()).isEqualTo(409);
     }
     @Test void faqValidationDoesNotRequireCohortMediaOrDraftAnswerAndRejectsForeignTopic()throws Exception {
-        var b=login();var emptyAnswer=body("FAQ","질문만 있는 초안","",List.of());
+        var b=login();var emptyAnswer=body("FAQ","질문만 있는 초안","",List.of());emptyAnswer.put("categoryId",null);
         var r=b.json("POST",API,json.writeValueAsString(emptyAnswer),csrf(b));assertThat(r.statusCode()).as(r.body()).isEqualTo(201);
         var p=json.readTree(r.body());assertThat(p.path("mediaIds").isEmpty()).isTrue();assertThat(p.path("classification").path("cohortIds").isEmpty()).isTrue();
         for(String title:List.of("","x".repeat(201))) {

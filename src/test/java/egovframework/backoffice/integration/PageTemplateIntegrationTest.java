@@ -27,7 +27,7 @@ class PageTemplateIntegrationTest {
   for(String t:List.of("page_templates","post_publication_media","post_media","post_publications","page_media","page_publications","page_block_identities","site_menus","site_pages","posts","media","categories","activity_log","users"))jdbc.update("DELETE FROM "+t);
   String hash=encoder.encode(PASSWORD);for(String role:List.of("SUPER_ADMIN","ADMIN","SUPPORTER"))jdbc.update("INSERT INTO users(email,display_name,password_hash,role,password_change_required) VALUES(?,?,?,?,FALSE)",role.toLowerCase(Locale.ROOT)+"@template.test",role,hash,role);
   jdbc.update("INSERT INTO categories(id,name) VALUES(11,'기존 분류')");
-  published=posts.save(actor(),null,null,"발행 원본","본문",11L,List.of(),"publish",null);draft=posts.save(actor(),null,null,"미발행 원본","본문",11L,List.of(),"save",null);
+  published=LegacyCategories.assign(jdbc,11L,posts.save(actor(),null,null,"발행 원본","본문",null,List.of(),"publish",null));draft=LegacyCategories.assign(jdbc,11L,posts.save(actor(),null,null,"미발행 원본","본문",null,List.of(),"save",null));
   page=pages.save(actor(),null,null,"원래 페이지","template-a","[{\"type\":\"HERO\",\"heading\":\"기존 내용\",\"visible\":true}]","publish");
   other=pages.save(actor(),null,null,"다른 페이지","template-b","[]","save");browser=login("super_admin");csrf=ok(browser.get("/api/admin/next/bootstrap")).path("csrf").path("token").asText();
  }
@@ -35,7 +35,7 @@ class PageTemplateIntegrationTest {
  JsonNode ok(java.net.http.HttpResponse<String> r)throws Exception{assertThat(r.statusCode()).as(r.body()).isEqualTo(200);return json.readTree(r.body());}
  ObjectNode request()throws Exception {
   var source=pages.sections(pages.get(actor(),page).sectionsJson()).get(0);var blocks=json.createArrayNode();var hero=(ObjectNode)json.valueToTree(source);hero.put("variation","centered");hero.put("visible",false);blocks.add(hero);
-  for(String mode:List.of("category","query","manual")){var b=hero.deepCopy();b.put("type","POSTS").put("id",PageBlockService.newId()).put("variation","default").put("visible",true).put("sourceMode",mode).put("categoryId",11);b.set("query",json.valueToTree(Map.of("typeCode","GENERAL","cohortIds",List.of(),"topicIds",List.of(),"sort","LATEST","limit",6)));b.set("manual",json.valueToTree(Map.of("postIds",List.of(published,draft,999999L))));blocks.add(b);}
+  for(String mode:List.of("category","query","manual")){var b=hero.deepCopy();b.put("type","POSTS").put("id",PageBlockService.newId()).put("variation","default").put("visible",true).put("sourceMode",mode).putNull("categoryId");b.set("query",json.valueToTree(Map.of("typeCode","GENERAL","cohortIds",List.of(),"topicIds",List.of(),"sort","LATEST","limit",6)));b.set("manual",json.valueToTree(Map.of("postIds",List.of(published,draft,999999L))));blocks.add(b);}
   return json.createObjectNode().put("name","공용 구성").put("description","사용 용도").put("active",true).set("blocks",blocks);
  }
  JsonNode create()throws Exception{return ok(browser.json("POST",API,request().toString(),csrf));}

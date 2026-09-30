@@ -54,7 +54,7 @@ class NextWorkspaceIntegrationTest {
     private String token(HttpBrowser b)throws Exception{return ok(b.get(API+"/bootstrap")).path("csrf").path("token").asText();}
     private JsonNode write(HttpBrowser b,String method,String path,Object body,String csrf)throws Exception{return ok(b.json(method,API+path,json.writeValueAsString(body),csrf));}
 
-    @Test void existingCategoriesAreManagedWithTheLegacyStructureRulesAndUsageProtection()throws Exception {
+    @Test void existingCategoriesStayReadableButAreNoLongerManaged()throws Exception {
         var admin=login("ADMIN");String adminCsrf=token(admin);
         denied(admin.get(API+"/categories"),403);
         denied(admin.json("POST",API+"/categories",json.writeValueAsString(Map.of("name","관리자 시도")),adminCsrf),403);
@@ -63,15 +63,15 @@ class NextWorkspaceIntegrationTest {
         denied(root.json("POST",API+"/categories",json.writeValueAsString(Map.of("name","CSRF 없음")),null),403);
         denied(root.json("POST",API+"/categories",json.writeValueAsString(Map.of("name"," ")),csrf),400);
         assertThat(site.categories()).hasSize(2);
-        var created=write(root,"POST","/categories",Map.of("name","행사 안내"),csrf);assertThat(created).hasSize(3);
-        long added=site.categories().stream().filter(c->c.name().equals("행사 안내")).findFirst().orElseThrow().id();
-        write(root,"PUT","/categories/"+added,Map.of("name","행사 소식"),csrf);
-        var ordered=write(root,"PUT","/categories/order",Map.of("ids",List.of(added,12L,11L)),csrf);
-        assertThat(ordered.get(0).path("name").asText()).isEqualTo("행사 소식");assertThat(ordered.get(2).path("id").asLong()).isEqualTo(11);
+        // Legacy categories are retired: existing rows and their usage stay readable, but nothing is added, renamed, reordered or deleted.
+        for(var attempt:List.of(root.json("POST",API+"/categories",json.writeValueAsString(Map.of("name","행사 안내")),csrf),
+                root.json("PUT",API+"/categories/12",json.writeValueAsString(Map.of("name","행사 소식")),csrf),
+                root.json("PUT",API+"/categories/order",json.writeValueAsString(Map.of("ids",List.of(12L,11L))),csrf),
+                root.json("DELETE",API+"/categories/12","{}",csrf)))
+            assertThat(json.readTree(attempt.body()).path("message").asText()).as(attempt.body()).contains("레거시 카테고리");
+        assertThat(ok(root.get(API+"/categories")).size()).isEqualTo(2);
         assertThat(ok(root.get(API+"/categories/11/usage")).size()).isPositive();
-        denied(root.json("DELETE",API+"/categories/11","{}",csrf),400);
-        assertThat(site.categories()).hasSize(3);
-        assertThat(write(root,"DELETE","/categories/"+added,Map.of(),csrf)).hasSize(2);
+        assertThat(site.categories()).extracting(c->c.name()).containsExactly("공지사항","교육 소식");
         assertThat(jdbc.queryForObject("SELECT category_id FROM posts WHERE id=101",Long.class)).isEqualTo(11L);
     }
     @Test void accountsAreIssuedChangedAndResetThroughAccountServiceWithOneTimePasswords()throws Exception {

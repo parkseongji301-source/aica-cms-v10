@@ -42,7 +42,7 @@ class VersionHistoryIntegrationTest {
   jdbc.update("INSERT INTO topics(code,name) VALUES('REVIEW_LIFE','생활'),('REVIEW_PROJECT','프로젝트')");
   life=jdbc.queryForObject("SELECT id FROM topics WHERE code='REVIEW_LIFE'",Long.class);project=jdbc.queryForObject("SELECT id FROM topics WHERE code='REVIEW_PROJECT'",Long.class);
   jdbc.update("INSERT INTO content_type_topics(type_code,topic_id) SELECT 'REVIEW',id FROM topics");
-  post=posts.save(actor("SUPPORTER"),null,null,"원본","본문",category,List.of(),"save");
+  post=LegacyCategories.assign(jdbc,category,posts.save(actor("SUPPORTER"),null,null,"원본","본문",null,List.of(),"save"));
   page=pages.save(actor("SUPER_ADMIN"),null,null,"원래 페이지","version-page","[{\"type\":\"HERO\",\"heading\":\"A\",\"body\":\"내용 A\",\"visible\":true},{\"type\":\"TEXT\",\"heading\":\"B\",\"body\":\"내용 B\",\"visible\":false}]","publish");
  }
  long revision(){return posts.get(actor("ADMIN"),post).revision();}
@@ -88,7 +88,8 @@ class VersionHistoryIntegrationTest {
   assertThat(posts.get(owner,post).authorId()).isEqualTo(author);assertThat(posts.get(owner,post).status()).isEqualTo("PUBLISHED");
   assertThat(posts.classification(owner,post).cohortIds()).containsExactly(c6,c7);assertThat(posts.restaurant(owner,post).address()).isEqualTo("광주 첫 주소");
   assertThat(posts.attachments(owner,post)).extracting(CmsModels.Media::id).containsExactly(file);
-  assertThat(posts.get(owner,post).categoryId()).isEqualTo(category);
+  // Legacy categories are retired: the snapshot still has the category, but restoring never brings it back.
+  assertThat(posts.get(owner,post).categoryId()).isNull();
   assertThat(snapshots.capture(POST,post,true).toString()).isEqualTo(publication);
   var restored=latest(POST,post);assertThat(restored.reason()).isEqualTo("RESTORE");assertThat(restored.sourceVersionId()).isEqualTo(source);
   var backup=versions.list(POST,post,0).get(1);assertThat(backup.reason()).isEqualTo("RESTORE_BACKUP");
@@ -126,8 +127,8 @@ class VersionHistoryIntegrationTest {
    Map.of("type","POSTS","sourceMode","category","categoryId",category,"visible",true),
    Map.of("type","POSTS","sourceMode","query","visible",true,"query",Map.of("typeCode","REVIEW","cohortIds",List.of(c7),"topicIds",List.of(project),"sort","LATEST","limit",6)),
    Map.of("type","POSTS","sourceMode","manual","visible",true,"manual",Map.of("postIds",List.of(post)))));
-  long target=pages.save(a,null,null,"세 가지 목록","three-modes",blocks,"save",SaveIntent.MANUAL_DRAFT);var saved=pages.get(a,target);long source=latest(PAGE,target).id();
-  var template=templates.save(a,null,null,"원본 템플릿","용도",true,pages.sections(saved.sectionsJson()));long tid=template.info().id(),tv=latest(TEMPLATE,tid).id();
+  long target=LegacyCategories.page(jdbc,blocks,s->pages.save(a,null,null,"세 가지 목록","three-modes",s,"save",SaveIntent.MANUAL_DRAFT));var saved=pages.get(a,target);long source=latest(PAGE,target).id();
+  var template=templates.save(a,null,null,"원본 템플릿","용도",true,LegacyCategories.without(pages.sections(saved.sectionsJson())));long tid=template.info().id(),tv=latest(TEMPLATE,tid).id();
   String templateSnapshot=versions.get(TEMPLATE,tid,tv).snapshotJson();assertThat(templateSnapshot).doesNotContain("block_").contains("category","query","manual");
   pages.save(a,target,saved.revision(),"빈 구성",saved.slug(),"[]","save",SaveIntent.MANUAL_DRAFT);
   restore.restore(a,PAGE,target,source,pages.get(a,target).revision(),null);

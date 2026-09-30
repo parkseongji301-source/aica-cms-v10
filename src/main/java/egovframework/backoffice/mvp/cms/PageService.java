@@ -128,6 +128,12 @@ public class PageService {
    if(!restoring && old!=null && old.manual()!=null && "POSTS".equals(block.type()) && block.manual()==null)
     throw new BusinessException("직접 선택 목록이 누락되었습니다. 다시 열어 주세요. 비우려면 선택 항목을 직접 해제하세요.");
   }
+  // Legacy categories are retired: a block keeps a category it already had, but none is newly set (restores included).
+  for(var block:blocks) {
+   if(block.categoryId()==null) continue;
+   var old=previous.stream().filter(s->s.id().equals(block.id())).findFirst().orElse(null);
+   if(old==null||!Objects.equals(old.categoryId(),block.categoryId())) throw new BusinessException("레거시 카테고리는 새로 지정할 수 없습니다. 콘텐츠 유형·주제 조건을 사용하세요.");
+  }
   identities.validate(id,previous,blocks);
   if(existing!=null && action.equals("save") && intent==SaveIntent.MANUAL_DRAFT && existing.title().equals(name) && existing.slug().equals(path) && previous.equals(blocks)){
    history.capture(actor,VersionKind.PAGE,id,"MANUAL_DRAFT",null,null,false);return id;

@@ -42,8 +42,8 @@ class NextPostIntegrationTest {
         var bytes=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(3,2,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",bytes);
         imageId=media.upload(actor,new MockMultipartFile("file","existing.png","image/png",bytes.toByteArray()),"기존 이미지");
         fileId=media.upload(actor,new MockMultipartFile("file","existing.txt","text/plain","원본 첨부".getBytes(java.nio.charset.StandardCharsets.UTF_8)),"");
-        publishedId=posts.save(actor,null,null,"기존 발행 콘텐츠","기존 일반 본문",11L,List.of(imageId,fileId),"publish",null);
-        ownId=posts.save(principal("SUPPORTER"),null,null,"본인 초안","초안 본문",12L,List.of(),"save",null);
+        publishedId=LegacyCategories.assign(jdbc,11L,posts.save(actor,null,null,"기존 발행 콘텐츠","기존 일반 본문",null,List.of(imageId,fileId),"publish",null));
+        ownId=LegacyCategories.assign(jdbc,12L,posts.save(principal("SUPPORTER"),null,null,"본인 초안","초안 본문",null,List.of(),"save",null));
         privateId=posts.save(actor,null,null,"비공개 콘텐츠","비공개 본문",null,List.of(),"publish",null);
         posts.unpublish(actor,privateId,posts.get(actor,privateId).revision());
         jdbc.update("INSERT INTO site_menus(label,kind,target_id) VALUES('교육 소식','CATEGORY',12)");
@@ -95,7 +95,7 @@ class NextPostIntegrationTest {
 
     @Test void legacyDraftSavePreservesAttachmentsAndOriginalPublication()throws Exception {
         var b=login("ADMIN");var before=read(b,publishedId);var fields=input(before);
-        fields.put("title","React 초안 제목");fields.put("content","React 일반 본문");fields.put("categoryId",12);
+        fields.put("title","React 초안 제목");fields.put("content","React 일반 본문");
         // Extra client fields cannot publish or redirect a save to another target/author.
         fields.put("action","publish");fields.put("id",ownId);fields.put("authorId",principal("SUPPORTER").getId());
         var after=ok(put(b,publishedId,fields,token(b)));
@@ -206,7 +206,7 @@ class NextPostIntegrationTest {
         var fields=input(draft);fields.put("title","게시할 식당");fields.put("content","방금 입력한 소개");
         fields.put("classification",Map.of("typeCode","RESTAURANT","cohortIds",List.of(),"topicIds",List.of()));
         fields.put("restaurant",Map.of("address","광주광역시 테스트로 123"));
-        fields.put("categoryId",12);fields.put("mediaIds",List.of(imageId,fileId));
+        fields.put("mediaIds",List.of(imageId,fileId));
         var result=ok(publish(b,id,fields,csrf));
         assertThat(result.path("id").asLong()).isEqualTo(id);
         assertThat(result.path("status").asText()).isEqualTo("PUBLISHED");

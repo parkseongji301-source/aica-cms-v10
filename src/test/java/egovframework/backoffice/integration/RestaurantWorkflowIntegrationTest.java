@@ -40,7 +40,11 @@ class RestaurantWorkflowIntegrationTest {
         body.put("classification",Map.of("typeCode",type,"cohortIds",List.of(),"topicIds",List.of()));if(address!=null)body.put("restaurant",Map.of("address",address));return body;
     }
     Map<String,Object> input(JsonNode p) {var value=new LinkedHashMap<String,Object>();for(String key:List.of("revision","title","content","richContent","categoryId","mediaIds","classification"))value.put(key,json.convertValue(p.path(key),Object.class));return value;}
-    JsonNode create(HttpBrowser b,String address)throws Exception {var r=b.json("POST",API,json.writeValueAsString(body("RESTAURANT",address)),token(b));assertThat(r.statusCode()).as(r.body()).isEqualTo(201);return json.readTree(r.body());}
+    JsonNode create(HttpBrowser b,String address)throws Exception {
+        var value=body("RESTAURANT",address);value.put("categoryId",null);
+        var r=b.json("POST",API,json.writeValueAsString(value),token(b));assertThat(r.statusCode()).as(r.body()).isEqualTo(201);
+        long id=LegacyCategories.assign(jdbc,11L,json.readTree(r.body()).path("id").asLong());return get(b,API+"/"+id);
+    }
     JsonNode save(HttpBrowser b,JsonNode post,Map<String,Object> changes)throws Exception {
         var value=input(post);value.putAll(changes);var r=b.json("PUT",API+"/"+post.path("id").asLong(),json.writeValueAsString(value),token(b));assertThat(r.statusCode()).as(r.body()).isEqualTo(200);return json.readTree(r.body());
     }

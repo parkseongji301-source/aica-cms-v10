@@ -26,7 +26,7 @@ public class SiteService {
  }
  @Transactional
  public void category(AccountPrincipal principal,Long id,String name) {
-  store.lock();var actor=access.structure(principal);
+  store.lock();var actor=access.structure(principal);retired();
   String label=InputRules.text(name,80,"카테고리 이름");
   if(id==null) id=store.create("createCategory",values("name",label));
   else {exists("category",id);store.change("editCategory",values("id",id,"name",label));}
@@ -34,10 +34,14 @@ public class SiteService {
  }
  @Transactional
  public void deleteCategory(AccountPrincipal principal,long id) {
-  store.lock();var actor=access.structure(principal);exists("category",id);
+  store.lock();var actor=access.structure(principal);retired();exists("category",id);
   if(store.<Long>one("categoryUsage",id)>0 || categoryInPage(id))
    throw new BusinessException("콘텐츠·페이지·메뉴에서 사용 중인 카테고리입니다. 연결을 먼저 해제하세요.");
   store.change("deleteCategory",id);audit.record(actor,"카테고리 삭제","카테고리 #"+id,"");
+ }
+ /** Legacy categories are being retired: existing rows stay readable, but no category is added, renamed, reordered or deleted. */
+ private static void retired() {
+  throw new BusinessException("레거시 카테고리는 콘텐츠 유형·주제로 이관 중이라 추가·수정·정렬·삭제할 수 없습니다. 기존 카테고리는 읽기만 가능합니다.");
  }
  private boolean categoryInPage(long id) {
   for(Page page:store.<Page>all("pages",null)) {
@@ -99,7 +103,7 @@ public class SiteService {
   List<Long> actual;
   String noun;
   switch(type) {
-   case "categories" -> {actual=categories().stream().map(Category::id).toList();noun="Category";}
+   case "categories" -> {retired();actual=categories().stream().map(Category::id).toList();noun="Category";}
    case "menus" -> {actual=store.<Menu>all("menus",null).stream().map(Menu::id).toList();noun="Menu";}
    case "links" -> {actual=links().stream().map(Link::id).toList();noun="Link";}
    default -> throw new BusinessException("정렬할 항목을 확인하세요.");

@@ -44,11 +44,11 @@ class PostsBlockManualIntegrationTest {
   restaurant=create("맛집","RESTAURANT",List.of(),List.of(),"publish");
   draft=create("미발행 후기","REVIEW",List.of(102L),List.of(201L),"save");
   jdbc.update("UPDATE post_publications SET published_at=TIMESTAMP '2026-01-01 10:00:00'");
-  page=pages.save(root(),null,null,"조건 연결","query-test","[{\"type\":\"POSTS\",\"heading\":\"기존 목록\",\"categoryId\":11,\"visible\":true}]","publish");
+  page=LegacyCategories.page(jdbc,"[{\"type\":\"POSTS\",\"heading\":\"기존 목록\",\"categoryId\":11,\"visible\":true}]",s->pages.save(root(),null,null,"조건 연결","query-test",s,"publish"));
  }
  AccountPrincipal root(){return new AccountPrincipal(accounts.findByEmail("super_admin@query.test"));}
  AccountPrincipal actor(){return new AccountPrincipal(accounts.findByEmail("admin@query.test"));}
- long create(String title,String type,List<Long> cohorts,List<Long> topics,String action){return posts.save(actor(),null,null,title,"발행 본문",11L,List.of(),action,null,new Selection(type,cohorts,topics));}
+ long create(String title,String type,List<Long> cohorts,List<Long> topics,String action){return LegacyCategories.assign(jdbc,11L,posts.save(actor(),null,null,title,"발행 본문",null,List.of(),action,null,new Selection(type,cohorts,topics)));}
  HttpBrowser login(String role)throws Exception{var b=new HttpBrowser(port);b.login(role+"@query.test",PASSWORD,"/admin");return b;}
  JsonNode ok(java.net.http.HttpResponse<String> r)throws Exception{assertThat(r.statusCode()).as(r.body()).isEqualTo(200);return json.readTree(r.body());}
  JsonNode get(HttpBrowser b,String path)throws Exception{return ok(b.get(path));}
@@ -107,7 +107,7 @@ class PostsBlockManualIntegrationTest {
  }
  @Test void cloneGetsNewIdentityAndIndependentManualSelection()throws Exception {
   var b=login("admin");var saved=save(b,manual(input(b),restaurant,life,draft));var source=pages.sections(pages.get(actor(),page).sectionsJson()).get(0);var clone=PageBlockService.duplicate(source);assertThat(clone.id()).isNotEqualTo(source.id());assertThat(clone.manual()).isEqualTo(source.manual());
-  var copied=(ObjectNode)json.valueToTree(clone);copied.set("manual",json.valueToTree(Map.of("postIds",List.of(life,restaurant))));var document=(ObjectNode)saved.deepCopy();document.set("sections",json.createArrayNode().add(copied).add(saved.path("sections").get(0)));var result=save(b,document);
+  var copied=(ObjectNode)json.valueToTree(clone);copied.putNull("categoryId");copied.set("manual",json.valueToTree(Map.of("postIds",List.of(life,restaurant))));var document=(ObjectNode)saved.deepCopy();document.set("sections",json.createArrayNode().add(copied).add(saved.path("sections").get(0)));var result=save(b,document);
   assertThat(result.path("sections").get(1)).isEqualTo(saved.path("sections").get(0));assertThat(result.path("sections").get(0).path("id").asText()).isEqualTo(clone.id());assertThat(ids(preview(b,(ObjectNode)result))).containsExactly(life,restaurant);
  }
  @Test void duplicateInvalidOversizedAndOmittedManualSettingsAreRejectedWithoutMutation()throws Exception {

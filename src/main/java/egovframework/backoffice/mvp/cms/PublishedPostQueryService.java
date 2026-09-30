@@ -27,10 +27,16 @@ public class PublishedPostQueryService {
     }
 
     public PostsQuery validate(PostsQuery query) {
-        if(query==null||query.typeCode()==null||query.typeCode().isBlank()||query.cohortIds()==null||query.topicIds()==null)
+        if(query==null||query.typeCode()!=null&&query.typeCode().isBlank()||query.cohortIds()==null||query.topicIds()==null)
             throw new BusinessException("콘텐츠 유형과 기수·주제 조건을 확인하세요.");
         if(!"LATEST".equals(query.sort())||query.limit()==null||query.limit()<1||query.limit()>MAX_LIMIT)
             throw new BusinessException("정렬은 최신순, 표시 개수는 1~20개로 선택하세요.");
+        // typeCode null = all types (the meaning of the old category mode without a category).
+        if(query.typeCode()==null) {
+            if(!query.topicIds().isEmpty())throw new BusinessException("전체 유형에서는 주제를 고를 수 없습니다. 유형을 먼저 선택하세요.");
+            var all=classifications.filter(List.of(),query.cohortIds(),List.of());
+            return new PostsQuery(null,all.cohortIds(),List.of(),query.sort(),query.limit());
+        }
         var filter=classifications.filter(List.of(query.typeCode()),query.cohortIds(),query.topicIds());
         var allowed=classifications.catalog().allowedTopics().stream().filter(t->t.typeCode().equals(query.typeCode())).map(t->t.topicId()).toList();
         if(!allowed.containsAll(filter.topicIds()))throw new BusinessException("유형에 맞지 않는 주제가 남아 있습니다. 직접 해제하거나 유형을 되돌려 주세요.");

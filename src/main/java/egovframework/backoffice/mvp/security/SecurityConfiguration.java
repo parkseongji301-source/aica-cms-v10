@@ -58,7 +58,7 @@ public class SecurityConfiguration {
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/admin/next/pages/*").hasAuthority(AccessPolicy.Capability.DELETE_PERMANENT.name())
                         .requestMatchers("/api/admin/next/pages/*/delete-impact").hasAuthority(AccessPolicy.Capability.DELETE_PERMANENT.name())
                         .requestMatchers(org.springframework.http.HttpMethod.PUT,"/api/admin/next/pages/*/placement","/api/admin/next/page-order","/api/admin/next/pages/*/composition","/api/admin/next/pages/*/structure-membership").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
-                        .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/admin/next/page-groups").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/admin/next/page-groups","/api/admin/next/classifications/topics").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
                         .requestMatchers("/api/admin/next/posts/trash", "/api/admin/next/posts/*/trash", "/api/admin/next/posts/*/restore").hasAuthority(AccessPolicy.Capability.DELETE_PERMANENT.name())
                         .requestMatchers("/admin/posts/*/unpublish").hasAuthority(AccessPolicy.Capability.PUBLISH_POSTS.name())
                         .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/admin/next/posts/*/publish").hasAuthority(AccessPolicy.Capability.PUBLISH_POSTS.name())

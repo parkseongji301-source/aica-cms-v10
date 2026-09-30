@@ -39,8 +39,8 @@ class ReviewWorkflowIntegrationTest {
         String hash=encoder.encode(PASSWORD);
         for(String role:List.of("SUPER_ADMIN","ADMIN","SUPPORTER"))jdbc.update("INSERT INTO users(email,display_name,password_hash,role,password_change_required) VALUES(?,?,?,?,FALSE)",role.toLowerCase(Locale.ROOT)+"@review.test",role,hash,role);
         jdbc.update("INSERT INTO categories(id,name) VALUES(11,'기존 분류')");
-        legacy=posts.save(actor("ADMIN"),null,null,"기존 일반 콘텐츠","기존 본문",11L,List.of(),"save",null);
-        pageId=pages.save(actor("SUPER_ADMIN"),null,null,"기존 페이지","review-test","[{\"type\":\"POSTS\",\"categoryId\":11,\"visible\":true}]","publish");
+        legacy=LegacyCategories.assign(jdbc,11L,posts.save(actor("ADMIN"),null,null,"기존 일반 콘텐츠","기존 본문",null,List.of(),"save",null));
+        pageId=LegacyCategories.page(jdbc,"[{\"type\":\"POSTS\",\"categoryId\":11,\"visible\":true}]",s->pages.save(actor("SUPER_ADMIN"),null,null,"기존 페이지","review-test",s,"publish"));
         jdbc.update("INSERT INTO site_menus(label,kind,target_id,url,visible,sort_order) SELECT name,'CATEGORY',id,'',TRUE,1 FROM categories WHERE id=11");
         seed();c6=id("cohorts","COHORT_06");c7=id("cohorts","COHORT_07");
         life=id("topics","REVIEW_LIFE");classes=id("topics","REVIEW_CLASS");project=id("topics","REVIEW_PROJECT");
@@ -54,8 +54,10 @@ class ReviewWorkflowIntegrationTest {
     Map<String,Object> selection(List<Long> cohorts,List<Long> topics){return Map.of("typeCode","REVIEW","cohortIds",cohorts,"topicIds",topics);}
     Map<String,Object> body(String title,List<Long> cohorts,List<Long> topics){return new LinkedHashMap<>(Map.of("title",title,"content","후기 본문","categoryId",11,"mediaIds",List.of(),"classification",selection(cohorts,topics)));}
     JsonNode create(HttpBrowser b,String title,List<Long> cohorts,List<Long> topics)throws Exception {
-        var response=b.json("POST",API,json.writeValueAsString(body(title,cohorts,topics)),csrf(b));
-        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);return json.readTree(response.body());
+        var value=body(title,cohorts,topics);value.put("categoryId",null);
+        var response=b.json("POST",API,json.writeValueAsString(value),csrf(b));
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+        long id=LegacyCategories.assign(jdbc,11L,json.readTree(response.body()).path("id").asLong());return get(b,API+"/"+id);
     }
     JsonNode update(HttpBrowser b,JsonNode post,List<Long> cohorts,List<Long> topics)throws Exception {
         var value=body(post.path("title").asText(),cohorts,topics);value.put("revision",post.path("revision").asLong());

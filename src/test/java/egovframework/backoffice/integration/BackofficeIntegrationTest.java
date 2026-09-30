@@ -304,9 +304,14 @@ class BackofficeIntegrationTest {
         for(String path:List.of("/site","/site/posts/"+id,"/site/media/"+imageId))assertThat(anonymous.get(path).statusCode()).isNotEqualTo(200);
         assertThat(site.activities(actor,0,"").stream().map(egovframework.backoffice.mvp.cms.CmsModels.Activity::action)).contains("콘텐츠 발행","콘텐츠 비공개");
     }
+    /** Legacy categories are retired: tests give them as existing data, the CMS no longer creates them. */
+    private long legacyCategory(String name) {
+        jdbc.update("INSERT INTO categories(name,sort_order) VALUES(?,(SELECT COALESCE(MAX(sort_order),-1)+1 FROM categories))",name);
+        return jdbc.queryForObject("SELECT id FROM categories WHERE name=?",Long.class,name);
+    }
     @Test void pagesMenusAndSettingsPersistWithoutServingAPublicWebsite() throws Exception {
         var browser=root();var actor=principal(ROOT);
-        site.category(actor,null,"공지");long categoryId=site.categories().get(0).id();
+        long categoryId=legacyCategory("공지");
         String sections="[{\"type\":\"TEXT\",\"heading\":\"사관학교 소개\",\"body\":\"첫 발행 소개\",\"visible\":true}]";
         long page=pages.save(actor,null,null,"소개","about",sections,"save");
         sections=pages.get(actor,page).sectionsJson();
@@ -360,11 +365,11 @@ class BackofficeIntegrationTest {
         posts.purgeTrash(actor,id,posts.trashed(actor,id).revision());media.delete(actor,imageId);
         assertThatThrownBy(()->media.required(imageId)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         assertThatThrownBy(()->site.link(actor,null,"위험 링크","javascript:alert(1)")).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
-        site.category(actor,null,"첫 항목");site.category(actor,null,"둘째 항목");
+        legacyCategory("첫 항목");legacyCategory("둘째 항목");
         var ids=site.categories().stream().map(egovframework.backoffice.mvp.cms.CmsModels.Category::id).toList();
-        site.reorder(actor,"categories",List.of(ids.get(1),ids.get(0)));
-        assertThat(site.categories().get(0).name()).isEqualTo("둘째 항목");
-        assertThatThrownBy(()->site.reorder(actor,"categories",List.of(ids.get(0)))).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
+        // Legacy categories are read-only now: reordering is refused and the order stays.
+        assertThatThrownBy(()->site.reorder(actor,"categories",List.of(ids.get(1),ids.get(0)))).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class).hasMessageContaining("레거시 카테고리");
+        assertThat(site.categories().get(0).name()).isEqualTo("첫 항목");
         assertThatThrownBy(()->site.saveSettings(actor,"style",Map.of("primaryColor","red;}body{","headerColor","#ffffff","radius","12"))).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
     }
 
@@ -446,14 +451,15 @@ class BackofficeIntegrationTest {
 
     @Test void linkedMenuNamesFollowRenamesWithoutChangingDestinations() throws Exception {
         var browser=root();var actor=principal(ROOT);
-        site.category(actor,null,"공지사항");long category=site.categories().get(0).id();
+        long category=legacyCategory("공지사항");
         // New category menus are no longer created; an existing legacy row is kept as-is until migration.
         browser.post("/admin/menus",Map.of("destination","CATEGORY:"+category,"visible","true"));
         assertThat(site.menus(actor)).isEmpty();
         jdbc.update("INSERT INTO site_menus(label,kind,target_id,url,visible,sort_order) VALUES('공지사항','CATEGORY',?,'',TRUE,1)",category);
         long menu=site.menus(actor).get(0).id();
         jdbc.update("UPDATE site_menus SET label='legacy alias' WHERE id=?",menu);
-        site.category(actor,category,"학교 소식");
+        // Categories are no longer renamed in the CMS; a stored name change still shows through the menu label.
+        jdbc.update("UPDATE categories SET name='학교 소식' WHERE id=?",category);
         assertThat(site.menus(actor).get(0).label()).isEqualTo("학교 소식");
         assertThat(site.menus(actor).get(0).targetId()).isEqualTo(category);
         String sections="[{\"type\":\"TEXT\",\"body\":\"소개\",\"visible\":true}]";
@@ -468,14 +474,14 @@ class BackofficeIntegrationTest {
     }
     @Test void structureErrorsKeepInputsAndShowActualReferences() throws Exception {
         var browser=root();var actor=principal(ROOT);
-        site.category(actor,null,"이미 있는 분류");long category=site.categories().get(0).id();
+        long category=legacyCategory("이미 있는 분류");
         var duplicate=browser.post("/admin/categories",Map.of("name","이미 있는 분류"));
         assertThat(duplicate.statusCode()).isEqualTo(400);
-        assertThat(duplicate.body()).contains("이미 사용 중인 이름입니다.","value=\"이미 있는 분류\"");
+        assertThat(duplicate.body()).contains("레거시 카테고리","value=\"이미 있는 분류\"");
         assertThat(site.categories()).hasSize(1);
         var invalid=browser.post("/admin/menus",Map.of("destination","LINK","label","입력 유지","url","javascript:alert(1)","visible","true"));
         assertThat(invalid.statusCode()).isEqualTo(400);assertThat(invalid.body()).contains("value=\"입력 유지\"");assertThat(site.menus(actor)).isEmpty();
-        long post=posts.save(actor,null,null,"연결된 글","본문",category,List.of(),"publish");
+        long post=LegacyCategories.assign(jdbc,category,posts.save(actor,null,null,"연결된 글","본문",null,List.of(),"publish"));
         redirect(browser.post("/admin/categories/"+category+"/delete",Map.of()),"/admin/legacy/categories");
         assertThat(browser.get("/admin/legacy/categories").body()).contains("사용 중인 곳","연결된 글","/admin/posts/"+post+"/edit");
         assertThat(site.categories()).hasSize(1);
@@ -500,7 +506,7 @@ class BackofficeIntegrationTest {
         assertThat(posts.get(actor,postId).pending()).isTrue();
     }
     @Test void listContextAndSelectedCategorySurviveEditingWithoutExternalRedirects() throws Exception {
-        var browser=root();var actor=principal(ROOT);site.category(actor,null,"선택 분류");long category=site.categories().get(0).id();
+        var browser=root();var actor=principal(ROOT);long category=legacyCategory("선택 분류");
         String from="/admin/legacy/posts?categoryId="+category+"&status=DRAFT&q=keyword&page=2";
         String encoded=java.net.URLEncoder.encode(from,java.nio.charset.StandardCharsets.UTF_8);
         var page=browser.get("/admin/legacy/posts/new?categoryId="+category+"&from="+encoded);
@@ -508,7 +514,7 @@ class BackofficeIntegrationTest {
         assertThat(page.body()).contains("value=\""+category+"\" selected=\"selected\"", "name=\"from\"", "keyword");
         var empty=browser.get("/admin/legacy/posts?categoryId="+category);
         assertThat(empty.body()).contains("조건에 맞는 글이 없습니다","필터 해제");
-        long id=posts.save(actor,null,null,"keyword","본문",category,List.of(),"save");
+        long id=LegacyCategories.assign(jdbc,category,posts.save(actor,null,null,"keyword","본문",null,List.of(),"save"));
         assertThat(browser.get("/admin/legacy/posts?q=keyword").body()).contains("/admin/legacy/posts/"+id+"/edit?from=");
         redirect(browser.post("/admin/posts/"+id+"/delete",Map.of("from","https://example.test/evil","revision",""+posts.get(actor,id).revision(),"confirmed","true")),"/admin/legacy/posts");
         assertThat(egovframework.backoffice.mvp.common.ListLocation.posts(from)).isEqualTo(from);

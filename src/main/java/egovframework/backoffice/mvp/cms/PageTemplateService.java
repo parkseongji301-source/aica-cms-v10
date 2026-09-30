@@ -58,6 +58,7 @@ public class PageTemplateService {
  private Document saveInternal(AccountPrincipal actor,Long id,Long revision,String name,String description,boolean active,List<Section> blocks,boolean recordVersion){
   var user=requireManage(actor);guard.lock();var old=id==null?null:required(id);if(old!=null)revision(old,revision);
   if(old==null&&blocks==null)throw new BusinessException("저장할 블록 구성이 필요합니다.");
+  if(blocks!=null&&blocks.stream().anyMatch(b->b!=null&&b.categoryId()!=null))throw new BusinessException("레거시 카테고리는 새로 지정할 수 없습니다. 콘텐츠 유형·주제 조건을 사용하세요.");
   String stored=blocks==null?old.blocksJson():withoutPageIds(pages.previewSections(actor,source(fresh(blocks))));
   var values=values("id",id,"name",InputRules.text(name,150,"템플릿 이름"),"description",CmsRules.optional(description,1000,"설명"),"active",active,"blocksJson",stored,"actorId",user.id());
   if(id==null)id=templates.insert(values);else templates.edit(values);

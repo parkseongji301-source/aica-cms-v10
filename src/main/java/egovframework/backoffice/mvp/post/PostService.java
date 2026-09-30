@@ -191,6 +191,7 @@ public class PostService extends EgovAbstractServiceImpl {
         String body=doc.json()==null?CmsRules.optional(content,20000,faq?"답변":isRestaurant?"소개":"본문"):doc.text();
         var images=doc.json()==null?CmsRules.ids(mediaIds,12):doc.mediaIds();media.validate(principal,images);
         if(action.equals("publish") && body.isEmpty() && images.isEmpty()) throw new BusinessException(faq?"발행하려면 답변이나 이미지를 추가하세요.":"발행하려면 본문이나 이미지를 추가하세요.");
+        if(categoryId!=null && (existing==null || !Objects.equals(existing.categoryId(),categoryId))) throw new BusinessException("레거시 카테고리는 새로 지정할 수 없습니다. 콘텐츠 유형·주제 조건을 사용하세요.");
         if(categoryId!=null && cms.one("category",categoryId)==null) throw new BusinessException("카테고리를 다시 선택하세요.");
         if(existing!=null && action.equals("save") && intent==SaveIntent.MANUAL_DRAFT) {
             var oldClassification=classifications.draft(id);

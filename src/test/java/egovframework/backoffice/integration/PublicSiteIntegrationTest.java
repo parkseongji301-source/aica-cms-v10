@@ -58,12 +58,12 @@ class PublicSiteIntegrationTest {
         var query=block("POSTS","default").put("sourceMode","query");query.set("query",query("REVIEW",List.of(101L,102L),List.of(201L,202L),20));blocks.add(query);
         var manual=block("POSTS","default").put("sourceMode","manual");manual.set("manual",json.valueToTree(Map.of("postIds",List.of(restaurant,draft,faq,999999L,life))));blocks.add(manual);
         blocks.add(block("IMAGE","default").put("visible",false).put("heading","숨겨진 비밀").put("imageId",hiddenImage));
-        page=pages.save(actor(),null,null,"공개 페이지","public-test",blocks.toString(),"publish");
+        page=LegacyCategories.page(jdbc,blocks.toString(),s->pages.save(actor(),null,null,"공개 페이지","public-test",s,"publish"));
         site.menu(actor(),null,"","PAGE",page,"",true);
         jdbc.update("INSERT INTO site_menus(label,kind,target_id,url,visible,sort_order) SELECT name,'CATEGORY',id,'',TRUE,(SELECT COALESCE(MAX(sort_order),0)+1 FROM site_menus) FROM categories WHERE id=11");
         anonymous=new HttpBrowser(port);
     }
-    long create(String title,String type,List<Long> cohorts,List<Long> topics,String action){return posts.save(actor(),null,null,title,"발행 본문",11L,List.of(),action,null,new Selection(type,cohorts,topics));}
+    long create(String title,String type,List<Long> cohorts,List<Long> topics,String action){return LegacyCategories.assign(jdbc,11L,posts.save(actor(),null,null,title,"발행 본문",null,List.of(),action,null,new Selection(type,cohorts,topics)));}
     String rich(){return "{\"ops\":[{\"insert\":\"<script>bad</script>\\n\"},{\"insert\":{\"aicaImage\":{\"id\":"+image+",\"alt\":\"공개 이미지\"}}},{\"insert\":{\"aicaFile\":{\"id\":"+document+",\"label\":\"첨부\"}}}]}";}
     ObjectNode block(String type,String variation){return json.createObjectNode().put("id",PageBlockService.newId()).put("schemaVersion",2).put("type",type).put("variation",variation).put("visible",true);}
     JsonNode query(String type,List<Long> cohorts,List<Long> topics,int limit){return json.valueToTree(Map.of("typeCode",type,"cohortIds",cohorts,"topicIds",topics,"sort","LATEST","limit",limit));}
@@ -136,7 +136,7 @@ class PublicSiteIntegrationTest {
         assertThat(anonymous.get(API+"/media/"+image+"/file").statusCode()).isEqualTo(200);
         var attachment=anonymous.get(API+"/media/"+document+"/file");assertThat(attachment.statusCode()).isEqualTo(200);assertThat(attachment.headers().firstValue("content-disposition").orElse("")).contains("attachment","attached.txt").doesNotContain("private");
         assertThat(attachment.headers().firstValue("x-content-type-options").orElse("")).isEqualTo("nosniff");
-        templates.save(actor(),null,null,"미발행 이미지 템플릿","",true,pages.sections(sections().toString()));
+        templates.save(actor(),null,null,"미발행 이미지 템플릿","",true,LegacyCategories.without(pages.sections(sections().toString())));
         jdbc.update("UPDATE site_settings SET setting_value=? WHERE setting_key='logoId'",String.valueOf(hiddenImage));
         assertThat(anonymous.get(API+"/media/"+hiddenImage+"/file").statusCode()).isEqualTo(404);
         var blocks=sections();((ObjectNode)blocks.get(3)).put("imageId",hiddenImage);save(blocks,"공개 페이지","save");assertThat(anonymous.get(API+"/media/"+hiddenImage+"/file").statusCode()).isEqualTo(404);
@@ -153,6 +153,8 @@ class PublicSiteIntegrationTest {
         assertThat(get("/posts/"+life).toString()).doesNotContain("revision","author","owner","password","active","categoryName");
     }
     @Test void templateCopiesPublishIndependentIdsWhilePreservingThreePostsModesAndVariations()throws Exception {
+        // Templates never carry a legacy category, so the page compared here has none either.
+        LegacyCategories.clearPage(jdbc,page);
         var original=pages.sections(sections().toString());var t=templates.save(actor(),null,null,"공용 페이지 구성","",true,original);var prepared=templates.prepare(actor(),t.info().id(),t.info().revision());
         var before=get("/pages/"+page);save((ArrayNode)json.valueToTree(prepared.sections()),"공개 페이지","save");assertThat(get("/pages/"+page)).isEqualTo(before);
         save(sections(),"공개 페이지","publish");var after=get("/pages/"+page);

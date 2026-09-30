@@ -48,11 +48,10 @@ class ClassificationIntegrationTest {
         jdbc.update("INSERT INTO cohorts(id,code,name) VALUES(101,'C6','6기'),(102,'C7','7기')");
         jdbc.update("INSERT INTO topics(id,code,name) VALUES(201,'REVIEW_LIFE','생활'),(202,'REVIEW_PROJECT','프로젝트'),(203,'SHARED_CLASS','수업'),(204,'FAQ_LIFE','생활')");
         jdbc.update("INSERT INTO content_type_topics VALUES('REVIEW',201),('REVIEW',202),('REVIEW',203),('FAQ',203),('FAQ',204)");
-        id=posts.save(actor("ADMIN"),null,null,"기존 발행 글","기존 본문",11L,List.of(),"publish",null,
-            new Selection("REVIEW",List.of(102L),List.of(201L)));
-        ownId=posts.save(actor("SUPPORTER"),null,null,"서포터 글","본문",12L,List.of(),"save",null);
-        pageId=pages.save(actor("SUPER_ADMIN"),null,null,"기존 분류 페이지","existing-category",
-            "[{\"type\":\"POSTS\",\"heading\":\"분류 글\",\"categoryId\":11,\"visible\":true}]","publish");
+        id=LegacyCategories.assign(jdbc,11L,posts.save(actor("ADMIN"),null,null,"기존 발행 글","기존 본문",null,List.of(),"publish",null,
+            new Selection("REVIEW",List.of(102L),List.of(201L))));
+        ownId=LegacyCategories.assign(jdbc,12L,posts.save(actor("SUPPORTER"),null,null,"서포터 글","본문",null,List.of(),"save",null));
+        pageId=LegacyCategories.page(jdbc,"[{\"type\":\"POSTS\",\"heading\":\"분류 글\",\"categoryId\":11,\"visible\":true}]",s->pages.save(actor("SUPER_ADMIN"),null,null,"기존 분류 페이지","existing-category",s,"publish"));
         jdbc.update("INSERT INTO site_menus(label,kind,target_id,url,visible,sort_order) SELECT name,'CATEGORY',id,'',TRUE,1 FROM categories WHERE id=11");
     }
     String email(String role){return role.toLowerCase(Locale.ROOT)+"@classification.test";}
@@ -187,7 +186,7 @@ class ClassificationIntegrationTest {
         long activities=jdbc.queryForObject("SELECT COUNT(*) FROM activity_log",Long.class);
         jdbc.execute("ALTER TABLE post_publication_topics ADD CONSTRAINT test_reject_project CHECK(topic_id<>202)");
         try {
-            assertThatThrownBy(()->posts.save(actor("ADMIN"),id,before.path("revision").asLong(),"롤백","수정 본문",12L,List.of(),"publish",null,new Selection("REVIEW",List.of(101L),List.of(202L))))
+            assertThatThrownBy(()->posts.save(actor("ADMIN"),id,before.path("revision").asLong(),"롤백","수정 본문",11L,List.of(),"publish",null,new Selection("REVIEW",List.of(101L),List.of(202L))))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
             assertThat(read(b)).isEqualTo(before);assertThat(publication(b)).isEqualTo(publication);
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_log",Long.class)).isEqualTo(activities);
@@ -262,7 +261,7 @@ class ClassificationIntegrationTest {
 
     @Test void adminFiltersApplyOrWithinAxesAndAndAcrossAxesWithoutDuplicateRowsOrCount()throws Exception {
         var b=login("ADMIN");save(b,"REVIEW",List.of(101L,102L),List.of(201L,203L));
-        long faq=posts.save(actor("ADMIN"),null,null,"FAQ 생활","본문",11L,List.of(),"save",null,new Selection("FAQ",List.of(101L),List.of(204L)));
+        long faq=LegacyCategories.assign(jdbc,11L,posts.save(actor("ADMIN"),null,null,"FAQ 생활","본문",null,List.of(),"save",null,new Selection("FAQ",List.of(101L),List.of(204L))));
         String base="/api/admin/next/posts?";
         var union=ok(b.get(base+"typeCodes=REVIEW,FAQ&cohortIds=101,102&topicIds=201,203,204"));
         assertThat(union.path("total").asLong()).isEqualTo(2);assertThat(resultIds(union)).containsExactly(faq,id);
@@ -278,7 +277,7 @@ class ClassificationIntegrationTest {
 
     @Test void filteredPaginationCountMatchesDistinctResultsAndOwnership()throws Exception {
         var b=login("ADMIN");
-        for(int n=0;n<12;n++)posts.save(actor("ADMIN"),null,null,"페이지 검사 "+n,"필터 본문",11L,List.of(),"save",null,new Selection("REVIEW",List.of(101L,102L),List.of(201L,203L)));
+        for(int n=0;n<12;n++)LegacyCategories.assign(jdbc,11L,posts.save(actor("ADMIN"),null,null,"페이지 검사 "+n,"필터 본문",null,List.of(),"save",null,new Selection("REVIEW",List.of(101L,102L),List.of(201L,203L))));
         String path="/api/admin/next/posts?typeCodes=REVIEW&cohortIds=101,102&topicIds=201,203&categoryId=11";
         var first=ok(b.get(path));var second=ok(b.get(path+"&page=1"));
         assertThat(first.path("total").asLong()).isEqualTo(13);assertThat(second.path("total")).isEqualTo(first.path("total"));

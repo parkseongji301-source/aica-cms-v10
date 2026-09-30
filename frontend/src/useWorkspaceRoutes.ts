@@ -60,5 +60,6 @@ export function useWorkspaceRoutes(mode:ViewMode,setMode:(mode:ViewMode)=>void) 
   if(pending.historyIndex!==null&&pending.historyIndex!==index.current){allowedPop.current=true;history.go(pending.historyIndex-index.current);}
   else navigate(pending.path,pending.replace,true,pending.view);
  };
- return {route,visited,postOrigins,navigate,registerGuard,pendingNavigation,cancelNavigation,confirmNavigation};
+ const allGuards=useCallback(()=>Object.values(guards.current),[]);
+ return {route,visited,postOrigins,navigate,registerGuard,pendingNavigation,cancelNavigation,confirmNavigation,allGuards};
 }

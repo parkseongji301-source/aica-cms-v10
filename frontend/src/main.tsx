@@ -2,7 +2,8 @@ import type {EditorGuard,GuardRegistration} from './editorGuard';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import type {Bootstrap,Go,PageDocument,PostDocument,ViewMode,ClassificationCatalog,ComponentDefinition,PageTarget} from './types';
-import {bootstrap,getPage,get} from './api';
+import {bootstrap,getPage,get,logout} from './api';
+import {unsavedState} from './logout';
 import {TemplatesPanel} from './PageTemplates';
 import {WritingTemplatesPanel} from './WritingTemplatesPanel';
 import {PageEditor} from './PageEditor';
@@ -54,7 +55,15 @@ function PagePanel({id,active,data,onTitle,go,blockId,viewMode,onSelectBlock,onO
 function Workspace({initial}:{initial:Bootstrap}) {
   setOperatingZone(initial.timeZone);
   const [data,setData]=useState(initial),[mode,setMode]=useState<ViewMode>(()=>initialMode(initial.user.id));
-  const {route,visited,postOrigins,navigate,registerGuard,pendingNavigation,cancelNavigation,confirmNavigation}=useWorkspaceRoutes(mode,setMode);
+  const {route,visited,postOrigins,navigate,registerGuard,pendingNavigation,cancelNavigation,confirmNavigation,allGuards}=useWorkspaceRoutes(mode,setMode);
+  const [logoutNotice,setLogoutNotice]=useState<''|'busy'|'dirty'|'failed'>(''),[loggingOut,setLoggingOut]=useState(false);
+  // Logging out never discards editor input: unsaved or in-flight work blocks it with an explanation.
+  const signOut=async()=>{
+    const state=unsavedState(allGuards());if(state!=='clean'){setLogoutNotice(state);return;}
+    setLoggingOut(true);
+    try{if(await logout()){location.replace('/login?logout');return;}setLogoutNotice('failed');}catch{setLogoutNotice('failed');}
+    setLoggingOut(false);
+  };
   const go:Go=path=>{navigate(path);setSidebarOpen(false);};
   const [liveOutlines,setLiveOutlines]=useState<Record<number,PageTarget>>({});
   const updatedOutline=useCallback((value:PageTarget)=>setLiveOutlines(old=>({...old,[value.pageId]:value})),[]);
@@ -118,7 +127,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
   };
   return <div className="next-admin phase-two">
     <a className="skip-link" href="#next-workspace">본문으로 바로가기</a>
-    <header className="topbar"><button ref={menuToggle} className="mobile-menu" aria-label={sidebarOpen?'탐색 메뉴 닫기':'탐색 메뉴 열기'} aria-controls="workspace-sidebar" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(!sidebarOpen)}>☰</button><span className="topbar-title"><NavigationIcon name={mode==='manage'?'dashboard':'content'}/>{mode==='manage'?'사이트 관리':'콘텐츠 작업'}</span><div className="topbar-right"><span className="operator-info"><span className="operator-role">{data.user.roleLabel}</span><span className="operator-avatar" aria-hidden="true">{data.user.name.slice(0,1)}</span><span>{data.user.name}</span></span><a href="/admin" target="_blank" rel="noopener noreferrer" title="기존 관리자 · 새 창">기존 관리자 ↗</a><button className="text-link" onClick={refresh} aria-label="메뉴와 데이터 새로고침">새로고침</button></div></header>
+    <header className="topbar"><button ref={menuToggle} className="mobile-menu" aria-label={sidebarOpen?'탐색 메뉴 닫기':'탐색 메뉴 열기'} aria-controls="workspace-sidebar" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(!sidebarOpen)}>☰</button><span className="topbar-title"><NavigationIcon name={mode==='manage'?'dashboard':'content'}/>{mode==='manage'?'사이트 관리':'콘텐츠 작업'}</span><div className="topbar-right"><span className="operator-info"><span className="operator-role">{data.user.roleLabel}</span><span className="operator-avatar" aria-hidden="true">{data.user.name.slice(0,1)}</span><span>{data.user.name}</span></span><a href="/admin" target="_blank" rel="noopener noreferrer" title="기존 관리자 · 새 창">기존 관리자 ↗</a><button className="text-link" onClick={refresh} aria-label="메뉴와 데이터 새로고침">새로고침</button><button type="button" className="text-link logout-link" disabled={loggingOut} onClick={()=>void signOut()}>{loggingOut?'로그아웃 중…':'로그아웃'}</button></div></header>
     {sidebarOpen&&<div className="sidebar-backdrop" aria-hidden="true" onClick={closeSidebar}/>}
     <aside ref={sidebar} id="workspace-sidebar" className={'sidebar'+(sidebarOpen?' sidebar-open':'')} aria-label="워크스페이스 탐색"><button type="button" className="sidebar-dismiss" onClick={closeSidebar}>메뉴 닫기</button><button type="button" className="brand brand-home" aria-label={`AICA ${mode==='manage'?'사이트 관리':'콘텐츠 작업'} 홈으로 이동`} title="현재 작업 영역의 첫 화면" onClick={()=>go(workspaceHome(mode))}><span className="brand-icon" aria-hidden="true">A</span><span className="brand-name">AICA<small>인공지능 사관학교</small></span></button>
     <div className="sidebar-view">
@@ -170,6 +179,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
       })}
       <footer className="page-footer">© AICA. 인공지능 사관학교</footer>
     </main>
+    {logoutNotice&&<BlockDialog title="로그아웃" onClose={()=>setLogoutNotice('')}><p role="alert">{logoutNotice==='busy'?'저장·업로드가 진행 중입니다. 끝난 뒤 로그아웃하세요.':logoutNotice==='dirty'?'저장하지 않은 입력이 있습니다. 입력 중인 화면에서 저장하거나 변경을 취소한 뒤 로그아웃하세요.':'로그아웃하지 못했습니다. 새로고침한 뒤 다시 시도하세요.'}</p><div className="dialog-actions"><button type="button" autoFocus onClick={()=>setLogoutNotice('')}>확인</button></div></BlockDialog>}
     {pendingNavigation&&<BlockDialog title="다른 화면으로 이동" onClose={cancelNavigation}><p>저장되지 않은 입력 또는 진행 중인 저장이 있습니다. 저장·업로드 중에는 완료 후 이동할 수 있습니다. 미저장 입력은 이 브라우저 안에 유지되지만 숨겨진 편집기의 자동저장은 멈춥니다. 이동할까요?</p><div className="dialog-actions"><button type="button" autoFocus onClick={cancelNavigation}>계속 편집</button><button type="button" className="primary" onClick={confirmNavigation}>이동</button></div></BlockDialog>}
   </div>;
 }

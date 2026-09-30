@@ -3,6 +3,7 @@ import {pageDraftForm} from './pageCreation';
 import type {CreatedPage} from './pageCreation';
 import type {Bootstrap, PageDocument, PreviewDocument, ImageFile,PostDocument,PostPreview,ClassificationCatalog,PostPublication,ClassificationSelection} from './types';
 import {classificationSelection} from './classification';
+import {loggedOut} from './logout';
 let csrf: Bootstrap['csrf']|null = null;
 export class ApiError extends Error {constructor(public status:number, message:string,public code=''){super(message);}}
 export async function request<T>(path:string,options:RequestInit = {}):Promise<T> {
@@ -28,6 +29,12 @@ export async function deletePage(id:number,revision:number) {
   if(path!=='/admin/pages')throw new ApiError(409,'페이지가 변경되었거나 메뉴·홈페이지에서 사용 중입니다. 연결을 해제하고 다시 확인하세요.');
 }
 
+// Uses the existing Spring Security logout (session invalidation, JSESSIONID removal) with the session CSRF token.
+export async function logout():Promise<boolean> {
+  const headers=new Headers();if(csrf)headers.set(csrf.headerName,csrf.token);
+  const response=await fetch('/logout',{method:'POST',headers,credentials:'same-origin',cache:'no-store',redirect:'manual'});
+  return loggedOut(response);
+}
 export const bootstrap=async()=>{const data=await request<Bootstrap>(base+'/bootstrap');csrf=data.csrf;return data;};
 export const getPage=(id:number)=>request<PageDocument>(`${base}/pages/${id}`);
 export const createPage=(title:string,slug='')=>request<CreatedPage>('/admin/pages/save-json',{

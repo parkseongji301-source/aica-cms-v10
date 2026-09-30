@@ -2,6 +2,8 @@
 
 대상: 운영/DB 담당자. 문서 내용만 되돌리는 버전 복구와 DB/runtime 장애 복구를 구분한다. **DB와 대응 runtime을 같은 기준점으로 보관·복구한다. V10 DB에 V3 JAR만 연결하면 안 된다.** 이 단계에서 백업을 위해 현재 서버를 멈추거나 DB 파일을 복사하지 않았다.
 
+> 2026-09-30 기준: 백업 묶음 원칙은 V12에도 같다. "V10"은 "현재 schema(V12)"로, migration 목록은 V1~V12로 읽는다. V12 DB에는 V12 RC JAR과 MIGRATED_V12 receipt를, V11 DB에는 V11 JAR과 receipt를 짝지어 보관한다. V12 기준점의 rollback 자료와 V11 보존 자료는 [V12 안정 기준점](../../V12_STABLE_BASELINE.md)에 정리했다. 아래 경로와 CutoverTool 예시는 V10 당시 PC 기준이며, V12 DB의 cold 검사는 V12 RC의 `V12PromotionTool inspect`를 사용한다.
+
 ## 같은 시점의 백업 묶음
 
 | 포함 대상 | 이유 |

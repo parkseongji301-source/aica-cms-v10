@@ -1,6 +1,6 @@
 # 04. 개발자 인수인계 가이드
 
-현재 납품 기술 범위는 단일 Spring 서버 안의 React/Thymeleaf 관리자, CMS 업무 서비스, H2 V10, 발행본 전용 공개 API다. 실제 공개 홈페이지 프런트엔드는 없다. 인수 업체는 기존 데이터/ID·권한·발행 경계를 유지하며 이어받는다.
+현재 납품 기술 범위는 단일 Spring 서버 안의 React/Thymeleaf 관리자, CMS 업무 서비스, H2 schema V12, 발행본 전용 공개 API다. 기준점은 [V12 안정 기준점](../../V12_STABLE_BASELINE.md)이며, 이 문서의 V10 표현은 작성 당시 기준이다. V12는 Thymeleaf → React 전환 작업의 비교 기준이다. 실제 공개 홈페이지 프런트엔드는 없다. 인수 업체는 기존 데이터/ID·권한·발행 경계를 유지하며 이어받는다.
 
 ## 아키텍처와 실행물
 
@@ -11,7 +11,7 @@ flowchart LR
   A --> S[공통 업무 Service]
   C --> S
   S --> M[MyBatis Mapper]
-  M --> D[(H2 V10)]
+  M --> D[(H2 V12)]
   P[공개 /api/public/v1] --> Q[PublicSiteService / 발행본 조회]
   Q --> M
   F[향후 공개 홈페이지] -. 미연결 .-> P
@@ -36,6 +36,11 @@ flowchart LR
 | 분류 | `ClassificationService`, `ClassificationMapper.xml` | content_types, cohorts, topics, content_type_topics, 초안/발행 관계 테이블 |
 | 맛집 | `RestaurantDetailsService`, `RestaurantMapper.xml` | post_restaurant_details / post_publication_restaurant_details, 주소만 |
 | 페이지 템플릿(구 공용 템플릿) | `PageTemplates.tsx`, `NextTemplateApi`, `PageTemplateService`, `PageTemplateMapper.xml` | page_templates.blocks_json, 별도 revision; 페이지와 실시간 관계 없음 |
+| React 게시·재게시(V11) | `ContentEditor.tsx`, `NextPostApi` `POST /posts/{id}/publish`, `PostService` | 기존 저장/게시 트랜잭션 재사용 |
+| 휴지통(V11) | `TrashPanel.tsx`, `NextPostApi` `/trash`, `PostService`, `PostMapper.xml`/`CmsMapper.xml` | post_trash; 이동·복원·영구삭제, SUPER_ADMIN |
+| 새 페이지 생성 | `CreatePageDraft.tsx`, `pageCreation.ts`, 기존 `POST /admin/pages/save-json` | 서버/DB 변경 없음; 빈 임시보관 페이지 |
+| 글쓰기 템플릿(V12) | `WritingTemplatesPanel.tsx`, `PostTemplateTool.tsx`, `NextWritingTemplateApi`, `WritingTemplateService`, `WritingTemplateMapper.xml` | writing_templates(REVIEW만), revision; 적용 본문은 사본 |
+| schema 전환 도구 | `V11PromotionTool`(V10→V11), `V12PromotionTool`(V11→V12), `FileDatabaseSafety.CURRENT_VERSION=12` | 정상 종료 DB의 별도 사본만 migrate, receipt 발급 |
 | 미디어 | `MediaService`, `UsageService`, `TemplateReferences` | media BLOB/메타데이터, post_media/page_media 및 발행 참조 |
 | 최신 공개본 | `PostService`, `PageService`, `PublicSiteService` | post_publications, page_publications 및 발행 미디어/분류/맛집 snapshot |
 | 버전 이력 | `VersionHistoryService`, `VersionSnapshots`, `VersionStore`, `VersionMapper.xml` | post_versions/page_versions/page_template_versions의 불변 JSON snapshot |
@@ -100,10 +105,10 @@ PublicSiteService는 공개 상태 확인 외의 문구·블록·분류·주소�
 
 ## 인수 업체에 넘길 묶음
 
-1. 현재 소스 전체·Git commit·working tree diff·미추적 파일. **Git HEAD만으로 현재 구현을 복원할 수 없다.**
-2. 승인 V10 RC JAR과 SHA-256, 현재 DB와 같은 시점의 backup/검사 결과, runtime receipt·run-dir·고정 cutover 도구.
+1. 현재 소스 전체와 Git 태그 `v12-stable-baseline-20260930`. V12 기준점에서는 working tree가 비어 있어 태그로 소스를 복원할 수 있다. 그 이후 작업은 Git status·diff·미추적 파일을 함께 넘긴다.
+2. 승인 V12 RC JAR과 SHA-256([V12 안정 기준점](../../V12_STABLE_BASELINE.md)), 현재 DB와 같은 시점의 backup/검사 결과, MIGRATED_V12 receipt·migration plan/log. 보존 중인 V11 기준점(태그 `v11-operating-baseline-20260929`)과 V11 실행본·DB도 rollback 자료로 함께 넘긴다.
 3. profile·실제 절대 datasource·포트·Java 및 빌드 도구 버전, secret을 제외한 설정. 자격증명은 별도 보안 채널로 인계한다.
-4. V1~V10 SQL/Java migration 원본과 checksum, 이전 V3 rollback 묶음·V10 전환 기록.
+4. V1~V12 SQL/Java migration 원본과 checksum, V11·V12 전환 기록, 이전 V3 rollback 묶음·V10 전환 기록.
 5. 이 5D 문서와 테스트/복구 증거, 사전·IA 미결정 목록, 고객 담당자와 승인 책임.
 
 `.cache`, `.local-data`, `.tools`, `target`는 Git만 복제하면 따라오지 않는 실행/증거 자료다. 운영 DB와 receipt는 정확한 경로에 묶여 있으므로 새 업체 PC에 경로를 바꾸어 복사하고 바로 실행할 수 있다고 약속하지 않는다. [배포 가이드](07_DEPLOYMENT_AND_RUNTIME.md)의 이관 한계를 확인한다.

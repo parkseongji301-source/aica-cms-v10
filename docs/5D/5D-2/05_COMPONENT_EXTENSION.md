@@ -34,7 +34,7 @@
 | 기존 필드만 쓰는 실제 Variation | DB DDL이 반드시 필요한 것은 아님. 허용값·미리보기·공개·템플릿·이력 회귀 필요 |
 | JSON에 선택 필드 추가 | 기존 누락값 기본 의미와 모든 reader 보존 확인. 저장 형태·history 영향에 따라 데이터 변환 필요 |
 | 기존 필드 의미 변경/중첩 구조 변경 | 구버전 snapshot 보존·변환과 schemaVersion 전략 필수 |
-| 새 테이블/제약 또는 영구 데이터 변환 | 새 V11 이상 migration, 사본 검증·별도 승인. V1~V10 수정 금지 |
+| 새 테이블/제약 또는 영구 데이터 변환 | 새 V13 이상 migration, 사본 검증·별도 승인. V1~V12 수정 금지 |
 
 예전 publication이나 version을 새 코드 편의를 위해 일괄 덮어쓰지 않는다. 고정 snapshot을 읽는 호환 코드를 먼저 검토한다. 자세한 DB 절차는 [migration 가이드](09_DATABASE_MIGRATIONS.md)를 따른다.
 

@@ -21,4 +21,4 @@
 
 ## 이 PC 실행
 
-저장소 루트의 `START.cmd`와 `STOP.cmd`는 `.cache/current-ui.json`에 기록된 현재 실행본과 검증된 UI release를 사용한다. 이동 ZIP의 원래 START.cmd는 원본 UI를 시작하므로, 새 UI 작업 이후에는 저장소 루트의 시작·종료 파일을 사용한다. 원본 이동 묶음과 이전 UI는 보존한다.
+저장소 루트의 `START.cmd`와 `STOP.cmd`는 `.cache/current-ui.json`에 기록된 현재 실행본과 검증된 UI release를 사용한다. 이동 ZIP의 원래 START.cmd는 원본 UI를 시작하므로, 새 UI 작업 이후에는 저장소 루트의 시작·종료 파일을 사용한다. 원본 이동 묶음과 이전 UI는 보존한다. 2026-09-30 이후 `current-ui.json`이 가리키는 실행본과 전환 절차는 [V12 안정 기준점](V12_STABLE_BASELINE.md)을 따른다.

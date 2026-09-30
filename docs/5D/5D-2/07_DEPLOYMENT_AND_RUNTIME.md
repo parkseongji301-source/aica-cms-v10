@@ -2,6 +2,14 @@
 
 대상: 현재 Windows 실행 환경 담당자. **이 문서 작성 단계에서는 아래 실행·종료 명령을 실행하지 않았다.** 현재 서버를 중복 실행하지 않는다. 새 호스트 배포는 끝부분의 별도 이관 조건을 따른다.
 
+## 현재 V12 실행 요약 (2026-09-30)
+
+- 현재 기준 실행물은 V12 RC1이다. JAR·receipt·DB 경로와 시작·정상 종료·되돌리기 절차는 [V12 안정 기준점](../../V12_STABLE_BASELINE.md)을 따른다.
+- 이 PC에서는 저장소 루트의 `START.cmd`/`STOP.cmd`가 Git 제외 파일 `.cache/current-ui.json`이 가리키는 실행본을 쓴다. V12 실행본이면 `scripts/start-v12-runtime.ps1`이 JAR·종료 도구·정적 파일 해시를 확인한 뒤 validate-only로 127.0.0.1:8095에서 시작하고, STOP은 GracefulStop 정상 종료 후 `V12PromotionTool inspect`로 DB를 읽기 전용 검사한다.
+- V12 로그에서는 `V12 file runtime`, 정확한 DB 경로, `AUTO_COMPACT_FILL_RATE=0`, `migration=validate-only`를 확인한다.
+- V11 기준점 실행 기록은 [V11 운영 기준점](../../V11_OPERATING_BASELINE.md)(이전 PC 경로)에 있다.
+- 아래 "현재 고정 실행 기준" 이후 내용은 **V10 실행 절차의 보존 기록**이다. 경로·RC·run-dir는 V10 당시 PC 기준이며 V12 DB에 사용하지 않는다. `AUTO_COMPACT_FILL_RATE=0`·정상 종료·강제 종료 금지 원칙은 V12에도 그대로 적용한다.
+
 ## 반드시 유지할 파일 DB 설정
 
 > **H2 2.3.232 파일 DB에 쓰는 모든 V10 runtime에는 `AUTO_COMPACT_FILL_RATE=0`이 필요하다. 임의로 제거하지 않는다.**

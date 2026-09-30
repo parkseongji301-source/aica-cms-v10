@@ -1,4 +1,5 @@
-export type DeleteTarget = {id:number;label:string;revision?:number};
+// details: what else is removed or checked, shown under the item in the confirmation dialog.
+export type DeleteTarget = {id:number;label:string;revision?:number;details?:string[]};
 export type BatchFailure = {id:number;label:string;message:string};
 export async function deleteSequentially(targets:DeleteTarget[],remove:(target:DeleteTarget)=>Promise<unknown>,progress:(done:number)=>void=()=>{}) {
   const succeeded:number[]=[],failed:BatchFailure[]=[];

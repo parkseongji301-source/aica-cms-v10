@@ -17,17 +17,10 @@ export async function request<T>(path:string,options:RequestInit = {}):Promise<T
 }
 const base='/api/admin/next';
 
-// Page deletion already exists as a form endpoint in the approved server.
-// A failed deletion redirects back to its editor, so HTTP 200 alone is not success.
-export async function deletePage(id:number,revision:number) {
-  const headers=new Headers({'Content-Type':'application/x-www-form-urlencoded'});
-  if(csrf)headers.set(csrf.headerName,csrf.token);
-  const response=await fetch(`/admin/pages/${id}/delete`,{method:'POST',headers,credentials:'same-origin',cache:'no-store',body:new URLSearchParams({revision:String(revision),confirmed:'true'})});
-  const path=new URL(response.url).pathname;
-  if(path==='/login')throw new ApiError(401,'로그인 상태를 확인한 뒤 다시 시도하세요.');
-  if(!response.ok)throw new ApiError(response.status,'페이지 삭제 권한과 연결 상태를 확인하세요.');
-  if(path!=='/admin/pages')throw new ApiError(409,'페이지가 변경되었거나 메뉴·홈페이지에서 사용 중입니다. 연결을 해제하고 다시 확인하세요.');
-}
+// Permanent page delete through PageService.delete; menu or home-page use and stale revisions are rejected by the server.
+export const deletePage=(id:number,revision:number)=>request<{id:number;deleted:boolean}>(`${base}/pages/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,confirmed:true})});
+export type PageDeleteImpact={title:string;revision:number;uses:{label:string;href:string}[];consequence:string;history:{versionCount:number;files:unknown[]}|null};
+export const getPageDeleteImpact=(id:number)=>request<PageDeleteImpact>(`${base}/pages/${id}/delete-impact`);
 
 // Uses the existing Spring Security logout (session invalidation, JSESSIONID removal) with the session CSRF token.
 export async function logout():Promise<boolean> {
@@ -42,6 +35,7 @@ export const createPage=(title:string,slug='',sections:unknown[]=[])=>request<Cr
 });
 // Publishing keeps the page address; address changes stay a separate SUPER_ADMIN action.
 export const publishPage=(page:PageDocument)=>request<PageDocument>(`${base}/pages/${page.id}/publish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:page.title,revision:page.revision,sections:page.sections})});
+export const changePageAddress=(id:number,revision:number,slug:string)=>request<PageDocument>(`${base}/pages/${id}/address`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,slug})});
 export const unpublishPage=(id:number,revision:number)=>request<PageDocument>(`${base}/pages/${id}/unpublish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision})});
 export const savePage=(page:PageDocument,saveIntent:'AUTOSAVE'|'MANUAL_DRAFT'='MANUAL_DRAFT')=>request<PageDocument>(`${base}/pages/${page.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({saveIntent,title:page.title,revision:page.revision,sections:page.sections})});
 export const previewPage=(page:PageDocument,signal?:AbortSignal)=>request<PreviewDocument>(`${base}/pages/${page.id}/preview`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:page.title,sections:page.sections}),signal});

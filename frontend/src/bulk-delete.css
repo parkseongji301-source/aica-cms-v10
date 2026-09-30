@@ -33,3 +33,4 @@
  .phase-two .posts-results-heading {flex-wrap:wrap;gap:8px;}
  .phase-two .posts-results-heading>.list-inline-actions:last-child>span {display:none;}
 }
+.bulk-target-details {margin:4px 0 8px;padding-left:18px;color:var(--ui-muted,#686e76);font-size:13px;line-height:1.7;}

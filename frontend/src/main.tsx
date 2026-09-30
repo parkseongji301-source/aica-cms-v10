@@ -9,7 +9,8 @@ import {WritingTemplatesPanel} from './WritingTemplatesPanel';
 import {PageEditor} from './PageEditor';
 import {ContentPanel} from './ContentPanel';
 import {TrashPanel} from './TrashPanel';
-import {AccountsPanel,ActivityPanel,DashboardPanel,PagesPanel,PostsPanel,RolesPanel} from './ReadPanels';
+import {ActivityPanel,DashboardPanel,PagesPanel,PostsPanel,RolesPanel} from './ReadPanels';
+import {AccountsPanel} from './AccountManager';
 import {LinkManager,MediaPanel,SettingsPanel} from './EditPanels';
 import {canOpen,contentPath,entries,managementGroups,pagePath,pageOverviewPath,pageOverviewId,workspaceHome,workspaceView} from './navigation';
 import {Empty,Feedback,Heading,messageOf,useRemote,setOperatingZone} from './ui';
@@ -49,7 +50,7 @@ function PagePanel({id,active,data,onTitle,go,blockId,viewMode,onSelectBlock,onO
     void Promise.all([getPage(id),get<ComponentDefinition[]>('/page-components')]).then(([value,catalog])=>{if(!cancelled){setDefinitions(catalog);setDocument(value);}}).catch(e=>{if(!cancelled)setError(e.message);});
     return()=>{cancelled=true;};
   },[id,active,document,retry]);
-  return document?<PageEditor templateUse={data.permissions.templateUse} templateManage={data.permissions.templateManage} blockId={blockId} viewMode={viewMode} onSelectBlock={onSelectBlock} onOutline={onOutline} onGuard={onGuard} initial={document} definitions={definitions} active={active} categories={data.categories} images={data.images} onTitle={onTitle} onContent={category=>go(contentPath(category))}/>:<><Feedback error={error} loading={!error}/>{error&&<button onClick={()=>{setError('');setRetry(n=>n+1);}}>다시 시도</button>}</>;
+  return document?<PageEditor canChangeAddress={!!data.permissions.structure} templateUse={data.permissions.templateUse} templateManage={data.permissions.templateManage} blockId={blockId} viewMode={viewMode} onSelectBlock={onSelectBlock} onOutline={onOutline} onGuard={onGuard} initial={document} definitions={definitions} active={active} categories={data.categories} images={data.images} onTitle={onTitle} onContent={category=>go(contentPath(category))}/>:<><Feedback error={error} loading={!error}/>{error&&<button onClick={()=>{setError('');setRetry(n=>n+1);}}>다시 시도</button>}</>;
 }
 
 function Workspace({initial}:{initial:Bootstrap}) {
@@ -127,7 +128,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
   };
   return <div className="next-admin phase-two">
     <a className="skip-link" href="#next-workspace">본문으로 바로가기</a>
-    <header className="topbar"><button ref={menuToggle} className="mobile-menu" aria-label={sidebarOpen?'탐색 메뉴 닫기':'탐색 메뉴 열기'} aria-controls="workspace-sidebar" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(!sidebarOpen)}>☰</button><span className="topbar-title"><NavigationIcon name={mode==='manage'?'dashboard':'content'}/>{mode==='manage'?'사이트 관리':'콘텐츠 작업'}</span><div className="topbar-right"><span className="operator-info"><span className="operator-role">{data.user.roleLabel}</span><span className="operator-avatar" aria-hidden="true">{data.user.name.slice(0,1)}</span><span>{data.user.name}</span></span><a href="/admin" target="_blank" rel="noopener noreferrer" title="기존 관리자 · 새 창">기존 관리자 ↗</a><button className="text-link" onClick={refresh} aria-label="메뉴와 데이터 새로고침">새로고침</button><button type="button" className="text-link logout-link" disabled={loggingOut} onClick={()=>void signOut()}>{loggingOut?'로그아웃 중…':'로그아웃'}</button></div></header>
+    <header className="topbar"><button ref={menuToggle} className="mobile-menu" aria-label={sidebarOpen?'탐색 메뉴 닫기':'탐색 메뉴 열기'} aria-controls="workspace-sidebar" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(!sidebarOpen)}>☰</button><span className="topbar-title"><NavigationIcon name={mode==='manage'?'dashboard':'content'}/>{mode==='manage'?'사이트 관리':'콘텐츠 작업'}</span><div className="topbar-right"><span className="operator-info"><span className="operator-role">{data.user.roleLabel}</span><span className="operator-avatar" aria-hidden="true">{data.user.name.slice(0,1)}</span><span>{data.user.name}</span></span><a href="/account/password" title="본인 비밀번호 변경">비밀번호 변경</a><button className="text-link" onClick={refresh} aria-label="메뉴와 데이터 새로고침">새로고침</button><button type="button" className="text-link logout-link" disabled={loggingOut} onClick={()=>void signOut()}>{loggingOut?'로그아웃 중…':'로그아웃'}</button></div></header>
     {sidebarOpen&&<div className="sidebar-backdrop" aria-hidden="true" onClick={closeSidebar}/>}
     <aside ref={sidebar} id="workspace-sidebar" className={'sidebar'+(sidebarOpen?' sidebar-open':'')} aria-label="워크스페이스 탐색"><button type="button" className="sidebar-dismiss" onClick={closeSidebar}>메뉴 닫기</button><button type="button" className="brand brand-home" aria-label={`AICA ${mode==='manage'?'사이트 관리':'콘텐츠 작업'} 홈으로 이동`} title="현재 작업 영역의 첫 화면" onClick={()=>go(workspaceHome(mode))}><span className="brand-icon" aria-hidden="true">A</span><span className="brand-name">AICA<small>인공지능 사관학교</small></span></button>
     <div className="sidebar-view">
@@ -186,7 +187,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
 function App() {
   const [data,setData]=useState<Bootstrap|null>(null),[error,setError]=useState('');
   useEffect(()=>{void bootstrap().then(setData).catch(e=>setError(e.message));},[]);
-  if(error)return <div className="boot-state"><h1>관리 화면을 열 수 없습니다</h1><p role="alert">{error}</p><a href="/login">로그인</a><a href="/admin">기존 관리자</a></div>;
+  if(error)return <div className="boot-state"><h1>관리 화면을 열 수 없습니다</h1><p role="alert">{error}</p><a href="/login">로그인</a></div>;
   return data?<Workspace initial={data}/>:<div className="boot-state" role="status">관리 화면을 불러오고 있습니다…</div>;
 }
 createRoot(document.getElementById('root')!).render(<App/>);

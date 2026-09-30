@@ -11,7 +11,7 @@ export function WorkspaceBreadcrumbs({mode,path,query,title,catalog,areas=[],lis
     if(scope.key!=='all')items.push({label:scope.label,path:sectionPath(area,scope.key,catalog,areas)||undefined});
     if(postEditor){items[items.length-1].path=listPath;items.push({label:title});}
   }else if(path==='/posts'||postEditor){
-    items.push({label:'전체 콘텐츠',path:postEditor&&!categoryLabel?listPath:'/posts'});
+    items.push({label:'전체 글',path:postEditor&&!categoryLabel?listPath:'/posts'});
     if(categoryLabel)items.push({label:categoryLabel,path:postEditor?listPath:undefined});
     if(postEditor)items.push({label:title});
   }else{

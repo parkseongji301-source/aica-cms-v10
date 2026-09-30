@@ -162,7 +162,7 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
     </div>
     <div className={'writer-publication-state'+(unpublished?' has-changes':'')}>
       <div><div className="writer-state-labels"><strong>{doc.status==='PUBLISHED'?'게시됨':doc.status==='PRIVATE'?'비공개':'임시보관'}</strong>{unpublished&&<span>미게시 수정 있음</span>}</div>
-        <p>{doc.status==='PUBLISHED'?(unpublished?'현재 공개본은 유지됩니다. 수정한 내용은 게시 권한이 있는 관리자가 다시 게시해야 공개됩니다.':'현재 공개본과 저장된 작성 내용이 같습니다.'):doc.status==='PRIVATE'?'현재 비공개 상태입니다. 저장만으로 공개되지 않습니다.':'아직 게시되지 않은 콘텐츠입니다. 저장만으로 공개되지 않습니다.'}</p>
+        <p>{doc.status==='PUBLISHED'?(unpublished?'현재 공개본은 유지됩니다. 수정한 내용은 게시 권한이 있는 관리자가 다시 게시해야 공개됩니다.':'현재 공개본과 저장된 작성 내용이 같습니다.'):doc.status==='PRIVATE'?'현재 비공개 상태입니다. 저장만으로 공개되지 않습니다.':'아직 게시되지 않은 글입니다. 저장만으로 공개되지 않습니다.'}</p>
       </div>{doc.status==='PUBLISHED'&&doc.publishedRevision!==null&&<button type="button" className="text-link" onClick={()=>setPublicationOpen(true)}>현재 공개본 보기</button>}
     </div>
     {(error||publishError)&&<div className="error-box" role="alert">{publishError&&<p>게시 실패: {publishError}</p>}{error}{authError&&<div><a href="/login" target="_blank" rel="noopener">새 탭에서 로그인</a><button onClick={()=>void bootstrap().then(()=>{setBlocked(false);setAuthError(false);setError('');}).catch(e=>setError(messageOf(e)))}>로그인 상태 다시 확인</button></div>}</div>}
@@ -175,7 +175,7 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
         onChange={(content,richContent)=>change({content,richContent})} onUploadState={uploadState} onMediaChange={onMediaChange}
         onFatalError={message=>{setFatal(true);setError(message);}}/>
       <div className="content-foot"><span>사진·첨부 최대 12개 · 파일당 5MB</span><span>임시보관으로 현재 공개본이 바뀌지 않습니다.</span></div>
-    </div><aside className="card writer-properties" aria-label="콘텐츠 속성"><h2>콘텐츠 속성</h2><p className="writer-properties-note">유형과 분류를 설정합니다.</p>
+    </div><aside className="card writer-properties" aria-label="글 정보"><h2>글 정보</h2><p className="writer-properties-note">유형과 분류를 설정합니다.</p>
       <ClassificationFields value={doc.classification} catalog={catalog} baseline={baseline.current} problem={classificationIssue} onChange={patch=>change({classification:{...doc.classification,...patch}})}/>
       {addressIssue&&<div className="classification-warning" role="alert"><p>{addressIssue}</p>{doc.classification.typeCode!=='RESTAURANT'&&<button onClick={()=>change({restaurant:{address:''}})}>주소를 비우고 유형 변경</button>}</div>}
       {/* Legacy categories are retired: an existing one can only be cleared, never newly set. */}

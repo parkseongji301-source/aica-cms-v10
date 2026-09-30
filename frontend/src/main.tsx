@@ -34,6 +34,7 @@ import './pages-ux.css';
 import './operations-ux.css';
 import './admin-settings-ux.css';
 import './calm-shell.css';
+import './refined.css';
 
 function initialMode(userId:number):ViewMode {
   const value=new URLSearchParams(location.search).get('view');
@@ -108,7 +109,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
   const listForPost=(path:string,query:string)=>postOrigins[path]||returnSectionPath(new URLSearchParams(query),reviewCatalog.data,areas)||'/posts';
   const activeListSearch=new URLSearchParams(activePost?listForPost(route.path,route.query).split('?')[1]:route.query);
   const wholeContentSelected=(route.path==='/posts'||!!activePost)&&!navType&&!activeListSearch.has('categoryId');
-  const title=activePost?contentTargets[Number(activePost[1])]?.title||'콘텐츠 편집':activePageId!==null?data.pages.find(p=>p.id===activePageId)?.title||(activePage?'페이지 편집':'블록 보기'):route.path==='/posts'&&contentLocation&&!contentLocation.error?(contentLocation.areaLabel+(contentLocation.key==='all'?'':' · '+contentLocation.label)):entries.find(e=>e.path===route.path)?.label||'화면을 찾을 수 없습니다';
+  const title=activePost?contentTargets[Number(activePost[1])]?.title||'글 편집':activePageId!==null?data.pages.find(p=>p.id===activePageId)?.title||(activePage?'페이지 편집':'블록 보기'):route.path==='/posts'&&contentLocation&&!contentLocation.error?(contentLocation.areaLabel+(contentLocation.key==='all'?'':' · '+contentLocation.label)):entries.find(e=>e.path===route.path)?.label||'화면을 찾을 수 없습니다';
   const editPage=(id:number,block?:string)=>{navigate(pagePath(id,block),false,false,'manage');setSidebarOpen(false);};
   const switchMode=(next:ViewMode)=>{
     if(next===mode)return;
@@ -139,15 +140,14 @@ function Workspace({initial}:{initial:Bootstrap}) {
         <button aria-pressed={mode==='manage'} onClick={()=>switchMode('manage')}>사이트 관리</button>
         <button aria-pressed={mode==='structure'} onClick={()=>switchMode('structure')}>콘텐츠 작업</button>
       </div>
-      <p className="sidebar-view-note">{mode==='manage'?'사이트 설정과 운영 관리':'콘텐츠 검색부터 작성·게시까지'}</p>
     </div>
     <div className="sidebar-scroll">
     {mode==='manage'?<nav className="management-navigation" aria-label="사이트 관리">{managementGroups.map((group,index)=><div className={'nav-group'+(group.label?' nav-group-labeled':'')} key={index}>{group.label&&<h2><NavigationIcon name={managementIcons[group.label]??'folder'}/><span>{group.label}</span></h2>}{group.items.map(item=><button key={item.path} className={route.path===item.path||item.path==='/pages'&&activePage||item.path==='/posts'&&activePost?'selected':''} aria-current={route.path===item.path?'page':undefined} disabled={!!item.access&&!data.permissions[item.access]} title={item.access&&!data.permissions[item.access]?'이 계정에는 권한이 없습니다.':undefined} onClick={()=>go(item.path)}>{!group.label&&<NavigationIcon name={item.path==='/dashboard'?'dashboard':'link'}/>}<span className="nav-item-copy"><span>{item.label}</span>{item.access&&!data.permissions[item.access]&&<small>권한 없음</small>}</span></button>)}</div>)}</nav>:<nav className="structure-navigation" aria-label="콘텐츠 작업">
-      <button className={'content-work-home'+(wholeContentSelected?' selected':'')} aria-current={wholeContentSelected?'page':undefined} onClick={()=>go('/posts')}><NavigationIcon name="content"/><span className="nav-item-copy"><span>전체 콘텐츠</span></span></button>
+      <button className={'content-work-home'+(wholeContentSelected?' selected':'')} aria-current={wholeContentSelected?'page':undefined} onClick={()=>go('/posts')}><NavigationIcon name="content"/><span className="nav-item-copy"><span>전체 글</span></span></button>
       {data.permissions.site&&<>
       {areas.map((area,index)=><ContentTree key={area.pageId} area={area} areas={areas} catalog={reviewCatalog.data} selected={area.typeCode?((route.path==='/posts'||activePost)&&contentLocation?.pageId===area.pageId?contentLocation.key:null):(activePage&&Number(activePage[1])===area.pageId?'all':null)} go={go} error={index===0?reviewCatalog.error:''}/>)}
       </>}
-    </nav>}</div><div className="sidebar-footer"><span>홈페이지 연결 전</span><small>동일한 원본 · 두 가지 탐색</small></div></aside>
+    </nav>}</div></aside>
     <main id="next-workspace"><WorkspaceBreadcrumbs mode={mode} path={route.path} query={route.query} title={title} catalog={reviewCatalog.data} areas={areas} listPath={listForPost(route.path,route.query)} categoryLabel={data.categories.find(c=>String(c.id)===activeListSearch.get('categoryId'))?.name} pageSelected={activePageId!==null} go={go}/><Feedback error={navigationError}/>
       {Object.entries(visited).map(([key,savedRoute])=>{
         const active=key===route.path,match=/^\/pages\/(\d+)\/edit$/.exec(key),postMatch=/^\/posts\/(\d+)\/edit$/.exec(key);

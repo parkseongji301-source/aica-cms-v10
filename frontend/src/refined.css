@@ -1,0 +1,172 @@
+/* Refined surface (2026-10-01). Presentation only, loaded last: a warm paper canvas, soft rounded surfaces and a
+   quieter type scale so writing in the CMS feels like writing a blog. Saved rich text and website previews keep
+   their own rendering. */
+.phase-two {
+  --ui-ink: #2b3038;
+  --ui-muted: #737985;
+  --ui-line: #e8e5de;
+  --ui-accent: #4a63c9;
+  --ui-accent-ink: #3a53b8;
+  --ui-accent-soft: #eef1fb;
+  --ui-canvas: #f5f4f0;
+  --ui-soft: #faf9f6;
+  --ui-surface: #fff;
+  --ui-control-line: #dedbd3;
+  --radius-surface: 18px;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --shadow-surface: 0 1px 2px rgba(50, 48, 40, .04), 0 12px 32px rgba(50, 48, 40, .06);
+  --shadow-dialog: 0 24px 80px rgba(40, 38, 32, .22);
+  background: var(--ui-canvas);
+  color: var(--ui-ink);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: -.1px;
+}
+
+/* ---- Type scale. One heading size per level; emphasis is medium, not bold. */
+.phase-two .editor-heading h1, .phase-two .writer-heading h1, .phase-two .posts-workspace .editor-heading h1 { font-size: 22px; font-weight: 600; letter-spacing: -.4px; line-height: 1.35; }
+.phase-two .target-caption, .phase-two .posts-workspace .target-caption, .phase-two .writer-heading p { font-size: 13px; line-height: 1.75; color: var(--ui-muted); margin-top: 6px; max-width: 72ch; }
+.phase-two .panel-header h2, .phase-two .overview-grid h2, .phase-two .writer-properties h2, .phase-two .page-overview-card-heading h2, .phase-two .side-form h2 { font-size: 15px; font-weight: 600; letter-spacing: -.2px; }
+.phase-two .eyebrow { font-size: 12px; font-weight: 500; color: var(--ui-muted); letter-spacing: 0; }
+.phase-two .muted, .phase-two .row-meta, .phase-two .page-create-help, .phase-two .nav-note { color: var(--ui-muted); }
+.phase-two .page-create-help { font-size: 12.5px; line-height: 1.7; }
+.phase-two strong { font-weight: 600; }
+.phase-two .scope-tag { font-size: 11px; font-weight: 500; letter-spacing: 0; padding: 3px 8px; border-radius: 999px; background: #efede7; color: #6b7080; }
+
+/* ---- Rail. */
+.phase-two .sidebar { background: var(--ui-canvas); padding: 26px 14px 18px; }
+.phase-two .brand { padding: 0 10px 22px; gap: 11px; }
+.phase-two .brand-name, .phase-two .brand-home:hover .brand-name { font-size: 20px; font-weight: 650; letter-spacing: .3px; color: var(--ui-ink); }
+.phase-two .brand-icon { width: 32px; height: 34px; font-size: 21px; border-radius: 10px; background: var(--ui-accent); box-shadow: none; }
+.phase-two .brand small { font-size: 11px; font-weight: 400; color: var(--ui-muted); }
+.phase-two .sidebar-view { padding: 0 0 14px; }
+.phase-two .sidebar-view .view-switch { background: #ebe9e2; border-radius: 10px; padding: 3px; gap: 2px; }
+.phase-two .sidebar-view .view-switch button { min-height: 34px; font-size: 12.5px; font-weight: 500; color: #6b7080; border-radius: 8px; }
+.phase-two .sidebar-view .view-switch button:hover { background: #f3f2ee; }
+.phase-two .sidebar-view .view-switch button[aria-pressed=true] { background: #fff; color: var(--ui-ink); font-weight: 550; box-shadow: 0 1px 2px rgba(50, 48, 40, .08); }
+.phase-two .sidebar-view-note { display: none; }
+.phase-two .sidebar nav h2 { margin: 22px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: .3px; color: #8a8f99; }
+.phase-two .sidebar nav h2 .navigation-icon { color: #a0a5ae; }
+.phase-two .sidebar nav button { min-height: 36px; padding: 8px 10px; border-radius: 9px; font-size: 13px; font-weight: 450; color: #4f5560; }
+.phase-two .sidebar .management-navigation .nav-group-labeled>button { padding-left: 33px; }
+.phase-two .sidebar nav button:hover:not(:disabled) { background: #ecebe5; color: var(--ui-ink); }
+.phase-two .sidebar nav button.selected { background: var(--ui-accent-soft); color: var(--ui-accent-ink); font-weight: 550; }
+.phase-two .sidebar .tree-parent.has-selected-child>button, .phase-two .sidebar .page-branch>button.selected:not([aria-current=page]) { font-weight: 550; color: var(--ui-ink); }
+.phase-two .sidebar .review-children { margin: 2px 0 10px 19px; padding-left: 10px; border-color: #ddd9d0; }
+.phase-two .sidebar .review-children button { min-height: 32px; font-size: 12.5px; }
+.phase-two .sidebar .structure-group { color: var(--ui-muted); }
+.phase-two .sidebar nav button:disabled { color: #9a9fa8; }
+.phase-two .sidebar-footer { display: none; }
+
+/* ---- Header and the one work surface. */
+.phase-two .topbar { background: var(--ui-canvas); height: 70px; }
+.phase-two .topbar-title { font-size: 13px; font-weight: 500; color: var(--ui-muted); }
+.phase-two .topbar-title .navigation-icon { color: #a0a5ae; }
+.phase-two .topbar-right { font-size: 12.5px; gap: 16px; }
+.phase-two .topbar-right a, .phase-two .topbar-right .text-link { color: #6b7080; }
+.phase-two .operator-avatar { width: 28px; height: 28px; background: #e9e6df; color: #4f5560; font-weight: 550; }
+.phase-two .operator-role { font-size: 11px; }
+.phase-two .workspace-breadcrumbs { font-size: 12px; margin-bottom: 14px; }
+.phase-two .workspace-breadcrumbs button { color: #7a7f8a; }
+.phase-two .breadcrumb-separator { color: #b8bcc4; }
+.phase-two #next-workspace>[data-screen] { background: var(--ui-surface); border: 0; border-radius: var(--radius-surface); box-shadow: var(--shadow-surface); padding: var(--surface-inset); }
+.phase-two .editor-heading, .phase-two .posts-workspace .editor-heading, .phase-two .writer-heading { margin-bottom: 28px; }
+.phase-two .page-footer { color: #9a9fa8; font-size: 11px; padding-top: 20px; }
+
+/* ---- Cards, tables, lists. */
+.phase-two .card { border-color: var(--ui-line); border-radius: var(--radius-card); }
+.phase-two .metric { background: var(--ui-soft); border: 0; border-radius: var(--radius-card); padding: 22px 24px; gap: 10px; }
+.phase-two .metric>span { font-size: 13px; color: var(--ui-muted); }
+.phase-two .metric>strong { font-size: 28px; font-weight: 600; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.phase-two .panel-header { padding: 16px 0; border-color: var(--ui-line); }
+.phase-two .data-table th { background: transparent; border-bottom: 1px solid var(--ui-line); font-size: 12px; font-weight: 500; color: var(--ui-muted); padding-top: 10px; padding-bottom: 10px; }
+.phase-two .data-table th:first-child, .phase-two .data-table th:last-child { border-radius: 0; }
+.phase-two .data-table td { font-size: 13.5px; border-color: #efede8; }
+.phase-two .data-table tr:hover td { background: var(--ui-soft); }
+.phase-two .data-table .text-link { font-size: 14px; font-weight: 500; color: var(--ui-ink); }
+.phase-two .data-table .text-link:hover { color: var(--ui-accent-ink); }
+.phase-two .posts-table .content-title { font-weight: 500; font-size: 14.5px; letter-spacing: -.2px; }
+.phase-two .posts-table td { padding-top: 20px; padding-bottom: 20px; }
+.phase-two .classification-cell strong, .phase-two .page-overview-block-name strong, .phase-two .item-name strong, .phase-two .block-item-copy strong { font-weight: 500; }
+.phase-two .status-tag, .phase-two .post-status { font-size: 11.5px; font-weight: 500; padding: 4px 9px; border-radius: 999px; }
+.phase-two .state-published { background: #e6f2ea; color: #2f6b4f; }
+.phase-two .state-draft { background: #eeede9; color: #5c6270; }
+.phase-two .state-private { background: #f0ecf3; color: #6b5f7c; }
+.phase-two .status-tag.state-group { background: #efede7; color: var(--ui-muted); }
+.phase-two .pending-tag { border-radius: 999px; }
+.phase-two .empty-state { font-size: 14px; color: var(--ui-muted); padding: 56px 24px; }
+.phase-two .roles-workspace article, .phase-two .posts-filter-panel, .phase-two .writer-properties, .phase-two .operations-workspace .side-form, .phase-two .pages-editor-workspace .block-navigator { background: var(--ui-soft); border-radius: var(--radius-card); }
+.phase-two .plain-list { color: #5c6270; }
+
+/* ---- Posts list: tabs and filters as quiet text. */
+.phase-two .posts-workspace .status-tabs { gap: 22px; }
+.phase-two .posts-workspace .status-tabs button { font-size: 14px; font-weight: 500; color: var(--ui-muted); min-height: 44px; }
+.phase-two .posts-workspace .status-tabs button[aria-pressed=true] { color: var(--ui-ink); font-weight: 600; border-bottom-color: var(--ui-accent); }
+.phase-two .posts-search input { background: var(--ui-soft); }
+.phase-two .posts-workspace .posts-filter-chip, .phase-two .filter-count { border-radius: 999px; }
+.phase-two .posts-filter-options label { border-radius: 999px; }
+.phase-two .content-type-options button { border-radius: 999px; font-weight: 500; }
+.phase-two .content-type-options button[aria-pressed=true] { font-weight: 600; box-shadow: none; background: var(--ui-accent-soft); border-color: #c5cff0; color: var(--ui-accent-ink); }
+
+/* ---- Controls: same radius everywhere, medium weight. */
+.phase-two :is(.heading-actions,.search-bar,.panel-actions,.pagination,.action-buttons,.writer-actions,.writer-heading,.dialog-actions,.posts-search,.posts-filter-buttons,.post-action-cell,.page-row-actions,.template-actions,.block-operations,.page-overview-action,.content-node-actions,.content-node-form-actions,.order-buttons) button {
+  border-radius: var(--radius-control); border-color: var(--ui-control-line); color: #4a5058; background: #fff; font-weight: 500; box-shadow: none;
+}
+.phase-two :is(.heading-actions,.search-bar,.panel-actions,.pagination,.action-buttons,.writer-actions,.writer-heading,.dialog-actions,.posts-search,.posts-filter-buttons,.post-action-cell,.page-row-actions,.template-actions,.block-operations,.page-overview-action,.content-node-actions,.content-node-form-actions) button:not(.primary):not(.danger):not(.danger-link):hover:not(:disabled) { background: var(--ui-soft); border-color: #c9c5bb; }
+.phase-two button.primary, .phase-two .primary { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; font-weight: 550; border-radius: var(--radius-control); }
+.phase-two button.primary:hover:not(:disabled), .phase-two .primary:hover:not(:disabled) { background: #3f57b9; border-color: #3f57b9; }
+.phase-two button.secondary { color: var(--ui-accent-ink); border-color: #c5cff0; background: #fff; }
+.phase-two button.secondary:hover:not(:disabled) { background: var(--ui-accent-soft); }
+.phase-two button.danger, .phase-two .danger-link { color: #a23f47; }
+.phase-two .data-table td>button:not(.text-link), .phase-two .page-row-actions button { min-height: 32px; font-size: 12.5px; border-radius: 7px; }
+.phase-two :is(.search-bar,.settings-panel,.side-form,.posts-search,.posts-category-filter,.writer-properties,.page-create-form) :is(input:not([type=checkbox]):not([type=color]):not([type=file]),select,textarea) { border-color: var(--ui-control-line); border-radius: var(--radius-control); background: #fff; color: var(--ui-ink); }
+.phase-two :is(input,select,textarea):focus { outline: 2px solid #b9c5ee; border-color: #8f9fe0; }
+.phase-two :is(button,a,input,select,textarea,summary):focus-visible { outline: 2px solid #8f9fe0; outline-offset: 3px; }
+.phase-two :is(.side-form,.settings-panel) label, .phase-two .page-create-form label>span { font-size: 13px; color: #4f5560; }
+.phase-two .settings-panel fieldset>label { border-color: #efede8; }
+.phase-two .checkbox-row { font-weight: 500; }
+.phase-two input[type=checkbox], .phase-two input[type=radio] { accent-color: var(--ui-accent); }
+
+/* ---- Dialogs and notes. */
+.phase-two :is(.block-dialog,.create-review) { border: 0; border-radius: 16px; box-shadow: var(--shadow-dialog); }
+.phase-two :is(.block-dialog,.create-review)::backdrop { background: rgba(40, 38, 32, .32); }
+.phase-two .structure-membership, .phase-two .composition-section, .phase-two .content-nodes, .phase-two .page-create-kind, .phase-two .page-create-collection, .phase-two .page-create-template { border-color: var(--ui-line); border-radius: var(--radius-card); }
+.phase-two .composition-section legend, .phase-two .structure-membership legend, .phase-two .content-nodes legend { font-weight: 600; }
+.phase-two .composition-preview, .phase-two .structure-menu-status, .phase-two .writer-publication-state { background: var(--ui-soft); border-radius: 10px; border: 0; }
+.phase-two .writer-publication-state.has-changes { background: #fbf5e8; }
+.phase-two .page-hierarchy-warning { border-radius: 10px; }
+.phase-two .error-box, .phase-two .success-box, .phase-two .loading-line, .phase-two .success-line { border-radius: 10px; }
+.phase-two .success-box { background: #e9f4ee; color: #2f6b4f; border: 0; padding: 12px 16px; }
+.phase-two .structure-publication { border: 0; background: var(--ui-soft); border-radius: var(--radius-card); padding: 14px 18px; }
+.phase-two .pages-table tr.page-top-row > td { background: var(--ui-soft); }
+.phase-two .pages-table tr.page-top-row .text-link { font-weight: 600; }
+.phase-two .page-composition-meta span { border-radius: 999px; padding: 2px 9px; background: #efede7; color: #5c6270; }
+.phase-two .page-menu-label { font-weight: 500; }
+
+/* ---- Writing: a wide, quiet canvas. */
+.phase-two .writer-actionbar, .phase-two .pages-editor-workspace .editor-actions { border-color: var(--ui-line); }
+.phase-two .writer-canvas { padding-top: 8px; }
+.phase-two .writer-title-field input { font-size: 26px; font-weight: 600; letter-spacing: -.5px; line-height: 1.4; border-bottom-color: var(--ui-line); }
+.phase-two .writer-canvas .rich-field .ql-container { border-color: var(--ui-line); border-radius: 0 0 10px 10px; font-size: 16px; }
+.phase-two .writer-canvas .rich-field .ql-editor { line-height: 1.9; padding: 22px 26px; }
+.phase-two .rich-toolbar { background: var(--ui-soft); border-color: var(--ui-line); border-radius: 10px 10px 0 0; }
+.phase-two .rich-toolbar button, .phase-two .rich-toolbar select { border-radius: 6px; }
+.phase-two .writer-properties { padding: 22px; }
+.phase-two .writer-properties-note, .phase-two .writer-save-help, .phase-two .writer-save-state { font-size: 12.5px; }
+.phase-two .writer-more>summary { border-radius: var(--radius-control); border-color: var(--ui-control-line); }
+.phase-two .writer-more-panel { border-radius: var(--radius-card); border-color: var(--ui-line); box-shadow: 0 10px 30px rgba(50, 48, 40, .1); }
+.phase-two .pages-editor-workspace .section-card { border-radius: var(--radius-card); }
+.phase-two .section-card>header { background: var(--ui-soft); border-color: var(--ui-line); }
+.phase-two .title-card input { font-weight: 600; }
+.phase-two .preview-panel { border-radius: var(--radius-card); }
+.phase-two .media-workspace .media-tile { border-radius: var(--radius-card); }
+.phase-two .media-workspace .media-tile.selected { border-color: #c5cff0; background: var(--ui-accent-soft); }
+.phase-two .version-list, .phase-two .version-compare>section, .phase-two .template-contents, .phase-two .template-confirm { border-radius: var(--radius-card); }
+.phase-two .content-node-list li.editing { background: var(--ui-soft); border-radius: 8px; }
+
+@media (max-width: 680px) {
+  .phase-two #next-workspace>[data-screen] { border-radius: 14px; }
+  .phase-two .editor-heading h1, .phase-two .writer-heading h1, .phase-two .posts-workspace .editor-heading h1 { font-size: 20px; }
+  .phase-two .writer-title-field input { font-size: 22px; }
+}

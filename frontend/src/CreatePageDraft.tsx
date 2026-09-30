@@ -69,15 +69,15 @@ export function CreatePageDraft({active,parent,templateUse=false,onCreated,onClo
       <p className="muted">‘{parent.title}’ 아래 맨 끝에 임시보관 페이지로 만들어집니다. 순서는 목록에서 끌어서 바꿀 수 있습니다.</p>
       <fieldset className="page-create-kind" disabled={busy||uncertain}><legend>시작 방법</legend>
         <label><input type="radio" name="new-page-kind" checked={kind==='blank'} onChange={()=>setKind('blank')}/>빈 페이지</label>
-        <label><input type="radio" name="new-page-kind" checked={kind==='collection'} onChange={()=>setKind('collection')}/>콘텐츠 모음 페이지 <small>유형·기수·주제로 게시된 글을 모아 보여 줍니다</small></label>
+        <label><input type="radio" name="new-page-kind" checked={kind==='collection'} onChange={()=>setKind('collection')}/>글 모음 페이지 <small>글 종류·기수·주제로 게시된 글을 모아 보여 줍니다</small></label>
         {templateUse&&<label><input type="radio" name="new-page-kind" checked={kind==='template'} onChange={()=>setKind('template')}/>저장된 템플릿으로 시작 <small>페이지 템플릿의 블록 구성을 복사해 시작합니다</small></label>}
       </fieldset>
-      {kind==='collection'&&<fieldset className="page-create-collection" disabled={busy||uncertain}><legend>모을 콘텐츠</legend>
+      {kind==='collection'&&<fieldset className="page-create-collection" disabled={busy||uncertain}><legend>모을 글</legend>
         {catalog.loading&&!terms&&<p role="status">분류를 불러오는 중…</p>}<Feedback error={catalog.error}/>
         {terms&&<>
-          <label>콘텐츠 유형 <span aria-hidden="true">*</span><select required value={preset.typeCode} onChange={e=>choose({...preset,typeCode:e.target.value,topicId:null})}><option value="">선택하세요</option>{types.map(t=><option key={t.code} value={t.code}>{t.name}</option>)}</select></label>
+          <label>글 종류 <span aria-hidden="true">*</span><select required value={preset.typeCode} onChange={e=>choose({...preset,typeCode:e.target.value,topicId:null})}><option value="">선택하세요</option>{types.map(t=><option key={t.code} value={t.code}>{t.name}</option>)}</select></label>
           <label>기수 <small>선택</small><select value={preset.cohortId??''} onChange={e=>choose({...preset,cohortId:e.target.value?Number(e.target.value):null})}><option value="">전체 기수</option>{cohorts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-          <label>주제 <small>선택</small><select value={preset.topicId??''} disabled={!preset.typeCode||!topics.length} onChange={e=>choose({...preset,topicId:e.target.value?Number(e.target.value):null})}><option value="">{preset.typeCode&&!topics.length?'이 유형에는 주제가 없습니다':'전체 주제'}</option>{topics.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+          <label>주제 <small>선택</small><select value={preset.topicId??''} disabled={!preset.typeCode||!topics.length} onChange={e=>choose({...preset,topicId:e.target.value?Number(e.target.value):null})}><option value="">{preset.typeCode&&!topics.length?'이 글 종류에는 주제가 없습니다':'전체 주제'}</option>{topics.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
           <label>표시 개수<select value={preset.limit} onChange={e=>setPreset({...preset,limit:Number(e.target.value)})}>{Array.from({length:COLLECTION_LIMITS.max},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}개</option>)}</select></label>
         </>}
         <p className="page-create-help">게시된 글 중 조건에 맞는 글이 최신순으로 보입니다. 새 글은 게시되는 즉시 목록에 반영됩니다. 조건을 바꾸면 페이지를 다시 게시해야 공개본에 반영됩니다. 조건은 만든 뒤 글 목록 블록에서 바꿀 수 있습니다.</p>

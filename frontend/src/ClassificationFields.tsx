@@ -9,8 +9,8 @@ export function ClassificationSummary({value}:{value:Classification}) {
 }
 export function ClassificationFields({value,catalog,baseline,problem,onChange}:{value:Classification;catalog:ClassificationCatalog;baseline:ClassificationSelection;problem:string;onChange:(patch:Partial<ClassificationSelection>)=>void}) {
   const allowed=allowedTopicIds(catalog,value.typeCode),invalid=invalidTopicIds(value,catalog);
-  return <div className="classification-fields" aria-label="콘텐츠 유형과 분류">
-    <label>콘텐츠 유형<select value={value.typeCode} onChange={e=>onChange({typeCode:e.target.value})}>
+  return <div className="classification-fields" aria-label="글 종류와 분류">
+    <label>글 종류<select value={value.typeCode} onChange={e=>onChange({typeCode:e.target.value})}>
       {!catalog.types.some(t=>t.code===value.typeCode)&&<option value={value.typeCode}>{value.typeCode} · 확인 필요</option>}
       {catalog.types.map(t=><option key={t.code} value={t.code} disabled={!t.active&&baseline.typeCode!==t.code}>{t.name}{!t.active?' · 비활성':''}</option>)}
     </select></label>

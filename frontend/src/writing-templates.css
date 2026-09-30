@@ -1,0 +1,29 @@
+.phase-two .writing-template-dialog {width:min(980px,calc(100vw - 32px));max-width:calc(100vw - 32px);}
+.phase-two .writing-template-fields {border:0;padding:0;min-width:0;}
+.phase-two .writing-template-fields>label,.phase-two .template-mode {display:grid;gap:8px;margin:16px 0;font-size:14px;}
+.phase-two .writing-template-fields textarea {min-height:72px;}
+.phase-two .writing-template-fields .ql-editor {min-height:320px;max-height:44vh;overflow-y:auto;}
+.phase-two .writing-template-fields .rich-field {border:1px solid var(--ui-line);border-radius:6px;overflow:hidden;}
+.phase-two .writing-template-fields[disabled] .rich-field {pointer-events:none;opacity:.65;}
+.phase-two .writing-template-picker {display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.6fr);gap:24px;margin:24px 0;}
+.phase-two .writing-template-dialog[open]:has(.writing-template-picker) {display:flex;flex-direction:column;height:min(760px,calc(100dvh - 32px));max-height:calc(100dvh - 32px);overflow:hidden;}
+.phase-two .writing-template-dialog:has(.writing-template-picker)>:not(.writing-template-picker) {flex-shrink:0;}
+.phase-two .writing-template-dialog .writing-template-picker {flex:1;min-height:0;overflow:auto;margin:16px 0;}
+.phase-two .writing-template-picker>div:last-child {display:flex;flex-direction:column;min-height:0;}
+.phase-two .writing-template-picker .writing-template-preview {display:flex;flex-direction:column;min-height:0;}
+.phase-two .writing-template-picker .writing-template-preview>h3,.phase-two .writing-template-picker .writing-template-preview>p {flex-shrink:0;}
+.phase-two .writing-template-picker .writing-template-preview>.rich-content {min-height:0;flex:1;max-height:none;}
+.phase-two .writing-template-dialog .template-mode {margin:8px 0;}
+.phase-two .writing-template-dialog:has(.writing-template-picker) .dialog-actions {margin-top:12px;}
+.phase-two .writing-template-options {display:grid;gap:8px;margin-top:12px;max-height:45vh;overflow:auto;}
+.phase-two .writing-template-options button {display:grid;text-align:left;gap:8px;padding:14px;line-height:1.7;}
+.phase-two .writing-template-options button span {font-size:12px;color:var(--ui-muted);}
+.phase-two .writing-template-options button[aria-pressed=true] {border-color:#9caed9;background:#f2f5ff;}
+.phase-two .writing-template-preview>h3 {margin:0 0 10px;font-size:17px;}
+.phase-two .writing-template-preview>.rich-content {max-height:48vh;overflow:auto;border:1px solid var(--ui-line);border-radius:6px;padding:24px;background:white;font-size:14px;line-height:1.9;overflow-wrap:anywhere;}
+.phase-two .writing-template-preview .rich-content h1 {font-size:24px;}
+.phase-two .writing-template-preview .rich-content h2 {font-size:19px;margin-top:28px;}
+.phase-two .template-insert-notice {font-size:12px;line-height:1.7;color:#42745e;flex-basis:100%;padding:4px;}
+.phase-two .writing-templates-workspace td:first-child {max-width:480px;}
+.phase-two .writing-templates-workspace .page-row-actions {display:flex;gap:8px;white-space:nowrap;}
+@media(max-width:700px){.phase-two .writing-template-picker {grid-template-columns:minmax(0,1fr);gap:16px;}.phase-two .writing-template-picker>div:last-child {min-height:240px;}.phase-two .writing-template-options {max-height:180px;}.phase-two .writing-template-preview>.rich-content {padding:16px;max-height:38vh;}}

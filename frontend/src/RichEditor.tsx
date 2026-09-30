@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import Quill, {Parchment} from 'quill';
 import {RichContentTools} from './RichContentTools';
+import {PostTemplateTool} from './PostTemplateTool';
 
 type ImageValue = {id:number;width:string;align:string;alt:string;caption:string};
 const BlockEmbed = Quill.import('blots/block/embed') as typeof Parchment.EmbedBlot;
@@ -27,7 +28,7 @@ class TableEmbed extends StoredEmbed {
 class Divider extends StoredEmbed {static blotName='divider';static tagName='hr';static value(){return true;}}
 Quill.register({'formats/aicaImage':ImageEmbed,'formats/aicaFile':FileEmbed,'formats/aicaTable':TableEmbed,'formats/divider':Divider},true);
 const formats=['header','font','size','bold','italic','underline','strike','color','background','align','list','indent','blockquote','code-block','link','aicaImage','aicaFile','aicaTable','divider'];
-export function RichEditor({document:source,plain,label,onChange,advanced=false,focusedLayout=false,onUploadState,onMediaChange,onFatalError}:{document:string|null;plain:string;label:string;onChange:(plain:string,document:string)=>void;advanced?:boolean;focusedLayout?:boolean;onUploadState?:(busy:boolean)=>void;onMediaChange?:()=>void;onFatalError?:(message:string)=>void}) {
+export function RichEditor({document:source,plain,label,onChange,advanced=false,focusedLayout=false,onUploadState,onMediaChange,onFatalError,writingTemplates=false,active=true,templatesDisabled=false,disabled=false}:{document:string|null;plain:string;label:string;onChange:(plain:string,document:string)=>void;advanced?:boolean;focusedLayout?:boolean;onUploadState?:(busy:boolean)=>void;onMediaChange?:()=>void;onFatalError?:(message:string)=>void;writingTemplates?:boolean;active?:boolean;templatesDisabled?:boolean;disabled?:boolean}) {
  const host=useRef<HTMLDivElement>(null),quill=useRef<Quill|null>(null),change=useRef(onChange);change.current=onChange;
  const [editor,setEditor]=useState<Quill|null>(null);
  const [more,setMore]=useState(false);
@@ -45,6 +46,7 @@ export function RichEditor({document:source,plain,label,onChange,advanced=false,
   return()=>{q.off('text-change',handler);q.off('selection-change',refresh);quill.current=null;host.current?.replaceChildren();};
  },[]);
  useEffect(()=>{quill.current?.root.setAttribute('aria-label',label);},[label]);
+ useEffect(()=>{if(editor)editor.enable(!disabled&&!error);},[editor,disabled,error]);
  const format=(name:string,value:unknown)=>{const q=quill.current;if(!q||!q.isEnabled())return;q.focus();q.setSelection(lastRange.current,'silent');q.format(name,value,'user');setActiveFormat(q.getFormat());};
  const selected=(name:string)=>typeof activeFormat[name]==='string'||typeof activeFormat[name]==='number'?String(activeFormat[name]):'';
  return <div className={'rich-field'+(focusedLayout?' focused-rich':'')+(more?' show-more':'')}>
@@ -66,7 +68,7 @@ export function RichEditor({document:source,plain,label,onChange,advanced=false,
    <button type="button" aria-label="다시 실행" onMouseDown={e=>e.preventDefault()} onClick={()=>quill.current?.history.redo()}>↷</button>
    {focusedLayout&&<button type="button" className="writer-format-toggle" aria-expanded={more} onMouseDown={e=>e.preventDefault()} onClick={()=>setMore(value=>!value)}>{more?'추가 서식 접기':'추가 서식'}</button>}
   </div>
-  {advanced&&<RichContentTools editor={editor} onUploadState={onUploadState} onMediaChange={onMediaChange}/>}
+  {advanced&&<RichContentTools editor={editor} onUploadState={onUploadState} onMediaChange={onMediaChange} extraTools={writingTemplates?<PostTemplateTool editor={editor} active={active} disabled={templatesDisabled||disabled}/>:undefined}/>}
   {error&&<p role="alert">{error}</p>}<div ref={host}/>
  </div>;
 }

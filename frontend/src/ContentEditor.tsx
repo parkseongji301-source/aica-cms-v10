@@ -157,6 +157,7 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
 
       <p className="content-field-label">{presentation.body}</p>
       <RichEditor key={epoch} document={doc.richContent} plain={doc.content} label={presentation.editorLabel} advanced focusedLayout
+        writingTemplates={doc.classification.typeCode==='REVIEW'} active={active} templatesDisabled={busy||uploading||historyBusy||blocked||fatal}
         onChange={(content,richContent)=>change({content,richContent})} onUploadState={uploadState} onMediaChange={onMediaChange}
         onFatalError={message=>{setFatal(true);setError(message);}}/>
       <div className="content-foot"><span>사진·첨부 최대 12개 · 파일당 5MB</span><span>임시보관으로 현재 공개본이 바뀌지 않습니다.</span></div>

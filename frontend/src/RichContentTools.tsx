@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import type {ReactNode} from 'react';
 import Quill,{Delta} from 'quill';
 import type {Parchment,Range} from 'quill';
 import type {ImageFile} from './types';
@@ -8,11 +9,11 @@ import {messageOf} from './ui';
 type EmbedKind='aicaImage'|'aicaFile'|'aicaTable';
 type EmbedValue={id?:number;width?:string;align?:string;alt?:string;caption?:string;label?:string;rows?:string[][]};
 type Selection={blot:Parchment.Blot;kind:EmbedKind;value:EmbedValue};
-type Props={editor:Quill|null;onUploadState?:(busy:boolean)=>void;onMediaChange?:()=>void};
+type Props={editor:Quill|null;onUploadState?:(busy:boolean)=>void;onMediaChange?:()=>void;extraTools?:ReactNode};
 const accepted='.jpg,.jpeg,.png,.pdf,.txt,.docx,.xlsx,.pptx,.hwp';
 
 /** Tools operate on the existing allowlisted Delta embeds and the shared media API. */
-export function RichContentTools({editor:q,onUploadState,onMediaChange}:Props) {
+export function RichContentTools({editor:q,onUploadState,onMediaChange,extraTools}:Props) {
   const [modal,setModal]=useState<'library'|'link'|'embed'|'table'|null>(null);
   const [library,setLibrary]=useState<ImageFile[]>([]),[query,setQuery]=useState(''),[loading,setLoading]=useState(false);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -164,10 +165,11 @@ export function RichContentTools({editor:q,onUploadState,onMediaChange}:Props) {
     <div className="rich-content-tools" role="toolbar" aria-label="본문 삽입 도구">
       <button type="button" disabled={!q||busy} onMouseDown={e=>e.preventDefault()} onClick={()=>fileInput.current?.click()}>＋ 사진·파일</button>
       <button type="button" disabled={!q||busy} onMouseDown={e=>e.preventDefault()} onClick={()=>open('library')}>보관함</button>
+      {extraTools}
       <button type="button" disabled={!q} onMouseDown={e=>e.preventDefault()} onClick={startLink}>링크</button>
-      <button type="button" disabled={!q} onMouseDown={e=>e.preventDefault()} onClick={()=>{selected.current=null;setRows([['','',''],['','',''],['','','']]);setRowCount(3);setColumnCount(3);open('table');}}>표</button>
-      <button type="button" disabled={!q} onMouseDown={e=>e.preventDefault()} onClick={()=>insert('divider',true)}>구분선</button>
-      <button type="button" disabled={!q} onMouseDown={e=>e.preventDefault()} onClick={clean}>서식 지우기</button>
+      <button type="button" data-secondary="true" disabled={!q} onMouseDown={e=>e.preventDefault()} onClick={()=>{selected.current=null;setRows([['','',''],['','',''],['','','']]);setRowCount(3);setColumnCount(3);open('table');}}>표</button>
+      <button type="button" data-secondary="true" disabled={!q} onMouseDown={e=>e.preventDefault()} onClick={()=>insert('divider',true)}>구분선</button>
+      <button type="button" data-secondary="true" disabled={!q} onMouseDown={e=>e.preventDefault()} onClick={clean}>서식 지우기</button>
       <input ref={fileInput} hidden type="file" multiple accept={accepted} aria-label="본문 사진·파일 업로드" onChange={e=>{void upload(Array.from(e.target.files||[]));e.target.value='';}}/>
     </div>
     {busy&&<p className="editor-tool-message" role="status">파일 업로드 중…</p>}{notice&&<p className="editor-tool-message" role="status">{notice}</p>}

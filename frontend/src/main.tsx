@@ -4,6 +4,7 @@ import {createRoot} from 'react-dom/client';
 import type {Bootstrap,Go,PageDocument,PostDocument,ViewMode,ClassificationCatalog,ComponentDefinition,PageTarget} from './types';
 import {bootstrap,getPage,get} from './api';
 import {TemplatesPanel} from './PageTemplates';
+import {WritingTemplatesPanel} from './WritingTemplatesPanel';
 import {PageEditor} from './PageEditor';
 import {ContentPanel} from './ContentPanel';
 import {TrashPanel} from './TrashPanel';
@@ -157,6 +158,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
           case '/settings/links':panel=<LinkManager {...props} type="links"/>;break;
           case '/design/style':panel=<SettingsPanel {...props} group="style"/>;break;
           case '/design/templates':panel=<TemplatesPanel registerGuard={registerGuard} active={active} version={version} categories={data.categories}/>;break;
+          case '/design/writing-templates':panel=<WritingTemplatesPanel registerGuard={registerGuard} active={active} version={version}/>;break;
           case '/design/components':panel=<SettingsPanel {...props} group="components"/>;break;
           case '/settings/basic':panel=<SettingsPanel {...props} group="basic"/>;break;
           case '/settings/system':panel=<SettingsPanel {...props} group="system"/>;break;

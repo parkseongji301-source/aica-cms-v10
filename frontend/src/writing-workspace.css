@@ -58,7 +58,7 @@
 .phase-two .writer-comparison :is(p,small,dt,dd) { font-size:12px; }
 .phase-two .focused-rich .rich-toolbar { gap:6px; padding:10px; border-radius:6px 6px 0 0; background:#f7f9fc; }
 .phase-two .focused-rich .rich-toolbar :is(button,select),.phase-two .focused-rich .rich-content-tools button { min-height:36px; font-size:13px; }
-.phase-two .focused-rich:not(.show-more) .rich-toolbar [data-secondary=true],.phase-two .focused-rich:not(.show-more) .rich-content-tools>button:nth-of-type(n+4) { display:none; }
+.phase-two .focused-rich:not(.show-more) .rich-toolbar [data-secondary=true],.phase-two .focused-rich:not(.show-more) .rich-content-tools>button[data-secondary=true] { display:none; }
 .phase-two .focused-rich .writer-format-toggle { margin-left:auto; color:#315ad8; }
 .phase-two .focused-rich .rich-content-tools { gap:6px; padding:8px 10px; background:#fff; }
 .phase-two .focused-rich .ql-editor { min-height:460px; padding:24px 18px; }

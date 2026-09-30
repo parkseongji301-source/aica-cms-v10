@@ -60,7 +60,7 @@ class SiteStructurePublicationIntegrationTest {
     private JsonNode body(HttpResponse<String> r)throws Exception{assertThat(r.statusCode()).as(r.body()).isEqualTo(200);return json.readTree(r.body());}
     private String failure(HttpResponse<String> r,int status)throws Exception{assertThat(r.statusCode()).as(r.body()).isEqualTo(status);return json.readTree(r.body()).path("message").asText();}
     private HttpResponse<String> send(HttpBrowser b,String method,String path,Object value,String csrf)throws Exception{return b.json(method,API+path,json.writeValueAsString(value),csrf);}
-    private Map<String,Object> composition(String type,boolean visible,String label,String name){var m=new LinkedHashMap<String,Object>();m.put("contentTypeCode",type);m.put("menuVisible",visible);m.put("menuLabel",label);m.put("name",name);return m;}
+    private Map<String,Object> composition(String type,boolean visible,String label,String name){var m=new LinkedHashMap<String,Object>();m.put("contentTypeCode",type);m.put("menuVisible",visible);m.put("menuLabel",label);m.put("name",name);m.put("contentWorkVisible",type!=null);return m;}
     private Map<String,Object> publish(JsonNode status){var m=new HashMap<String,Object>();m.put("fingerprint",status.path("draftFingerprint").asText());m.put("expectedLatestId",latestId(status));return m;}
     private static Long latestId(JsonNode status){return status.path("latest").isNull()?null:status.path("latest").path("id").asLong();}
     private JsonNode status(HttpBrowser b)throws Exception{return body(b.get(API+"/site-structure"));}

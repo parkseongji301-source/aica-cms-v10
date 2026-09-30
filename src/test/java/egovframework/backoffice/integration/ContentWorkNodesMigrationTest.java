@@ -44,7 +44,7 @@ class ContentWorkNodesMigrationTest {
   var receipt=V16PromotionTool.migrate(plan,"jar","plan","sa","");
   assertThat(receipt.path("status").asText()).isEqualTo("MIGRATED_V16");assertThat(receipt.path("after").path("history").size()).isEqualTo(16);
   assertThat(hash(original)).isEqualTo(originalHash);
-  requireCurrentSchema(copy,"sa","");
+  requireSchema(copy,"sa","","16");
   assertThat(rows(copy,pages)).isEqualTo(before);
   assertThat(rows(copy,"SELECT id,code,name,active FROM topics")).isEqualTo(topics);
   assertThat(rows(copy,"SELECT type_code,topic_id FROM content_type_topics")).isEqualTo(allowed);
@@ -63,7 +63,7 @@ class ContentWorkNodesMigrationTest {
   assertThatThrownBy(()->requireSchema(copy,"sa","","15")).isInstanceOf(IllegalStateException.class);
   Path v15Receipt=dir.resolve("v15-receipt.json");
   JSON.writeValue(v15Receipt.toFile(),Map.of("status","MIGRATED_V15","databasePath",copy.toRealPath().toString(),"jarSha256","same","workaround","AUTO_COMPACT_FILL_RATE=0"));
-  assertThatThrownBy(()->requireReceipt(copy,v15Receipt,"same",CURRENT_VERSION)).hasMessageContaining("V16");
+  assertThatThrownBy(()->requireReceipt(copy,v15Receipt,"same",CURRENT_VERSION)).hasMessageContaining("V"+CURRENT_VERSION);
  }
 
  @Test void planRefusesAChangedCopyAndANonV15Database()throws Exception {

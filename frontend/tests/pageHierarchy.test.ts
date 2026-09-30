@@ -5,7 +5,7 @@ import {pageDraftForm} from '../src/pageCreation.ts';
 import type {PageRow} from '../src/types.ts';
 
 const page=(id:number,title:string,parentId:number|null,sortOrder:number,status='PUBLISHED',areaKind:'PAGE'|'GROUP'='PAGE'):PageRow=>
-  ({id,title,slug:'p'+id,status,revision:1,pending:false,updatedAt:'2026-09-30T10:00:00',parentId,sortOrder,areaKind,contentTypeCode:null,menuVisible:false,menuLabel:null,inStructure:true});
+  ({id,title,slug:'p'+id,status,revision:1,pending:false,updatedAt:'2026-09-30T10:00:00',parentId,sortOrder,areaKind,contentTypeCode:null,menuVisible:false,menuLabel:null,inStructure:true,contentWorkVisible:false});
 // Server order: flat by (sortOrder, id), children mixed in with top-level pages.
 const pages=[page(1,'홈',null,0),page(70,'후기',65,0),page(65,'인사교 소개',null,1,'PRIVATE'),page(71,'FAQ',65,1),page(72,'오시는 길',null,2)];
 

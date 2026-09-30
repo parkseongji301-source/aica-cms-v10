@@ -150,3 +150,4 @@
 .phase-two .composition-section legend small {font-weight:400;color:var(--ui-muted);}
 .phase-two .composition-preview {margin:6px 0 0;padding:6px 10px;border-radius:3px;background:var(--ui-soft);font-size:13px;}
 .phase-two .page-location {margin:0 0 8px;font-size:13px;}
+.phase-two .checkbox-pair {display:flex;flex-wrap:wrap;gap:6px 20px;}

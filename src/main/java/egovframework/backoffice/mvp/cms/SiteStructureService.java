@@ -174,7 +174,7 @@ public class SiteStructureService {
   if(!fingerprint(draft(pages)).equals(fingerprint)) throw conflict();
   var work=plan(pages);
   if(work.plan().changes().isEmpty()) throw new BusinessException("현재 메뉴에서 가져올 변경이 없습니다.");
-  for(Page p:work.visible()) store.change("pageComposition",values("id",p.id(),"contentTypeCode",p.contentTypeCode(),"menuVisible",true,"menuLabel",p.menuLabel()));
+  for(Page p:work.visible()) store.change("pageComposition",values("id",p.id(),"contentTypeCode",p.contentTypeCode(),"menuVisible",true,"menuLabel",p.menuLabel(),"contentWorkVisible",p.contentWorkVisible()));
   work.order().forEach((id,position)->store.change("pageSortOrder",values("id",id,"sortOrder",position)));
   audit.record(actor,"현재 메뉴에서 가져오기","사이트 구성","변경 "+work.plan().changes().size()+"건");
   return new ImportPlan(fingerprint(draft(store.all("pages",null))),work.plan().changes(),work.plan().notes());

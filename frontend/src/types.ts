@@ -13,11 +13,14 @@ export type StructureTarget = PageTarget|BlockTarget|{kind:'content-list';label:
 export type PageRow = {id:number;title:string;slug:string;status:string;revision:number;pending:boolean;updatedAt:string;parentId:number|null;sortOrder:number;
   areaKind:'PAGE'|'GROUP';contentTypeCode:string|null;menuVisible:boolean;menuLabel:string|null;
   // false = removed from the site structure (V15); menuVisible only matters inside the structure.
-  inStructure:boolean};
+  inStructure:boolean;
+  // V17: shown in the admin 콘텐츠 작업 sidebar, with or without a content type.
+  contentWorkVisible:boolean};
 // Sent to every role: the 콘텐츠 작업 sidebar follows the site composition. groups are the ancestor titles.
 // nodes (V16) are the sub-navigation entries the operator saved for the area, in saved order; never the topic dictionary.
 export type ContentNode = {id:number;name:string;topicId:number|null};
-export type ContentArea = {pageId:number;typeCode:string;label:string;groups:string[];nodes:ContentNode[]};
+// typeCode null = a page shown in 콘텐츠 작업 without a content type: the entry opens the page itself.
+export type ContentArea = {pageId:number;typeCode:string|null;label:string;groups:string[];nodes:ContentNode[]};
 /** A node row as the composition dialog edits it (SUPER_ADMIN). */
 export type ContentNodeRow = {id:number;pageId:number;name:string;topicId:number|null;sortOrder:number};
 /** 구성 게시 (V14). key is unique per list; parentKey links an item to its parent (null at the top level). */

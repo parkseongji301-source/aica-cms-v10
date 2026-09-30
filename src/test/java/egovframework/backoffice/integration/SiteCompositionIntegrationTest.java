@@ -56,7 +56,7 @@ class SiteCompositionIntegrationTest {
     private JsonNode body(HttpResponse<String> r)throws Exception{return json.readTree(r.body());}
     private String failure(HttpResponse<String> r,int status)throws Exception{assertThat(r.statusCode()).as(r.body()).isEqualTo(status);return body(r).path("message").asText();}
     private HttpResponse<String> send(HttpBrowser b,String method,String path,Object value,String csrf)throws Exception{return b.json(method,API+path,json.writeValueAsString(value),csrf);}
-    private Map<String,Object> composition(String type,boolean visible,String label,String name){var m=new LinkedHashMap<String,Object>();m.put("contentTypeCode",type);m.put("menuVisible",visible);m.put("menuLabel",label);m.put("name",name);return m;}
+    private Map<String,Object> composition(String type,boolean visible,String label,String name){var m=new LinkedHashMap<String,Object>();m.put("contentTypeCode",type);m.put("menuVisible",visible);m.put("menuLabel",label);m.put("name",name);m.put("contentWorkVisible",type!=null);return m;}
     private JsonNode row(JsonNode rows,long id){for(var r:rows)if(r.path("id").asLong()==id)return r;throw new AssertionError("row "+id);}
     private long groupId(JsonNode rows,String name){for(var r:rows)if("GROUP".equals(r.path("areaKind").asText())&&name.equals(r.path("title").asText()))return r.path("id").asLong();throw new AssertionError(name);}
     private Map<String,Object> group(String name,Long parent){var m=new LinkedHashMap<String,Object>();m.put("name",name);m.put("parentId",parent);return m;}

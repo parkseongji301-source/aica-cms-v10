@@ -57,7 +57,7 @@ class ContentWorkNodeIntegrationTest {
     private JsonNode ok(HttpResponse<String> r)throws Exception{assertThat(r.statusCode()).as(r.body()).isEqualTo(200);return body(r);}
     private String failure(HttpResponse<String> r,int status)throws Exception{assertThat(r.statusCode()).as(r.body()).isEqualTo(status);return body(r).path("message").asText();}
     private HttpResponse<String> send(HttpBrowser b,String method,String path,Object value,String csrf)throws Exception{return b.json(method,API+path,json.writeValueAsString(value),csrf);}
-    private Map<String,Object> composition(String type){var m=new LinkedHashMap<String,Object>();m.put("contentTypeCode",type);m.put("menuVisible",false);m.put("menuLabel",null);m.put("name",null);return m;}
+    private Map<String,Object> composition(String type){var m=new LinkedHashMap<String,Object>();m.put("contentTypeCode",type);m.put("menuVisible",false);m.put("menuLabel",null);m.put("name",null);m.put("contentWorkVisible",type!=null);return m;}
     private Map<String,Object> node(String name,Long topicId){var m=new LinkedHashMap<String,Object>();m.put("name",name);m.put("topicId",topicId);return m;}
     private JsonNode areas(String role)throws Exception{return json.readTree(login(role).get(API+"/bootstrap").body()).path("contentAreas");}
     private static List<String> names(JsonNode nodes){var out=new ArrayList<String>();for(var n:nodes)out.add(n.path("name").asText()+":"+n.path("topicId").asLong());return out;}

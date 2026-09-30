@@ -15,19 +15,19 @@ class SiteStructureTest {
 
     @Test void theDraftNormalizesSiblingPositionsAndTheFingerprintFollowsContentOnly() {
         var pages=List.of(
-            new CmsModels.Page(3,"B","b","[]","PUBLISHED",1,1L,1,null,null,40,"PAGE",null,true,null,true),
-            new CmsModels.Page(2,"A","a","[]","PUBLISHED",1,1L,1,null,null,7,"PAGE",null,false,"에이",true),
-            new CmsModels.Page(9,"묶음","group-x","[]","DRAFT",0,null,1,null,null,50,"GROUP",null,true,null,true));
+            new CmsModels.Page(3,"B","b","[]","PUBLISHED",1,1L,1,null,null,40,"PAGE",null,true,null,true,false),
+            new CmsModels.Page(2,"A","a","[]","PUBLISHED",1,1L,1,null,null,7,"PAGE",null,false,"에이",true,false),
+            new CmsModels.Page(9,"묶음","group-x","[]","DRAFT",0,null,1,null,null,50,"GROUP",null,true,null,true,false));
         var draft=draft(pages);
         assertThat(draft.areas()).extracting(Area::areaId).containsExactly(2L,3L,9L);
         assertThat(draft.areas()).extracting(Area::sortOrder).containsExactly(0,1,2);
         assertThat(draft.areas().get(2).groupName()).isEqualTo("묶음");
         assertThat(draft.areas().get(0).groupName()).isNull();
         // Page titles and slugs are not part of the structure; group names and menu labels are.
-        var renamed=List.of(new CmsModels.Page(3,"B2","b2","[]","PUBLISHED",2,2L,1,null,null,41,"PAGE",null,true,null,true),pages.get(1),pages.get(2));
+        var renamed=List.of(new CmsModels.Page(3,"B2","b2","[]","PUBLISHED",2,2L,1,null,null,41,"PAGE",null,true,null,true,false),pages.get(1),pages.get(2));
         assertThat(fingerprint(draft(renamed))).isEqualTo(fingerprint(draft));
         // Areas removed from the structure (V15) leave the draft; hidden areas stay in it.
-        var removed=new CmsModels.Page(4,"제거","gone","[]","PUBLISHED",1,1L,1,null,null,1,"PAGE",null,true,null,false);
+        var removed=new CmsModels.Page(4,"제거","gone","[]","PUBLISHED",1,1L,1,null,null,1,"PAGE",null,true,null,false,false);
         assertThat(draft(List.of(pages.get(1),removed)).areas()).extracting(Area::areaId).containsExactly(2L);
         assertThat(fingerprint(snap(page(1,null,0,true)))).isNotEqualTo(fingerprint(snap(page(1,null,0,false))));
         assertThat(fingerprint(snap(new Area(1,"PAGE",null,0,true,"a|b",null,null)))).isNotEqualTo(fingerprint(snap(new Area(1,"PAGE",null,0,true,"a",null,"b"))));

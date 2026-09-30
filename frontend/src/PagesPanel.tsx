@@ -88,7 +88,7 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
       <td><div className={depth>1&&!filtered?'page-title-cell page-title-child':'page-title-cell'}>{depth>1&&!filtered&&<span className="page-child-mark" aria-hidden="true">↳</span>}<div>
         <button className="text-link" data-page-id={page.id} onClick={()=>isGroup(page)?structure&&setComposing(page):go(pagePath(page.id))}>{page.title}</button>
         <small className="row-meta">{movable&&<span className="page-drag-handle" aria-hidden="true" title="끌어서 순서·위치 바꾸기">⠿</span>}{isGroup(page)?'묶음 · 화면 없음':'/'+page.slug}{fixed?' · 홈(첫 화면) · 고정':top&&!filtered?' · 최상위':''}{!page.inStructure&&' · 구조에서 뺌'}{filtered&&parent&&` · 상위: ${parent.title}`}{depth>1&&!filtered&&' · 하위 페이지'}{children>0&&` · 하위 ${children}개`}</small>
-        {(page.contentTypeCode||page.menuVisible)&&<small className="page-composition-meta">{page.contentTypeCode&&<span>콘텐츠 작업: {typeName(page.contentTypeCode)}{nodeCount(page.id)>0?` · 하위 항목 ${nodeCount(page.id)}개`:''}</span>}{page.menuVisible&&<span>메뉴에 보임{page.menuLabel?` · ${page.menuLabel}`:''}</span>}</small>}
+        {(page.contentTypeCode||page.menuVisible||page.contentWorkVisible)&&<small className="page-composition-meta">{page.contentWorkVisible&&<span>콘텐츠 작업에 보임{page.contentTypeCode?`: ${typeName(page.contentTypeCode)}`:''}{nodeCount(page.id)>0?` · 하위 항목 ${nodeCount(page.id)}개`:''}</span>}{!page.contentWorkVisible&&page.contentTypeCode&&<span>글 종류: {typeName(page.contentTypeCode)} (콘텐츠 작업에 숨김)</span>}{page.menuVisible&&<span>메뉴에 보임{page.menuLabel?` · ${page.menuLabel}`:''}</span>}</small>}
         {warning&&<small className="page-hierarchy-warning" title="게시된 하위 페이지는 상위 페이지 상태와 관계없이 자기 주소로 공개됩니다.">{warning}</small>}
       </div></div></td>
       <td>{isGroup(page)?<span className="status-tag state-group">묶음</span>:<Status value={page.status} pending={page.pending} pageWording/>}</td>
@@ -155,7 +155,7 @@ function PagePlacementDialog({active,page,pages,homePageId,onClose,onBusy,onDone
  */
 function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onStale,onNodesChanged}:{active:boolean;page:PageRow;pages:PageRow[];catalog:ClassificationCatalog|null;onClose:()=>void;onBusy:(busy:boolean)=>void;onDone:()=>void;onStale:()=>void;onNodesChanged:()=>void}) {
   const group=isGroup(page);
-  const [type,setType]=useState(page.contentTypeCode??''),[visible,setVisible]=useState(page.menuVisible),[label,setLabel]=useState(page.menuLabel??''),[name,setName]=useState(page.title);
+  const [type,setType]=useState(page.contentTypeCode??''),[visible,setVisible]=useState(page.menuVisible),[work,setWork]=useState(page.contentWorkVisible),[label,setLabel]=useState(page.menuLabel??''),[name,setName]=useState(page.title);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[blockTypes,setBlockTypes]=useState<string[]|null>(null);
   const pending=useRef(false);
   // 콘텐츠 작업 하위 항목 (V16): loaded for a saved link; every change is saved at once and the sidebar follows.
@@ -170,13 +170,13 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
     return()=>{cancelled=true;};},[group,page.id]);
   const representedBy=(code:string)=>pages.find(p=>p.id!==page.id&&p.contentTypeCode===code);
   const types=catalog?.types.filter(t=>t.active||t.code===page.contentTypeCode)??[];
-  const unchanged=type===(page.contentTypeCode??'')&&visible===page.menuVisible&&label.trim()===(page.menuLabel??'')&&(!group||name.trim()===page.title);
+  const unchanged=type===(page.contentTypeCode??'')&&visible===page.menuVisible&&work===page.contentWorkVisible&&label.trim()===(page.menuLabel??'')&&(!group||name.trim()===page.title);
   async function save(){
     if(pending.current||unchanged||group&&!name.trim())return;
     pending.current=true;setBusy(true);onBusy(true);setError('');
     // A newly saved link keeps the dialog open so the operator can add the sub-navigation right away.
     const linkedNow=!group&&!!type&&type!==(page.contentTypeCode??'');
-    try{await saveComposition(page.id,{contentTypeCode:type||null,menuVisible:visible,menuLabel:label.trim()||null,name:group?name.trim():null});
+    try{await saveComposition(page.id,{contentTypeCode:type||null,menuVisible:visible,menuLabel:label.trim()||null,name:group?name.trim():null,contentWorkVisible:work});
       if(linkedNow){setNotice('저장했습니다. 이제 아래에서 콘텐츠 작업 하위 항목을 추가할 수 있습니다.');onStale();}else onDone();}
     catch(e){setError(messageOf(e));onStale();}
     finally{pending.current=false;setBusy(false);onBusy(false);}
@@ -201,18 +201,23 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
       {group&&<label htmlFor="composition-name"><span>묶음 이름</span><input id="composition-name" required maxLength={200} value={name} disabled={busy} onChange={e=>setName(e.target.value)}/></label>}
       {!page.inStructure&&<p className="page-hierarchy-warning" role="note">사이트 구조에서 뺀 {group?'묶음':'페이지'}입니다. 홈페이지에 반영하면 홈페이지 구조와 메뉴에서 빠지고, 내용은 그대로 남습니다.</p>}
       <fieldset className="composition-section"><legend>홈페이지 메뉴</legend>
-        <label className="checkbox-row"><input type="checkbox" checked={visible} disabled={busy} onChange={e=>setVisible(e.target.checked)}/> 홈페이지 메뉴에 보이기</label>
+        <div className="checkbox-pair">
+          <label className="checkbox-row"><input type="checkbox" checked={visible} disabled={busy} onChange={e=>setVisible(e.target.checked)}/> 홈페이지 메뉴에 보이기</label>
+          {!group&&<label className="checkbox-row"><input type="checkbox" checked={work} disabled={busy||!page.inStructure} onChange={e=>setWork(e.target.checked)}/> 콘텐츠 작업에 보이기</label>}
+        </div>
         <label htmlFor="composition-label"><span>메뉴에 표시할 이름 <small>선택</small></span><input id="composition-label" maxLength={80} value={label} placeholder={page.title} disabled={busy} onChange={e=>setLabel(e.target.value)}/></label>
         <p className="page-create-help">[홈페이지에 반영] 뒤에 적용됩니다. 비워 두면 {group?'묶음 이름':'게시된 페이지 제목'}을 씁니다. 메뉴에서 숨겨도 게시된 페이지는 주소로 열립니다.</p>
       </fieldset>
       {!group&&<fieldset className="composition-section"><legend>콘텐츠 작업 <small>관리자 화면</small></legend>
+        <p className="page-create-help">{work?'왼쪽 콘텐츠 작업 메뉴에 이 페이지가 보입니다.':'‘콘텐츠 작업에 보이기’를 켜면 왼쪽 콘텐츠 작업 메뉴에 이 페이지가 보입니다.'} 글 종류를 고르지 않으면 항목을 눌렀을 때 페이지 내용 편집으로 갑니다.</p>
         <label htmlFor="composition-type"><span>이 페이지에서 관리할 글 종류 <small>선택</small></span>
-          <select id="composition-type" value={type} disabled={busy||!catalog||!page.inStructure&&!page.contentTypeCode} onChange={e=>setType(e.target.value)}>
+          <select id="composition-type" value={type} disabled={busy||!catalog||!page.inStructure&&!page.contentTypeCode} onChange={e=>{setType(e.target.value);if(e.target.value)setWork(true);}}>
             <option value="">선택 안 함 — 내용 편집만</option>
             {types.map(t=>{const other=representedBy(t.code);return <option key={t.code} value={t.code} disabled={!!other}>{t.name}{other?` — ‘${other.title}’ 페이지가 사용 중`:''}</option>;})}
           </select></label>
         <p className="page-create-help">고르면 왼쪽 <strong>콘텐츠 작업</strong> 메뉴에 이 페이지가 생기고, 그 종류의 글을 여기서 쓰고 관리합니다. 글 종류 하나에 페이지 하나입니다. 같은 종류의 글은 다른 페이지의 글 목록 블록에도 넣을 수 있습니다.</p>
-        {type&&<p className="composition-preview">→ 콘텐츠 작업 메뉴에 <strong>{page.title}</strong>{typeLabel?` (${typeLabel} 글)`:''}이 보입니다.</p>}
+        {work&&<p className="composition-preview">→ 콘텐츠 작업 메뉴에 <strong>{page.title}</strong>{type&&typeLabel?` (${typeLabel} 글)`:' (내용 편집)'}이 보입니다.</p>}
+        {!work&&!!type&&<p className="page-hierarchy-warning" role="note">‘콘텐츠 작업에 보이기’가 꺼져 있어 이 페이지는 콘텐츠 작업 메뉴에 나오지 않습니다. 글은 전체 콘텐츠에서 쓸 수 있습니다.</p>}
         {missingBlock&&<p className="page-hierarchy-warning" role="note">이 페이지에는 아직 이 글 종류의 글 목록 블록이 없습니다. 홈페이지에 글을 보여 주려면 내용 편집에서 글 목록 블록을 추가하세요(이 설정은 저장할 수 있습니다).</p>}
         {notice&&<p className="success-box" role="status">{notice}</p>}
         {!!nodes?.length&&type!==(page.contentTypeCode??'')&&<p className="page-hierarchy-warning" role="note">글 종류를 바꾸거나 선택을 해제하면 아래 하위 항목 {nodes.length}개도 함께 없어집니다. 글과 주제는 남습니다.</p>}

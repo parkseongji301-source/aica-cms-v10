@@ -11,10 +11,11 @@ public final class CmsModels {
      * parentId is null for a top-level page; siblings are ordered by sortOrder, then id. areaKind GROUP is a
      * structure node without a screen; contentTypeCode marks the type's representative work area.
      * inStructure FALSE means removed from the site structure (V15); menuVisible only matters inside it.
+     * contentWorkVisible (V17) shows the page in the admin 콘텐츠 작업 sidebar, with or without a content type.
      */
     public record Page(long id, String title, String slug, String sectionsJson, String status,
                        long revision, Long publishedRevision, long authorId, LocalDateTime updatedAt, Long parentId, int sortOrder,
-                       String areaKind, String contentTypeCode, boolean menuVisible, String menuLabel, boolean inStructure) {
+                       String areaKind, String contentTypeCode, boolean menuVisible, String menuLabel, boolean inStructure, boolean contentWorkVisible) {
         public boolean group() { return "GROUP".equals(areaKind); }
         public boolean pending() { return publishedRevision != null && revision != publishedRevision; }
     }

@@ -246,7 +246,7 @@ public class PageService {
   * One representative area per type is the current operating rule, checked here rather than in the DB.
   */
  @Transactional
- public List<Page> compose(AccountPrincipal principal,long id,String contentTypeCode,boolean menuVisible,String menuLabel,String name) {
+ public List<Page> compose(AccountPrincipal principal,long id,String contentTypeCode,boolean menuVisible,String menuLabel,String name,Boolean contentWorkVisible) {
   store.lock();var actor=access.structure(principal);
   List<Page> all=store.all("pages",null);
   var page=PageHierarchy.find(all,id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"페이지를 찾을 수 없습니다."));
@@ -267,6 +267,9 @@ public class PageService {
   if(!Objects.equals(type,page.contentTypeCode())) changes.add("콘텐츠 작업 연결 "+Objects.toString(page.contentTypeCode(),"없음")+" → "+Objects.toString(type,"없음"));
   if(menuVisible!=page.menuVisible()) changes.add(menuVisible?"메뉴 노출":"메뉴 숨김");
   if(!Objects.equals(label,page.menuLabel())) changes.add("메뉴 표시명 "+Objects.toString(label,"제목 사용"));
+  // 콘텐츠 작업에 보이기 (V17): independent of the type link; omitted = unchanged.
+  boolean work=contentWorkVisible==null?page.contentWorkVisible():contentWorkVisible;
+  if(work!=page.contentWorkVisible()) changes.add(work?"콘텐츠 작업에 보이기":"콘텐츠 작업에서 숨기기");
   if(!title.equals(page.title())) changes.add("이름 "+page.title()+" → "+title);
   if(changes.isEmpty()) return all;
   // 콘텐츠 작업 하위 항목 (V16) belong to the linked type: another type or no link removes them (posts and topics stay).
@@ -274,7 +277,7 @@ public class PageService {
    int nodes=store.<ContentNode>all("contentNodesOfPage",id).size();
    if(nodes>0) {store.change("deleteContentNodesOfPage",id);changes.add("하위 항목 "+nodes+"개 제거(글·주제 유지)");}
   }
-  store.change("pageComposition",values("id",id,"contentTypeCode",type,"menuVisible",menuVisible,"menuLabel",label));
+  store.change("pageComposition",values("id",id,"contentTypeCode",type,"menuVisible",menuVisible,"menuLabel",label,"contentWorkVisible",work));
   if(!title.equals(page.title())) store.change("groupName",values("id",id,"title",title));
   audit.record(actor,"사이트 구성 변경","페이지 #"+id,title+": "+String.join(", ",changes));
   return store.all("pages",null);
@@ -306,7 +309,7 @@ public class PageService {
  public record ContentArea(long pageId,String typeCode,String label,List<String> groups,List<ContentNodeView> nodes) {}
  /** One operator-made sub-navigation entry (V16): the sidebar shows exactly these, in their saved order. */
  public record ContentNodeView(long id,String name,Long topicId) {}
- /** Linked PAGE areas in site-structure order for every signed-in role; groups are the ancestor titles. */
+ /** PAGE areas shown in 콘텐츠 작업 (V17 flag), in site-structure order for every signed-in role; groups are the ancestor titles. typeCode is null for a page without a content type. */
  @Transactional(readOnly=true)
  public List<ContentArea> contentAreas(AccountPrincipal principal) {
   access.actor(principal);
@@ -320,7 +323,7 @@ public class PageService {
   if(depth>all.size())return;
   for(Page page:PageHierarchy.children(all,parentId)) {
    if(!page.inStructure()) continue;
-   if(!page.group() && page.contentTypeCode()!=null) out.add(new ContentArea(page.id(),page.contentTypeCode(),page.title(),List.copyOf(groups),List.copyOf(nodes.getOrDefault(page.id(),List.of()))));
+   if(!page.group() && page.contentWorkVisible()) out.add(new ContentArea(page.id(),page.contentTypeCode(),page.title(),List.copyOf(groups),List.copyOf(nodes.getOrDefault(page.id(),List.of()))));
    var next=new ArrayList<>(groups);next.add(page.title());
    collectAreas(all,page.id(),next,out,depth+1,nodes);
   }

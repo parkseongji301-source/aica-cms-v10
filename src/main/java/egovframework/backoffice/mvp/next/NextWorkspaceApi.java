@@ -39,9 +39,9 @@ public class NextWorkspaceApi {
     /** parentId null = top level. Rows come in sibling order (sortOrder, then id). */
     public record PageRow(long id, String title, String slug, String status, long revision,
                           boolean pending, LocalDateTime updatedAt, Long parentId, int sortOrder,
-                          String areaKind, String contentTypeCode, boolean menuVisible, String menuLabel, boolean inStructure) {}
+                          String areaKind, String contentTypeCode, boolean menuVisible, String menuLabel, boolean inStructure, boolean contentWorkVisible) {}
     public record GroupInput(String name, Long parentId) {}
-    public record CompositionInput(String contentTypeCode, boolean menuVisible, String menuLabel, String name) {}
+    public record CompositionInput(String contentTypeCode, boolean menuVisible, String menuLabel, String name, Boolean contentWorkVisible) {}
     public record MembershipInput(Boolean inStructure) {}
     public record PlacementInput(Long parentId, Long expectedParentId) {}
     public record PageOrderInput(Long parentId, List<Long> pageIds) {}
@@ -83,7 +83,7 @@ public class NextWorkspaceApi {
         return rows(pages.list(actor));
     }
     static List<PageRow> rows(List<CmsModels.Page> list) {
-        return list.stream().map(p->new PageRow(p.id(),p.title(),p.slug(),p.status(),p.revision(),p.pending(),p.updatedAt(),p.parentId(),p.sortOrder(),p.areaKind(),p.contentTypeCode(),p.menuVisible(),p.menuLabel(),p.inStructure())).toList();
+        return list.stream().map(p->new PageRow(p.id(),p.title(),p.slug(),p.status(),p.revision(),p.pending(),p.updatedAt(),p.parentId(),p.sortOrder(),p.areaKind(),p.contentTypeCode(),p.menuVisible(),p.menuLabel(),p.inStructure(),p.contentWorkVisible())).toList();
     }
     @PutMapping("/pages/{id}/placement")
     public List<PageRow> placement(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody PlacementInput input) {
@@ -95,7 +95,7 @@ public class NextWorkspaceApi {
     }
     @PutMapping("/pages/{id}/composition")
     public List<PageRow> composition(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody CompositionInput input) {
-        return rows(pages.compose(actor,id,input.contentTypeCode(),input.menuVisible(),input.menuLabel(),input.name()));
+        return rows(pages.compose(actor,id,input.contentTypeCode(),input.menuVisible(),input.menuLabel(),input.name(),input.contentWorkVisible()));
     }
     @PutMapping("/pages/{id}/structure-membership")
     public List<PageRow> membership(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody MembershipInput input) {

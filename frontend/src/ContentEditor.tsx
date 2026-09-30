@@ -31,6 +31,7 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
   const [publishError,setPublishError]=useState('');
   const [previewOpen,setPreviewOpen]=useState(false);
   const [trashOpen,setTrashOpen]=useState(false),[trashing,setTrashing]=useState(false);
+  const [unpublishOpen,setUnpublishOpen]=useState(false),[unpublishing,setUnpublishing]=useState(false);
   const [fatal,setFatal]=useState(false),[authError,setAuthError]=useState(false),[epoch,setEpoch]=useState(0);
   const [message,setMessage]=useState('저장된 내용을 불러왔습니다.'),[error,setError]=useState('');
   const [preview,setPreview]=useState<PostPreview|null>(null),[previewError,setPreviewError]=useState('');
@@ -137,6 +138,17 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
     finally{inFlight.current=false;setBusy(false);setTrashing(false);setTrashOpen(false);}
     if(moved)onTrashed(doc.id);
   }
+  // Withdrawal only hides the public copy; the saved draft and version history stay (PostService.unpublish).
+  async function unpublish() {
+    if(!canPublish||inFlight.current||uploadPending.current||historyBusy||blocked||fingerprint(live.current)!==savedRef.current)return;
+    inFlight.current=true;setBusy(true);setUnpublishing(true);setError('');
+    try {
+      const result=editablePost(await send<PostDocument>(`/posts/${doc.id}/unpublish`,'POST',{revision:live.current.revision}));
+      version.current++;live.current=result;savedRef.current=fingerprint(result);setDoc(result);setSaved(savedRef.current);
+      setPublicationVersion(v=>v+1);setMessage('공개를 중단했습니다. 작성 내용과 이력은 유지됩니다.');onSaved(result);setUnpublishOpen(false);
+    }catch(e){setError(messageOf(e));if(e instanceof ApiError&&[401,403,404,409].includes(e.status)){setBlocked(true);setAuthError([401,403].includes(e.status));}setUnpublishOpen(false);}
+    finally{inFlight.current=false;setBusy(false);setUnpublishing(false);}
+  }
   const category=categories.find(c=>c.id===doc.categoryId)?.name||'미분류';
 
   const unpublished=doc.pending||doc.status==='PUBLISHED'&&dirty;
@@ -145,7 +157,7 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
     <div className="writer-actionbar">
       <div className="writer-save-state"><span className={'writer-save-dot'+(error||publishError||blocked?' is-error':dirty||busy||uploading?' is-pending':'')} aria-hidden="true"/><span role="status">{publishing?'게시 중…':busy?'저장·조회 중…':uploading?'파일 업로드 중…':problem?'입력 확인 필요 · 저장 대기':!doc.title.trim()?presentation.title+' 입력 필요 · 저장 대기':message}</span></div>
       <div className="writer-actions"><button aria-expanded={previewOpen} aria-controls={'writer-preview-'+doc.id} onClick={()=>setPreviewOpen(value=>!value)}>{previewOpen?'미리보기 닫기':'미리보기'}</button><button className={canPublish?undefined:'primary'} disabled={busy||uploading||historyBusy||blocked||fatal||!!problem} onClick={()=>void save()} title="현재 내용을 저장하고 버전 이력에 남깁니다.">임시보관</button>{canPublish&&<button className="primary" disabled={busy||uploading||historyBusy||blocked||fatal||!!problem||!doc.title.trim()||doc.status==='PUBLISHED'&&!doc.pending&&!dirty} onClick={()=>void save(false,true)}>{publishing?'게시 중…':doc.status==='PUBLISHED'?'수정 내용 게시':'게시'}</button>}
-        <details className="writer-more"><summary>더보기</summary><div className="writer-more-panel"><button disabled={busy||uploading||historyBusy} onClick={()=>{if(dirty)setError('초안을 저장한 뒤 버전 이력을 열어 주세요.');else setHistoryOpen(true);}}>버전 이력</button><button disabled={busy||uploading||historyBusy} onClick={()=>void reload()}>다시 조회</button>{canDelete&&<button className="danger-link" disabled={dirty||busy||uploading||historyBusy||blocked} title={dirty?'변경사항을 저장한 뒤 이동할 수 있습니다.':undefined} onClick={()=>{setError('');setTrashOpen(true);}}>휴지통으로 이동</button>}<a aria-disabled={dirty||busy||uploading||blocked} href={dirty||busy||uploading||blocked?undefined:'/admin/posts/'+doc.id+'/edit'} target="_blank" rel="noopener noreferrer">{canPublish?'공개 중단 등 상세 관리':'기존 편집 화면'} <span>기존 화면 ↗</span></a></div></details>
+        <details className="writer-more"><summary>더보기</summary><div className="writer-more-panel"><button disabled={busy||uploading||historyBusy} onClick={()=>{if(dirty)setError('초안을 저장한 뒤 버전 이력을 열어 주세요.');else setHistoryOpen(true);}}>버전 이력</button><button disabled={busy||uploading||historyBusy} onClick={()=>void reload()}>다시 조회</button>{canDelete&&<button className="danger-link" disabled={dirty||busy||uploading||historyBusy||blocked} title={dirty?'변경사항을 저장한 뒤 이동할 수 있습니다.':undefined} onClick={()=>{setError('');setTrashOpen(true);}}>휴지통으로 이동</button>}{canPublish&&doc.status==='PUBLISHED'&&<button disabled={dirty||busy||uploading||historyBusy||blocked} title={dirty?'변경사항을 저장한 뒤 공개를 중단할 수 있습니다.':undefined} onClick={()=>{setError('');setUnpublishOpen(true);}}>공개 중단</button>}</div></details>
       </div>
     </div>
     <div className={'writer-publication-state'+(unpublished?' has-changes':'')}>
@@ -191,6 +203,7 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
         {preview?.attachments.map(file=>file.mime.startsWith('image/')?<img key={file.id} src={'/admin/media/'+file.id+'/file'} alt={file.alt}/>:<a key={file.id} href={'/admin/media/'+file.id+'/file'} download>{file.name}</a>)}
       </article></div>
     </aside></div>
+    {unpublishOpen&&<BlockDialog active={active} title="공개 중단" onClose={()=>{if(!inFlight.current)setUnpublishOpen(false);}}><p><strong>{doc.title}</strong></p><p>방문자에게 보이는 공개본을 내리고 비공개로 바꿉니다. 작성 내용과 버전 이력은 그대로 남으며 다시 게시할 수 있습니다.</p><div className="dialog-actions"><button disabled={unpublishing} onClick={()=>setUnpublishOpen(false)}>취소</button><button className="danger" disabled={unpublishing} onClick={()=>void unpublish()}>{unpublishing?'공개 중단 중…':'공개 중단'}</button></div></BlockDialog>}
     {publicationOpen&&active&&<PublicationViewDialog id={doc.id} active={active} onClose={()=>setPublicationOpen(false)}/>}
     {historyOpen&&<VersionHistoryDialog kind="posts" id={doc.id} active={active} onClose={()=>setHistoryOpen(false)} onRestored={restored} onBusy={setHistoryBusy}/>}
     {trashOpen&&<BlockDialog active={active} title="휴지통으로 이동" onClose={()=>{if(!inFlight.current)setTrashOpen(false);}}><p><strong>{doc.title}</strong></p><p>게시물이 목록과 공개 화면에서 사라집니다. 본문·첨부·분류·버전 이력은 보관하며 휴지통에서 임시보관으로 복원할 수 있습니다.</p><div className="dialog-actions"><button disabled={trashing} onClick={()=>setTrashOpen(false)}>취소</button><button className="danger" disabled={trashing} onClick={()=>void trash()}>{trashing?'이동 중…':'휴지통으로 이동'}</button></div></BlockDialog>}

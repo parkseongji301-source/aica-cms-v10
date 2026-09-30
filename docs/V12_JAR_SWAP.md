@@ -43,6 +43,19 @@ RC2 receipt에는 교체 대상(RC1 폴더·JAR 해시·receipt 해시), 사용�
 
 **rollback**: `STOP.cmd` → `select-v12-runtime.ps1 -Runtime .cache\v12-release\V12-RC1-20260930\runtime -AuthorizeSelection` → `START.cmd`. DB와 두 receipt는 그대로다.
 
+## 8095 적용 결과 (2026-09-30, PASS)
+
+RC1(`3ba3a701…`) → RC2(`90718f0a…`). 자세한 결과와 3개 역할 검증은 [5단계 결과](REACT_ADMIN_STEP5.md)의 "8095 적용 결과"에 있다.
+
+| 검사 | 결과 |
+|---|---|
+| RC1 정상 종료, DB = 마지막 종료 기록(`stopped-1790765329895.json`, `3ea4fe5b…0c32`) | 통과 |
+| 백업 `.cache/v12-release/backups/aica-local.before-RC2-20260930-stopped-1790765329895.mv.db` | 해시 동일 |
+| `db/migration` 항목 15개 바이트 동일, RC2 JAR Flyway validate 12개, 검사 결과 = 종료 기록 | 통과, receipt 발급 |
+| RC1 receipt | 변경 없음(`edc6fa7b…`), rollback 가능 |
+| RC2 선택·START → 정상 종료 → 재시작 | 통과. 종료 검사에서 migration 이력 동일, 37개 표의 행 수·지문 변화 0 |
+| 3개 역할 검증 | PASS. 검증용 임시 계정 ADMIN #33(`rc2-check-admin@example.com`), SUPPORTER #34(`rc2-check-supporter@example.com`)은 확인 후 사용 중지 |
+
 ## 리허설 결과 (2026-09-30, PASS)
 
 8095(RC1)는 멈추지 않았다. 보관 중인 V12 개발 실행본(`.cache/runtime-v12-writing-templates`, 백업 전용)을 **복사**해 `.cache/v12-rehearsal-RC2-20260930/`에서 진행했다. 원본 DB 해시(`5301809b…19b1`)는 끝까지 같았다.

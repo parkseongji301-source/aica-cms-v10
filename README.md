@@ -22,7 +22,12 @@ V12 서버는 schema V12 DB와 MIGRATED_V12 receipt만 받습니다. V11 DB를 V
 
 이 PC는 2026-09-29 V11 이관 묶음(`트랜스퍼 0930/`, Git 제외)을 풀어 사용합니다. 루트의 `START.cmd`/`STOP.cmd`는 Git 제외 파일 `.cache/current-ui.json`이 가리키는 실행본을 시작·정상 종료합니다. 현재 실행본과 전환·되돌리기 절차는 [V12 안정 기준점](docs/V12_STABLE_BASELINE.md)의 "이 PC의 실행 상태"를 따릅니다. 다른 PC·경로로 옮길 때는 [V12 실행본 옮기기](docs/V12_RELOCATION.md)를, 스키마 변경 없이 JAR만 바꿀 때(RC1 → RC2)는 [V12 JAR 교체](docs/V12_JAR_SWAP.md)를 따릅니다.
 
-접속: [콘텐츠 작업](http://127.0.0.1:8095/admin-next/posts?view=structure) · [사이트 관리](http://127.0.0.1:8095/admin-next/dashboard?view=manage). 로그인 자격증명은 별도로 인계합니다.
+8095는 2026-09-30부터 **V12 RC2**(React 관리자 `/admin`)로 실행합니다. RC1과 같은 V12 DB를 쓰며 RC1로 되돌릴 수 있습니다([V12 JAR 교체](docs/V12_JAR_SWAP.md)).
+
+접속: [관리자](http://127.0.0.1:8095/admin) · [콘텐츠 작업](http://127.0.0.1:8095/admin/posts?view=structure) · [사이트 관리](http://127.0.0.1:8095/admin/dashboard?view=manage). 로그인 자격증명은 별도로 인계합니다.
+
+- `/admin-next/...`: 과도기 호환 redirect입니다. 같은 화면의 `/admin/...`으로 302 이동합니다.
+- [`/admin/legacy`](http://127.0.0.1:8095/admin/legacy): 기존 Thymeleaf 화면으로, **비교·복구용**입니다. 일반 업무는 `/admin`에서 합니다. 제거 조건은 [5단계 결과](docs/REACT_ADMIN_STEP5.md)에 있습니다.
 
 파일 DB writer의 **AUTO_COMPACT_FILL_RATE=0은 필수**입니다. 과거 V3/V10/V11 시작 경로를 V12 DB에 사용하지 마세요. 강제 종료나 열린 DB의 파일 복사를 하지 않습니다.
 

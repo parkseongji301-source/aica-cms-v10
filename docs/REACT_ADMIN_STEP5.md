@@ -63,12 +63,49 @@ React 관리자 주소를 `/admin-next/**`에서 `/admin/**`으로 옮기고, �
 | 항목 | 상태 |
 |---|---|
 | RC2 빌드 | 완료. `081a35e`를 깨끗한 worktree에서 Vite 빌드 후 `mvnw -o package`(테스트 192개, 실패 0, 제외 6). JAR `90718f0ab1783bdea964b70d5ecbb83c9ee7a35166c60b731260e95adfb848a6` |
-| RC2 실행본 폴더 | 준비 완료. `.cache/v12-release/V12-RC2-20260930/runtime`(JAR, RC1과 같은 정상 종료 도구와 로그인 스타일 오버레이 `e94da365…`, `database` = RC1 DB). receipt는 아직 없다 |
+| RC2 실행본 폴더 | `.cache/v12-release/V12-RC2-20260930/runtime`(JAR, RC1과 같은 정상 종료 도구와 로그인 스타일 오버레이 `e94da365…`, `database` = RC1 DB, RC2 receipt) |
 | 리허설 | PASS(DB 사본, 8096/8097). 결과는 V12_JAR_SWAP.md |
-| 8095 실제 적용 | 대기. RC1 정상 종료가 필요해 사용자 확인 후 진행한다 |
+| 8095 실제 적용 | **PASS(2026-09-30)**. 결과는 아래 "8095 적용 결과" |
+
+## 8095 적용 결과 (2026-09-30, PASS)
+
+[V12 JAR 교체](V12_JAR_SWAP.md)의 절차대로 진행했다. DB migration·schema 변경은 없고 RC1과 같은 V12 DB를 그대로 쓴다.
+
+| 순서 | 결과 |
+|---|---|
+| 원격 반영 | `main` `1e1b199`, 태그 `react-admin-step4-20260930`(→ `fecf694`) push, local/remote 일치 |
+| RC1 정상 종료 | 통과. cold 검사 `stopped-1790765329895.json`, DB SHA-256 `3ea4fe5bcab1f198143ec440d605ff0daf9a8d91af4429264936372113fd0c32` = 종료 기록 |
+| 백업 | `.cache/v12-release/backups/aica-local.before-RC2-20260930-stopped-1790765329895.mv.db`(같은 해시), 종료 기록·RC1 receipt 사본 |
+| RC2 receipt 발급 | 통과. migration 항목 15개가 RC1 JAR과 바이트 동일, RC2 JAR로 Flyway 12개 validate, 검사 결과 = 종료 기록. RC1 receipt 변경 없음(SHA-256 `edc6fa7b…`) |
+| RC2 선택·START | 통과. `current-ui.json` → `V12-RC2-20260930/runtime` |
+| 정상 종료·재시작 | 통과. 종료 검사에서 migration 이력 동일, 37개 표 모두 행 수·지문이 RC1 종료 기록과 같음. 재시작 후 `/login` 200, 공개 API 200 |
+| 사용자 확인 | 실제 로그인 → React 기본 진입, 로그인한 역할의 기본 화면: PASS |
+| 3개 역할 검증 | **PASS**(아래) |
+
+현재 8095: JAR `90718f0ab1783bdea964b70d5ecbb83c9ee7a35166c60b731260e95adfb848a6`, receipt `MIGRATED_V12`(RC1 DB, 교체 대상 RC1 JAR `3ba3a701…`). `/admin`은 React, `/admin-next/**`는 과도기 호환 302, `/admin/legacy/**`는 비교·복구용 기존 화면이다. RC1 rollback 가능 상태를 유지한다.
+
+### 3개 역할 검증 (8095, HTTP 세션·CSRF)
+
+SUPER_ADMIN 계정으로 검증용 임시 계정 2개를 발급해 확인했다. 확인 뒤 두 계정은 **사용 중지**했고 그대로 둔다(로그인 불가, 기존 세션도 즉시 401). 이 계정들은 검증용이었으며 업무에 쓰지 않는다.
+
+| 계정 번호 | ID | 역할 | 상태 |
+|---|---|---|---|
+| 33 | `rc2-check-admin@example.com` | ADMIN | 사용 중지 |
+| 34 | `rc2-check-supporter@example.com` | SUPPORTER | 사용 중지 |
+
+| 확인 | SUPER_ADMIN | ADMIN | SUPPORTER |
+|---|---|---|---|
+| 첫 로그인 강제 비밀번호 변경 → `/admin` | 해당 없음 | 통과 | 통과 |
+| React 주소 18개 200(세 역할의 화면 파일 1종, 계정 정보 없음) | 통과 | 통과 | 통과 |
+| 기존 화면 11개: 허용 200 + "기존 화면(비교·복구용)" 표시, 그 외 403 | 통과 | 통과 | 통과 |
+| 데이터 API 18개가 역할별 권한표와 같음 | 통과 | 통과 | 통과 |
+| `/admin-next/pages?view=structure` → `/admin/pages?view=structure`, `/admin/posts/new` → `/admin/posts` | 통과 | 통과 | 통과 |
+
+실패 0. 검증 중 DB에 남은 변경은 임시 계정 2행과 그 활동 기록(발급·비밀번호 변경·사용 중지)뿐이다.
 
 ## 남은 것
 
 - 로그인 화면 스타일 오버레이(`css/flow.css` = 원본 + `login-shell.css`)는 그대로 둔다. RC2도 RC1과 같은 방식으로 제공한다. 로그인 화면을 바꾸는 작업은 이 단계의 설계에 넣지 않았다.
-- `README.md`의 8095 접속 링크는 RC2 적용 뒤 `/admin/...`으로 바꾼다. 지금 8095(RC1)의 `/admin`은 기존 대시보드다.
+- `README.md`의 8095 접속 링크는 RC2 적용 뒤 `/admin/...`으로 바꿨다.
+- 기존 화면 제거는 별도 정리 단계에서 한다. RC2 실제 적용·3개 역할 검증·정상 종료와 재시작은 마쳤고, rollback 실제 검증과 React 안의 legacy 링크 0개 확인을 마친 뒤 진행한다.
 - 과거 단계 문서와 보조 스크립트의 `/admin-next` 주소는 기록이므로 고치지 않는다. 옛 주소는 302로 계속 열린다.

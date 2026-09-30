@@ -95,7 +95,7 @@ $java=$targetConfig.java;if(-not(Test-Path -LiteralPath $java)){throw ('Java not
 
 # 2. The source receipt is a completed V12 receipt for the source JAR; the target uses the same database file.
 $sourceReceipt=Get-TaskJson $sourceReceiptPath
-if($sourceReceipt.status -notin @('MIGRATED_V12','MIGRATED_V13') -or $sourceReceipt.jarSha256 -ne $sourceConfig.jarSha256 -or $sourceReceipt.workaround -ne 'AUTO_COMPACT_FILL_RATE=0'){throw 'Source receipt is not a completed V12/V13 receipt for the source JAR.'}
+if($sourceReceipt.status -notin @('MIGRATED_V12','MIGRATED_V13','MIGRATED_V14') -or $sourceReceipt.jarSha256 -ne $sourceConfig.jarSha256 -or $sourceReceipt.workaround -ne 'AUTO_COMPACT_FILL_RATE=0'){throw 'Source receipt is not a completed V12/V13 receipt for the source JAR.'}
 $db=Get-TaskDatabase $sourceRuntime $sourceConfig
 if($sourceReceipt.databasePath -cne $db){throw 'Source receipt is bound to another database path.'}
 if((Get-TaskDatabase $targetRuntime $targetConfig) -cne $db){throw 'Target runtime.json database must be the source database file.'}

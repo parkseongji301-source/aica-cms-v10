@@ -51,7 +51,7 @@ export function PageEditor({canChangeAddress=false,initial,definitions,categorie
  async function saveAddress() {
   if(inFlight.current||pendingUpload.current||blocked||fingerprint(live.current)!==savedRef.current)return;
   inFlight.current=true;setBusy(true);setAddressError('');
-  try {const result=await changePageAddress(live.current.id,live.current.revision,address);stamp.current++;live.current=result;savedRef.current=fingerprint(result);setDoc(result);setSaved(savedRef.current);setMessage('주소를 바꿨습니다 · 다음 게시 때 공개 주소에 반영됩니다');setAddressOpen(false);}
+  try {const result=await changePageAddress(live.current.id,live.current.revision,address);stamp.current++;live.current=result;savedRef.current=fingerprint(result);setDoc(result);setSaved(savedRef.current);setMessage('주소를 바꿨습니다 · 다음 게시 때 공개 주소에 반영됩니다');setAddressOpen(false);onTitle(result.title);}
   catch(e){const failure=e as ApiError;setAddressError(failure.message);if([401,403].includes(failure.status)){setBlocked(true);setAuthError(true);}}
   finally{inFlight.current=false;setBusy(false);}
  }
@@ -59,7 +59,7 @@ export function PageEditor({canChangeAddress=false,initial,definitions,categorie
  async function unpublish() {
   if(inFlight.current||pendingUpload.current||blocked||fingerprint(live.current)!==savedRef.current)return;
   inFlight.current=true;setBusy(true);setError('');
-  try {const result=await unpublishPage(live.current.id,live.current.revision);stamp.current++;live.current=result;savedRef.current=fingerprint(result);setDoc(result);setSaved(savedRef.current);setMessage('공개를 중단했습니다 · 작성 내용과 이력은 유지됩니다');setAuthError(false);}
+  try {const result=await unpublishPage(live.current.id,live.current.revision);stamp.current++;live.current=result;savedRef.current=fingerprint(result);setDoc(result);setSaved(savedRef.current);setMessage('공개를 중단했습니다 · 작성 내용과 이력은 유지됩니다');setAuthError(false);onTitle(result.title);}
   catch(e){const failure=e as ApiError;setError(failure.message);if([401,403,409].includes(failure.status)){setBlocked(true);setAuthError(failure.status!==409);}}
   finally{inFlight.current=false;setBusy(false);setUnpublishOpen(false);}
  }

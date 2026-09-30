@@ -14,7 +14,7 @@
 | 2 | 기존 Service를 쓰는 JSON API: 콘텐츠 공개 중단, 페이지 게시·비공개·주소 변경, 페이지 삭제(JSON)·삭제 영향, 기존 카테고리, 계정 발급·역할·비활성·비밀번호 초기화 | 완료(2026-09-30) |
 | 3 | 2단계 기능의 React 화면 | 완료(2026-09-30) |
 | 4 | React 안의 기존 화면 링크(`LegacyLink`, "기존 관리자") 제거, SUPPORTER/ADMIN/SUPER_ADMIN 전체 업무 검증 | 완료(2026-09-30, PASS) |
-| 5 | `/admin-next` → `/admin` 전환, 기존 Thymeleaf GET 화면을 `/admin/legacy`로 이동 | 다음. React 전환 범위에 포함하고, 끝나면 기준점을 만든 뒤 V13(페이지 계층)으로 넘어간다 |
+| 5 | `/admin-next` → `/admin` 전환, 기존 Thymeleaf GET 화면을 `/admin/legacy`로 이동 | 구현·검증 완료(2026-09-30, [결과](REACT_ADMIN_STEP5.md)). 8095 RC2 적용은 리허설 후. 끝나면 기준점을 만든 뒤 V13(페이지 계층)으로 넘어간다 |
 
 2~4단계에는 DB migration이 없다. `/admin/media/{id}/file`, `/admin/media/upload`, `/admin/pages/save-json`은 React와 저장된 본문이 쓰므로 계속 유지한다.
 
@@ -96,6 +96,8 @@ React 안의 기존 화면 링크를 모두 뺐다. 상단바의 "기존 관리�
 검증 중 페이지 편집기에서 공개 중단·주소 변경 뒤 페이지 목록이 갱신되지 않는 문제를 찾아 고쳤다(`299f5ce`). 서버 전체 테스트 186개 실행, 실패 0, 환경 조건 제외 6. 프런트 테스트 69개.
 
 ### 5단계로 넘기는 것
+
+5단계에서 처리한 결과는 [REACT_ADMIN_STEP5.md](REACT_ADMIN_STEP5.md)에 있다. 로그인 화면 스타일 오버레이는 5단계 설계에 넣지 않고 그대로 둔다.
 
 - 로그인 성공 뒤 첫 화면이 아직 기존 `/admin` 대시보드다. 검증은 로그인 후 `/admin-next`로 이동해 진행했다.
 - 권한 없는 React 주소를 직접 열면 서버 403 안내 화면이 나온다(React 안내가 아님).

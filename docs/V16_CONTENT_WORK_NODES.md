@@ -1,6 +1,6 @@
 # V16 콘텐츠 작업 하위 항목 (2026-10-01)
 
-최종 검수 전에 마무리하는 보완 범위: **관리자가 콘텐츠 작업의 하위 항목을 직접 구성하는 기능**. 드래그, 전체 디자인 재개편, 주제 관리, 새로운 홈페이지 기능은 범위 밖이다.
+최종 검수 전에 마무리하는 보완 범위: **페이지별 관리자 콘텐츠 작업 하위 항목 1단계를 관리자가 직접 구성하는 기능**. 범위는 여기까지로 고정한다(사용자 결정). 다단계 탐색 트리, 복합 조건 빌더(항목당 주제 여러 개·기수 조건 등), 드래그, 전체 디자인 재개편, 주제 관리, 새로운 홈페이지 기능은 범위 밖이다.
 
 ## 1. 문제와 결정
 
@@ -62,7 +62,28 @@ V14~V15의 콘텐츠 작업 사이드바는 글 종류를 연결한 페이지 �
 | 공개 API | `/menus`·`/structure`·`/pages/1`·`/pages/65`·`/posts`·`/posts?categoryId=1` 항목 작업 전후 동일 |
 | 정상 정지 → 재시작 | 항목 2개·글 #137 유지, 다시 정상 정지 |
 
-## 4. 8095 적용 (별도 승인 필요)
+## 4. 8095 적용 결과 (2026-10-01)
+
+사용자 승인으로 적용했다. 기존 V15 RC2 DB는 그대로 보존하고 새 runtime 사본에만 V16을 적용했다.
+
+| 순서 | 결과 |
+|---|---|
+| 적용 전 기록 | 익명 공개 API 8개 응답 저장(`.cache/v16-release/apply-20261001/before-*.json`) |
+| V15 RC2 정상 종료 | 통과, 차가운 검사 `stopped-1790789689792.json`(이력 15, DB `def57af7…`) |
+| 백업 | `.cache/v12-release/backups/aica-local.before-V16-20261001-stopped-1790789689792.mv.db` + 검사 파일, 해시 일치 |
+| 새 RC | `.cache/v16-release/V16-RC1-20261001/runtime`(JAR `0fee384e…` = 사본 검증 JAR, commit `9c4c649`) |
+| `promote-v16-runtime.ps1` | 통과. `MIGRATED_V16`, 이력 16, 새 표 1개(비어 있음), 기존 데이터 지문 불변. **V15 RC1 DB 해시 `def57af7…` 적용 전후 동일** |
+| 선택·기동 | `current-ui.json` = `{kind:v16, runtime:.cache/v16-release/V16-RC1-20261001/runtime}`, "V16 file runtime … validate-only", 8095 ready |
+| 공개 API | `/menus`·`/structure`·`/pages/1`·`/pages/65`·`/pages/97`(404)·`/posts`·`/posts?categoryId=1`·`/pages/by-slug/about` 적용 전과 **바이트 동일**. `/pages/98`은 첫 재기동 전후 동일 |
+| 기존 데이터 | 페이지 #1·#65·#97·#98(사용자가 만든 후기 연결 페이지, 게시됨) 그대로. 연결된 영역 #98의 하위 항목 0개(자동 생성 없음). 차가운 표 비교(V15 백업 사본 ↔ V16): 표 40개 행 수 동일, 차이는 새 표 `CONTENT_WORK_NODES` 0행, `USERS` +3(검증용), `ACTIVITY_LOG` +6(발급·비밀번호 변경·사용 중지), Flyway 이력 +1뿐 |
+| 세 역할 | SUPER_ADMIN: React 9개 주소·분류·구성 상태·메뉴 200, 미연결 페이지 항목 추가 400. ADMIN·SUPPORTER: 사이드바(contentAreas) 동일, 항목 추가·변경·순서·제거·구성 변경 403, 항목 GET ADMIN 200·SUPPORTER 403, 페이지 읽기 ADMIN 200·SUPPORTER 403 |
+| 정상 종료 → 재시작 | 2회 통과(`stopped-1790790036423.json`, `stopped-1790790087246.json`). 페이지·영역·글 수 동일, 공개 API 동일 |
+| 임시 계정 | #41(v16-check-root@example.com, SUPER_ADMIN — 운영 비밀번호 없이 세 역할을 확인하려고 적용 사본 DB에 직접 추가), #42(v16-check-admin@example.com), #43(v16-check-supporter@example.com). 모두 사용 중지 확인(#41은 정상 종료 뒤 차가운 DB에서 `active=FALSE`, 이후 로그인 거부 확인). 비밀번호는 남기지 않았다 |
+
+되돌리기: `select-v12-runtime.ps1 -Runtime .cache/v15-release/V15-RC2-20261001/runtime -AuthorizeSelection` → START(V15 DB는 적용 직전 그대로). V16 적용 이후 운영 변경은 잃는다.
+
+## 5. 적용 절차 (계획, 기록용)
+
 
 1. 8095(V15 RC2, DB는 `V15-RC1-20260930/runtime/db`) 정상 종료(STOP.cmd) → 백업(`.cache/v12-release/backups/aica-local.before-V16-…`).
 2. 새 RC 폴더 `.cache/v16-release/V16-RC1-20261001/runtime`(JAR `0fee384e…`, `graceful-stop.jar`·assets 복사, `runtime.json`에 `database` 없음) → `promote-v16-runtime.ps1 -Source .cache/v15-release/V15-RC2-20261001/runtime -Target … -AuthorizeMigration`. 사본에만 적용되고 RC1 DB는 그대로.

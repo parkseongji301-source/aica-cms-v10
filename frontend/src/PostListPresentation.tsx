@@ -5,7 +5,7 @@ import type {ContentContext} from './contentNavigation';
 import {contextualPostPath,filterValues} from './contentNavigation';
 import {topicLabel} from './classification';
 import {postFilterTopics} from './postListFilters';
-import {date,LegacyLink} from './ui';
+import {date} from './ui';
 
 export const postStatusLabels:Record<string,string>={DRAFT:'임시보관',PUBLISHED:'게시됨',PRIVATE:'비공개'};
 
@@ -32,9 +32,9 @@ export function ContentListTable({items,categories,go,scope,filtered,onReset,sel
     })}</tbody></table></div>;
 }
 
-type FilterProps={params:URLSearchParams;scope:ContentContext|null;catalog:ClassificationCatalog|null;categories:Bootstrap['categories'];canManageCategories:boolean;change:(values:Record<string,string>)=>void;selectTypes:(types:string[])=>void;toggle:(key:string,value:string)=>void};
+type FilterProps={params:URLSearchParams;scope:ContentContext|null;catalog:ClassificationCatalog|null;categories:Bootstrap['categories'];change:(values:Record<string,string>)=>void;selectTypes:(types:string[])=>void;toggle:(key:string,value:string)=>void};
 
-export function PostListFilters({params,scope,catalog,categories,canManageCategories,change,selectTypes,toggle}:FilterProps) {
+export function PostListFilters({params,scope,catalog,categories,change,selectTypes,toggle}:FilterProps) {
   const [open,setOpen]=useState<string|null>(null),id=useId(),root=useRef<HTMLDivElement>(null);
   const values=(key:string)=>filterValues(params,key),types=values('typeCodes'),cohorts=values('cohortIds'),topics=values('topicIds');
   const availableTopics=catalog?postFilterTopics(catalog,types):[];
@@ -49,7 +49,7 @@ export function PostListFilters({params,scope,catalog,categories,canManageCatego
       {group.key==='type'&&catalog&&<><div className="posts-filter-options"><button type="button" aria-pressed={!types.length} disabled={!!scope} onClick={()=>selectTypes([])}>모든 유형</button>{catalog.types.map(type=><label key={type.code}><input type="checkbox" disabled={!!scope} checked={types.includes(type.code)} onChange={()=>selectTypes(types.includes(type.code)?types.filter(value=>value!==type.code):[...types,type.code])}/>{type.name}{!type.active?' · 비활성':''}</label>)}</div>{scope&&<p className="posts-filter-note">선택한 메뉴의 유형입니다. 다른 유형은 전체 콘텐츠에서 찾을 수 있습니다.</p>}</>}
       {group.key==='cohort'&&catalog&&<div className="posts-filter-options">{catalog.cohorts.map(cohort=><label key={cohort.id}><input type="checkbox" checked={cohorts.includes(String(cohort.id))} onChange={()=>toggle('cohortIds',String(cohort.id))}/>{cohort.name}{!cohort.active?' · 비활성':''}</label>)}{!catalog.cohorts.length&&<p className="muted">등록된 기수가 없습니다.</p>}</div>}
       {group.key==='topic'&&catalog&&<><div className="posts-filter-options">{availableTopics.map(topic=><label key={topic.id}><input type="checkbox" checked={topics.includes(String(topic.id))} disabled={scope?.topicId!=null} onChange={()=>toggle('topicIds',String(topic.id))}/>{topicLabel(topic.id,catalog)}{!topic.active?' · 비활성':''}</label>)}{!availableTopics.length&&<p className="muted">선택한 유형에는 등록된 주제가 없습니다.</p>}</div>{scope?.topicId!=null&&<p className="posts-filter-note">선택한 메뉴의 주제로 고정되어 있습니다.</p>}{topics.some(value=>!availableTopics.some(topic=>String(topic.id)===value))&&<p className="posts-filter-note">현재 유형에 없는 주제 조건이 남아 있습니다. 아래 적용 조건에서 해제할 수 있습니다.</p>}</>}
-      {group.key==='category'&&<div className="posts-category-filter"><label>기존 카테고리<select value={category} onChange={event=>change({categoryId:event.target.value})}><option value="">전체 카테고리</option>{category&&!categories.some(item=>String(item.id)===category)&&<option value={category}>확인할 수 없는 카테고리</option>}{categories.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{canManageCategories&&<LegacyLink href="/admin/categories">기존 카테고리 관리</LegacyLink>}</div>}
+      {group.key==='category'&&<div className="posts-category-filter"><label>기존 카테고리<select value={category} onChange={event=>change({categoryId:event.target.value})}><option value="">전체 카테고리</option>{category&&!categories.some(item=>String(item.id)===category)&&<option value={category}>확인할 수 없는 카테고리</option>}{categories.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>}
       {group.key!=='category'&&<footer className="posts-filter-panel-footer"><p>같은 항목에서는 하나 이상, 다른 항목끼리는 모두 일치하는 글을 찾습니다.</p><button type="button" onClick={resetClassification}>분류 초기화</button></footer>}
     </section>)}
   </div>;

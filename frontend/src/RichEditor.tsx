@@ -40,7 +40,7 @@ export function RichEditor({document:source,plain,label,onChange,advanced=false,
   const q=new Quill(element,{formats,modules:{toolbar:false,history:{userOnly:true}},placeholder:'내용을 입력하세요.'});quill.current=q;
   q.root.setAttribute('role','textbox');q.root.setAttribute('aria-label',label);q.root.setAttribute('aria-multiline','true');
   try {if(source)q.setContents(JSON.parse(source),'silent');else q.setText(plain,'silent');q.history.clear();setEditor(q);}
-  catch{const message='본문을 읽을 수 없어 편집을 중지했습니다. 기존 관리자에서 확인하세요.';setError(message);fatal.current?.(message);q.disable();}
+  catch{const message='본문을 읽을 수 없어 편집을 중지했습니다. 입력 내용은 저장되지 않았습니다. 관리자에게 이 콘텐츠 번호를 알려 주세요.';setError(message);fatal.current?.(message);q.disable();}
   const refresh=()=>{const range=q.getSelection();if(range){lastRange.current=range;setActiveFormat(q.getFormat(range));}};
   const handler=()=>{change.current(q.getText().trimEnd(),JSON.stringify(q.getContents()));refresh();};q.on('text-change',handler);q.on('selection-change',refresh);
   return()=>{q.off('text-change',handler);q.off('selection-change',refresh);quill.current=null;host.current?.replaceChildren();};

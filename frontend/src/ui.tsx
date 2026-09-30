@@ -22,9 +22,6 @@ export function useUnsaved(dirty:boolean) {
 export function Heading({title,note,actions,badge}:{title:string;note?:string;actions?:ReactNode;badge?:string}) {
   return <div className="editor-heading"><div><h1>{title} {badge&&<span className="scope-tag">{badge}</span>}</h1>{note&&<p className="target-caption">{note}</p>}</div><div className="heading-actions">{actions}</div></div>;
 }
-export function LegacyLink({href,children}:{href:string;children:ReactNode}) {
-  return <a className="legacy-link" href={href} target="_blank" rel="noopener noreferrer">{children} <span>기존 화면 · 새 창 ↗</span></a>;
-}
 export function Feedback({error,loading,message,reload}:{error?:string;loading?:boolean;message?:string;reload?:()=>void}) {
   return <>{loading&&<p className="loading-line" role="status">불러오는 중…</p>}{error&&<div className="error-box" role="alert"><strong>처리하지 못했습니다.</strong><p>{error}</p>{reload&&<button disabled={loading} onClick={reload}>다시 불러오기</button>}</div>}{message&&<p className="success-line" role="status">{message}</p>}</>;
 }

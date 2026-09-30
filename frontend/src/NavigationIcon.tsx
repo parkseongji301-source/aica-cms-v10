@@ -22,7 +22,7 @@ export function NavigationIcon({name}:{name:NavigationIconName}) {
 export const managementIcons:Record<string,NavigationIconName> = {
   '콘텐츠 관리':'content',
   '페이지 관리':'pages',
-  '디자인 관리':'design',
+  '공통 구조 관리':'design',
   '운영 관리':'people',
   '사이트 설정':'settings',
 };

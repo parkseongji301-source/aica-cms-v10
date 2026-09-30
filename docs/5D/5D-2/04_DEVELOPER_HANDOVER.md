@@ -35,7 +35,7 @@ flowchart LR
 | POSTS 조회 | `PublishedPostQueryService`, `CmsMapper.xml` | category/query/manual 공통 발행본 조회, EXISTS 기반 분류 필터 |
 | 분류 | `ClassificationService`, `ClassificationMapper.xml` | content_types, cohorts, topics, content_type_topics, 초안/발행 관계 테이블 |
 | 맛집 | `RestaurantDetailsService`, `RestaurantMapper.xml` | post_restaurant_details / post_publication_restaurant_details, 주소만 |
-| 공용 템플릿 | `PageTemplates.tsx`, `NextTemplateApi`, `PageTemplateService`, `PageTemplateMapper.xml` | page_templates.blocks_json, 별도 revision; 페이지와 실시간 관계 없음 |
+| 페이지 템플릿(구 공용 템플릿) | `PageTemplates.tsx`, `NextTemplateApi`, `PageTemplateService`, `PageTemplateMapper.xml` | page_templates.blocks_json, 별도 revision; 페이지와 실시간 관계 없음 |
 | 미디어 | `MediaService`, `UsageService`, `TemplateReferences` | media BLOB/메타데이터, post_media/page_media 및 발행 참조 |
 | 최신 공개본 | `PostService`, `PageService`, `PublicSiteService` | post_publications, page_publications 및 발행 미디어/분류/맛집 snapshot |
 | 버전 이력 | `VersionHistoryService`, `VersionSnapshots`, `VersionStore`, `VersionMapper.xml` | post_versions/page_versions/page_template_versions의 불변 JSON snapshot |

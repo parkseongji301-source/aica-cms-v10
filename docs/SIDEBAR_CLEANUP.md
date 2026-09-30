@@ -13,3 +13,8 @@
 - 8095 적용 전후 36개 테이블의 fingerprints, 스키마·migration 이력 및 승인 JAR·receipt·실행 설정 동일 확인.
 - 배포: `.cache/ui-releases/sidebar-cleanup-20260929-1`. 기존 로그인 스타일 포함.
 - 검증 기록: `.cache/sidebar-cleanup/result.json`.
+
+## 2026-09-30 후속 명칭 정리
+
+- '디자인 관리'를 '공통 구조 관리'로, '공용 템플릿'을 '페이지 템플릿'으로 바꿨다. 주소·권한·데이터는 같다.
+- 공통 스타일은 사이드바에서만 빼고 `/admin-next/design/style` 주소와 SUPER_ADMIN 권한은 유지한다.

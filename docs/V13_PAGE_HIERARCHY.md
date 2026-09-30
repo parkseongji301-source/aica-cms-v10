@@ -201,9 +201,9 @@ API 목록 행은 `sort_order, id` 순서의 평평한 목록이다(상위와 �
 | runtime 선택 V12 → V13 → V12 | kind `v13`/`v12`로 기록 |
 | rollback: V12 사본 시작(8096) | 통과. 페이지 3개(#1·#65·#97), 계층 필드 없음, `/admin/pages`·`/admin/legacy/pages` 200. V13 이후 작성분(#98, 위치 변경, 계정 #35·#36)은 없음 = 수용한 rollback 조건 |
 
-8095는 RC2로 계속 실행 중이다. **실제 V13 적용은 하지 않았다.**
+리허설 시점에는 8095를 RC2로 유지했다. 실제 적용 결과는 아래 "8095 적용 결과".
 
-### 실제 적용 시 절차 (승인 후)
+### 실제 적용 절차
 
 1. `STOP.cmd`로 RC2 정상 종료 → 최신 백업
 2. `.cache/v13-release/V13-RC1-20260930/runtime`에 V13 JAR·정상 종료 도구·오버레이·`runtime.json`(포트 8095, `database` 없음) 준비
@@ -212,3 +212,41 @@ API 목록 행은 `sort_order, id` 순서의 평평한 목록이다(상위와 �
 5. 3개 역할 확인, 정상 종료·재시작
 
 rollback: `STOP.cmd` → `select-v12-runtime.ps1 -Runtime .cache\v12-release\V12-RC2-20260930\runtime -AuthorizeSelection` → `START.cmd`. RC2는 적용 직전 V12 DB로 시작하며, V13 적용 뒤 작성분은 활동 이력(적용 시각 이후)을 보고 다시 입력한다.
+
+## 8095 적용 결과 (2026-09-30 21:13, PASS)
+
+사용자 승인으로 위 절차대로 적용했다. 중단 조건(예상 못 한 데이터 차이, checksum 불일치, receipt 실패, 기동 실패)은 없었다.
+
+| 순서 | 결과 |
+|---|---|
+| RC2 정상 종료 | 통과. `stopped-1790770505015.json`, DB SHA-256 `5e7c46304df28b7877c6812bd59a3f3b83ef9206d0602178eaaa8049ceb5dc51` = 종료 기록. 리허설 전 백업(`8325b563…`)과 비교해 데이터가 바뀐 표 0개(RC2 재시작에 따른 H2 파일 바이트 변화만 있음) |
+| 백업 | `.cache/v12-release/backups/aica-local.at-V13-apply-20260930-stopped-1790770505015.mv.db`(같은 해시), 종료 기록 사본 |
+| `promote-v13-runtime.ps1` → `.cache/v13-release/V13-RC1-20260930/runtime` | 통과. V12 migration 바이트 동일, 추가는 `h2/V13__page_hierarchy.sql` 하나, Flyway 13개 validate, receipt `MIGRATED_V13`, 기존 페이지 모두 최상위·순서 0. migration 후 DB `7d207d1a…fe59`. V12 DB 불변 |
+| V13 선택·START | 통과. `current-ui.json` kind `v13`, "V13 file runtime … validate-only", `/login` 200, 공개 메뉴·페이지 API 200 |
+| 3개 역할 검증 | **PASS**(아래) |
+| 정상 종료·재시작 | 통과. migration 이력·표 구조 동일. migration 뒤 바뀐 데이터는 USERS 2행(검증용 계정)과 ACTIVITY_LOG 6행(발급·비밀번호 변경·사용 중지)뿐. 재시작 후 페이지·`/admin/pages`·`/admin/legacy/pages`·공개 API 정상 |
+
+현재 8095: V13 RC1, JAR `fe9a3508b53e5ab30de994bfa503f6d07c056340342e86d8b09ba25aebb27b51`, receipt `MIGRATED_V13`(DB `.cache/v13-release/V13-RC1-20260930/runtime/db/aica-local.mv.db`). `/admin`은 React, `/admin-next/**`는 과도기 호환 302, `/admin/legacy/**`는 비교·복구용 기존 화면이다. 운영 페이지 3개(홈 #1, 인사교 소개 #65, dd #97)는 모두 최상위이며 계층은 아직 만들지 않았다.
+
+### 3개 역할 검증 (8095, HTTP 세션·CSRF)
+
+SUPER_ADMIN 계정으로 검증용 임시 계정 2개를 발급해 확인한 뒤 **사용 중지**했고 그대로 둔다(로그인 불가, 기존 세션 즉시 401). 이 계정들은 검증용이었으며 업무에 쓰지 않는다.
+
+| 계정 번호 | ID | 역할 | 상태 |
+|---|---|---|---|
+| 35 | `v13-check-admin@example.com` | ADMIN | 사용 중지 |
+| 36 | `v13-check-supporter@example.com` | SUPPORTER | 사용 중지 |
+
+| 확인 | SUPER_ADMIN | ADMIN | SUPPORTER |
+|---|---|---|---|
+| 첫 로그인 강제 비밀번호 변경 → `/admin` | 해당 없음 | 통과 | 통과 |
+| React 주소 18개 200(세 역할의 화면 파일 1종) | 통과 | 통과 | 통과 |
+| 기존 화면 11개·데이터 API 18개가 역할별 권한표와 같음 | 통과 | 통과 | 통과 |
+| `/admin-next` 302(쿼리 보존), `/admin/posts/new` → `/admin/posts` | 통과 | 통과 | 통과 |
+| 계층 API(데이터를 바꾸지 않는 요청): 홈을 하위로 옮기기, 빈 순서 저장 | 400(규칙 거부) | 403 | 403 |
+
+실패 0. 페이지는 검증 전후 모두 `1:-:0 65:-:0 97:-:0`이다.
+
+### rollback
+
+V12 RC2와 적용 직전 V12 DB(`5e7c4630…`)는 그대로다. `STOP.cmd` → `select-v12-runtime.ps1 -Runtime .cache\v12-release\V12-RC2-20260930\runtime -AuthorizeSelection` → `START.cmd`. 되돌리면 21:13 이후 V13에서 작성한 내용은 빠진다(현재는 검증용 계정 2개와 그 활동 기록뿐).

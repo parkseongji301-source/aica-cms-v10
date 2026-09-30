@@ -1,6 +1,6 @@
 # V12 안정 기준점
 
-2026-09-30 사용자 요청으로 V12를 정식 안정 기준점으로 정했다. 이후 Thymeleaf → React 전환 작업의 기능·schema·권한 비교 기준은 이 문서다. [V11 운영 기준점](V11_OPERATING_BASELINE.md)과 그 rollback 자료는 수정하지 않고 보존한다.
+2026-09-30 사용자 요청으로 V12를 정식 안정 기준점으로 정했다. 같은 날 21:13부터 8095는 V13(페이지 계층)으로 실행한다([V13 페이지 계층](V13_PAGE_HIERARCHY.md)). 이 문서는 V12 기준과 V12로 되돌리는 방법의 기준으로 남는다. 이후 Thymeleaf → React 전환 작업의 기능·schema·권한 비교 기준은 이 문서다. [V11 운영 기준점](V11_OPERATING_BASELINE.md)과 그 rollback 자료는 수정하지 않고 보존한다.
 
 ## Git 기준점
 
@@ -91,7 +91,11 @@ V1~V11은 V11 receipt와 같고, V12는 개발 실행본 receipt와 같다. pend
 
 ## 이 PC의 실행 상태
 
-- 8095: **V12 RC2**(`.cache/v12-release/V12-RC2-20260930/runtime`, JAR `90718f0a…48a6`)가 실행 중이다. `.cache/current-ui.json`은 `{"kind":"v12","runtime":".cache/v12-release/V12-RC2-20260930/runtime"}`, 포트는 8095다. 실행 중인 PID는 RC2 폴더의 `active.json`에서 확인한다.
+- 8095: **V13 RC1**(`.cache/v13-release/V13-RC1-20260930/runtime`, JAR `fe9a3508…7b51`, receipt `MIGRATED_V13`)이 실행 중이다. `.cache/current-ui.json`은 `{"kind":"v13","runtime":".cache/v13-release/V13-RC1-20260930/runtime"}`, 포트는 8095다. DB는 V13 폴더의 `db/aica-local.mv.db`(V12 DB를 복사해 migration한 사본)다. 실행 중인 PID는 V13 폴더의 `active.json`에서 확인한다.
+- V12 RC2(`.cache/v12-release/V12-RC2-20260930/runtime`, JAR `90718f0a…48a6`)는 정상 종료 상태로 두고 V13 rollback용으로 유지한다. RC2 receipt와 V12 DB(RC1 폴더, SHA-256 `5e7c4630…dc51`)는 V13 적용 직전 그대로다.
+- 2026-09-30 21:13 RC2 → V13 RC1 적용 기록(사용자 승인): RC2 정상 종료(`stopped-1790770505015.json`) → 백업 → `scripts/promote-v13-runtime.ps1`로 사본 migration → `scripts/select-v12-runtime.ps1`로 V13 선택 → START → 3개 역할 검증 PASS → 정상 종료·재시작 PASS. 자세한 결과는 [V13 페이지 계층](V13_PAGE_HIERARCHY.md)의 "8095 적용 결과".
+- 이하 RC2 시기 기록(V13 적용 전):
+- 8095(당시): **V12 RC2**가 실행 중이었다.
   - DB는 RC1 폴더의 `db/aica-local.mv.db`를 그대로 쓴다. `/admin`은 React, `/admin-next/**`는 과도기 호환 302, `/admin/legacy/**`는 비교·복구용 기존 화면이다.
   - RC1(`.cache/v12-release/V12-RC1-20260930/runtime`, JAR `3ba3a701…9eaf`)은 정상 종료 상태로 두고 rollback용으로 유지한다. RC1 receipt는 바뀌지 않았다.
 - 2026-09-30 19:48 RC1 → RC2 전환 기록(사용자 승인): RC1 정상 종료(`stopped-1790765329895.json`, DB `3ea4fe5b…0c32`) → DB 백업 → `scripts/swap-v12-jar.ps1`로 RC2 receipt 발급 → `scripts/select-v12-runtime.ps1`로 RC2 선택 → START → 정상 종료·재시작(migration 이력 동일, 37개 표 행 수·지문 변화 0) → 3개 역할 검증 PASS. 자세한 결과는 [5단계 결과](REACT_ADMIN_STEP5.md)의 "8095 적용 결과".
@@ -113,9 +117,13 @@ V1~V11은 V11 receipt와 같고, V12는 개발 실행본 receipt와 같다. pend
 | V11 복귀용 실행 설정 | `.cache/previous-ui.json`(V11 실행본 + 당시 UI release) | 변경 없음 |
 | V12 개발 실행본·DB | `.cache/runtime-v12-writing-templates` | receipt `MIGRATED_V12`, JAR `8e18dbb5…` |
 | V12 RC1 | `.cache/v12-release/V12-RC1-20260930` | 위 표. 정상 종료 상태, receipt 유효(rollback용). 8095 DB가 이 폴더에 있다 |
-| V12 RC2 | `.cache/v12-release/V12-RC2-20260930` | 위 표. 8095 실행 중 |
+| V12 RC2 | `.cache/v12-release/V12-RC2-20260930` | 위 표. 정상 종료 상태, receipt 유효(V13 rollback용) |
+| V13 RC1 | `.cache/v13-release/V13-RC1-20260930` | JAR `fe9a3508…7b51`, receipt `MIGRATED_V13`. 8095 실행 중 |
+| V13 적용 직전 V12 DB 백업 | `.cache/v12-release/backups/aica-local.at-V13-apply-20260930-stopped-1790770505015.mv.db` | SHA-256 `5e7c4630…dc51`, 종료 기록 같은 폴더 |
+| V13 리허설 전 V12 DB 백업 | `.cache/v12-release/backups/aica-local.before-V13-20260930-stopped-1790769495404.mv.db` | SHA-256 `8325b563…168c`. 적용 직전 백업과 데이터 동일(H2 파일 바이트만 다름) |
 | RC2 전환 직전 DB 백업 | `.cache/v12-release/backups/aica-local.before-RC2-20260930-stopped-1790765329895.mv.db` | SHA-256 `3ea4fe5b…0c32`, RC1 종료 기록·receipt 사본 같은 폴더 |
 
+- V13 → V12 RC2로 되돌릴 때: `STOP.cmd` → `scripts/select-v12-runtime.ps1 -Runtime .cache\v12-release\V12-RC2-20260930\runtime -AuthorizeSelection` → `START.cmd`. RC2는 V13 적용 직전 V12 DB로 시작하며, V13 적용 뒤 작성분은 빠진다. 되돌리기 전에 V13 DB를 보관하고 활동 이력(21:13 이후)으로 다시 입력할 목록을 뽑는다. V12 JAR은 V13 DB를 열 수 없다.
 - RC2 → RC1로 되돌릴 때: `STOP.cmd` → `scripts/select-v12-runtime.ps1 -Runtime .cache\v12-release\V12-RC1-20260930\runtime -AuthorizeSelection` → `START.cmd`. 같은 DB와 RC1 receipt를 쓰므로 RC2에서 작성한 내용도 그대로다.
 - V12 → V11로 되돌릴 때: V12 서버를 정상 종료하고, `.cache/current-ui.json`을 `previous-ui.json`의 V11 실행본으로 되돌린 뒤 시작한다. V11 DB는 V12 migration 전 상태 그대로다. 단, V12에서 새로 작성한 내용은 V11 DB에 없으므로 되돌리기 전에 V12 DB를 보관하고 차이를 확인한다.
 - V12 DB를 V11 JAR로, V11 DB를 V12 JAR로 열 수 없다(버전·receipt 검사로 시작 거부).

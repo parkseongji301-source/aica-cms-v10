@@ -54,6 +54,26 @@ class NextWorkspaceIntegrationTest {
     private String token(HttpBrowser b)throws Exception{return ok(b.get(API+"/bootstrap")).path("csrf").path("token").asText();}
     private JsonNode write(HttpBrowser b,String method,String path,Object body,String csrf)throws Exception{return ok(b.json(method,API+path,json.writeValueAsString(body),csrf));}
 
+    @Test void existingCategoriesAreManagedWithTheLegacyStructureRulesAndUsageProtection()throws Exception {
+        var admin=login("ADMIN");String adminCsrf=token(admin);
+        denied(admin.get(API+"/categories"),403);
+        denied(admin.json("POST",API+"/categories",json.writeValueAsString(Map.of("name","관리자 시도")),adminCsrf),403);
+        var supporter=login("SUPPORTER");denied(supporter.json("POST",API+"/categories",json.writeValueAsString(Map.of("name","지원자 시도")),token(supporter)),403);
+        var root=login("SUPER_ADMIN");String csrf=token(root);
+        denied(root.json("POST",API+"/categories",json.writeValueAsString(Map.of("name","CSRF 없음")),null),403);
+        denied(root.json("POST",API+"/categories",json.writeValueAsString(Map.of("name"," ")),csrf),400);
+        assertThat(site.categories()).hasSize(2);
+        var created=write(root,"POST","/categories",Map.of("name","행사 안내"),csrf);assertThat(created).hasSize(3);
+        long added=site.categories().stream().filter(c->c.name().equals("행사 안내")).findFirst().orElseThrow().id();
+        write(root,"PUT","/categories/"+added,Map.of("name","행사 소식"),csrf);
+        var ordered=write(root,"PUT","/categories/order",Map.of("ids",List.of(added,12L,11L)),csrf);
+        assertThat(ordered.get(0).path("name").asText()).isEqualTo("행사 소식");assertThat(ordered.get(2).path("id").asLong()).isEqualTo(11);
+        assertThat(ok(root.get(API+"/categories/11/usage")).size()).isPositive();
+        denied(root.json("DELETE",API+"/categories/11","{}",csrf),400);
+        assertThat(site.categories()).hasSize(3);
+        assertThat(write(root,"DELETE","/categories/"+added,Map.of(),csrf)).hasSize(2);
+        assertThat(jdbc.queryForObject("SELECT category_id FROM posts WHERE id=101",Long.class)).isEqualTo(11L);
+    }
     @Test void everyImplementedMenuLoadsAndBootstrapReflectsExistingRowsWithoutWrites()throws Exception {
         var root=login("SUPER_ADMIN");var boot=ok(root.get(API+"/bootstrap"));
         assertThat(boot.path("pages").size()).isEqualTo(2);assertThat(boot.path("menus").size()).isEqualTo(3);

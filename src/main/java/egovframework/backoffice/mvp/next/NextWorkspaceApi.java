@@ -131,6 +131,20 @@ public class NextWorkspaceApi {
     public List<CmsModels.Link> deleteLink(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {site.deleteItem(actor,"links",id);return site.links();}
     @PutMapping("/links/order")
     public List<CmsModels.Link> linkOrder(@AuthenticationPrincipal AccountPrincipal actor,@RequestBody OrderInput input) {site.reorder(actor,"links",input.ids());return site.links();}
+    // Existing categories: same SiteService rules as the legacy screen (structure permission, usage-protected delete).
+    public record CategoryInput(String name) {}
+    @GetMapping("/categories")
+    public List<CmsModels.Category> categories(@AuthenticationPrincipal AccountPrincipal actor) {access.structure(actor);return site.categories();}
+    @PostMapping("/categories")
+    public List<CmsModels.Category> createCategory(@AuthenticationPrincipal AccountPrincipal actor,@RequestBody CategoryInput input) {site.category(actor,null,input.name());return site.categories();}
+    @PutMapping("/categories/{id}")
+    public List<CmsModels.Category> editCategory(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody CategoryInput input) {site.category(actor,id,input.name());return site.categories();}
+    @DeleteMapping("/categories/{id}")
+    public List<CmsModels.Category> deleteCategory(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {site.deleteCategory(actor,id);return site.categories();}
+    @GetMapping("/categories/{id}/usage")
+    public List<UsageService.Usage> categoryUsage(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {access.structure(actor);return usages.find(actor,"categories",id);}
+    @PutMapping("/categories/order")
+    public List<CmsModels.Category> categoryOrder(@AuthenticationPrincipal AccountPrincipal actor,@RequestBody OrderInput input) {site.reorder(actor,"categories",input.ids());return site.categories();}
 
     @GetMapping("/settings/{group}")
     public Map<String,String> settings(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable String group) {

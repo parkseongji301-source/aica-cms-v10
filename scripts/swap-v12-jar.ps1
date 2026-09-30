@@ -95,7 +95,7 @@ $java=$targetConfig.java;if(-not(Test-Path -LiteralPath $java)){throw ('Java not
 
 # 2. The source receipt is a completed V12 receipt for the source JAR; the target uses the same database file.
 $sourceReceipt=Get-TaskJson $sourceReceiptPath
-if($sourceReceipt.status -ne 'MIGRATED_V12' -or $sourceReceipt.jarSha256 -ne $sourceConfig.jarSha256 -or $sourceReceipt.workaround -ne 'AUTO_COMPACT_FILL_RATE=0'){throw 'Source receipt is not a completed V12 receipt for the source JAR.'}
+if($sourceReceipt.status -notin @('MIGRATED_V12','MIGRATED_V13') -or $sourceReceipt.jarSha256 -ne $sourceConfig.jarSha256 -or $sourceReceipt.workaround -ne 'AUTO_COMPACT_FILL_RATE=0'){throw 'Source receipt is not a completed V12/V13 receipt for the source JAR.'}
 $db=Get-TaskDatabase $sourceRuntime $sourceConfig
 if($sourceReceipt.databasePath -cne $db){throw 'Source receipt is bound to another database path.'}
 if((Get-TaskDatabase $targetRuntime $targetConfig) -cne $db){throw 'Target runtime.json database must be the source database file.'}
@@ -111,7 +111,7 @@ $handle=[IO.File]::Open($db,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileSh
 
 if(Test-Path -LiteralPath $targetReceiptPath){
     $existing=Get-TaskJson $targetReceiptPath
-    if($existing.status -eq 'MIGRATED_V12' -and $existing.databasePath -ceq $db -and $existing.jarSha256 -eq $targetConfig.jarSha256){Write-Host 'Target receipt already binds this JAR to this database; unchanged.';exit 0}
+    if($existing.status -eq $sourceReceipt.status -and $existing.databasePath -ceq $db -and $existing.jarSha256 -eq $targetConfig.jarSha256){Write-Host 'Target receipt already binds this JAR to this database; unchanged.';exit 0}
     throw 'Target already has a different receipt; refusing to overwrite it.'
 }
 
@@ -140,7 +140,7 @@ foreach($key in 'history','columns','fingerprints'){if(-not(Get-TaskSame $inspec
 if($inspect.sha256.ToLowerInvariant() -ne $dbHash -or (Get-TaskHash $db) -ne $dbHash){throw 'Database bytes changed during inspection.'}
 
 # 7. Issue the target receipt; the source receipt stays untouched and valid for rollback.
-$receipt=[ordered]@{status='MIGRATED_V12';databasePath=$db;jarSha256=$targetConfig.jarSha256;workaround='AUTO_COMPACT_FILL_RATE=0'
+$receipt=[ordered]@{status=$sourceReceipt.status;databasePath=$db;jarSha256=$targetConfig.jarSha256;workaround='AUTO_COMPACT_FILL_RATE=0'
     issuedBy='scripts/swap-v12-jar.ps1';issuedAt=[DateTimeOffset]::UtcNow.ToString('o')
     replaces=[ordered]@{runtime=$sourceRuntime;jarSha256=$sourceConfig.jarSha256;receipt=$sourceReceiptPath;receiptSha256=(Get-TaskHash $sourceReceiptPath);migrationPlanSha256=$sourceReceipt.planSha256}
     stopInspection=$stopFile.FullName;stopInspectionSha256=(Get-TaskHash $stopFile.FullName)

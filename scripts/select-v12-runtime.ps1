@@ -35,7 +35,7 @@ $selected=(Resolve-Path -LiteralPath $Runtime).Path
 if(-not $selected.StartsWith($root+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Runtime must be inside this repository.'}
 $selectedConfig=Get-TaskJson (Join-Path $selected 'runtime.json')
 $receipt=Get-TaskJson (Join-Path $selected 'migration-receipt.json')
-if($receipt.status -ne 'MIGRATED_V12' -or $receipt.jarSha256 -ne $selectedConfig.jarSha256 -or $receipt.workaround -ne 'AUTO_COMPACT_FILL_RATE=0'){throw 'Selected runtime has no completed V12 receipt for its JAR.'}
+if($receipt.status -notin @('MIGRATED_V12','MIGRATED_V13') -or $receipt.jarSha256 -ne $selectedConfig.jarSha256 -or $receipt.workaround -ne 'AUTO_COMPACT_FILL_RATE=0'){throw 'Selected runtime has no completed V12/V13 receipt for its JAR.'}
 if((Get-FileHash -LiteralPath (Join-Path $selected 'server.jar') -Algorithm SHA256).Hash -ne $selectedConfig.jarSha256){throw 'Selected JAR checksum mismatch.'}
 if($receipt.databasePath -ne (Get-TaskDatabase $selected $selectedConfig)){throw 'Selected receipt is bound to another database path.'}
 $relative=$selected.Substring($root.Length+1).Replace('\','/')
@@ -43,9 +43,9 @@ if(Test-Path -LiteralPath $configPath){
     $current=Get-TaskJson $configPath
     $currentRuntime=(Resolve-Path -LiteralPath (Join-Path $root $current.runtime)).Path
     if($currentRuntime -eq $selected){Write-Host ('Already selected: '+$relative);exit 0}
-    if($current.kind -in @('v12','development-v12')){Assert-TaskIdle $currentRuntime}
+    if($current.kind -in @('v12','v13','development-v12')){Assert-TaskIdle $currentRuntime}
     Copy-Item -LiteralPath $configPath -Destination (Join-Path (Split-Path -Parent $configPath) ('current-ui.before-'+[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+'.json'))
 }
 Assert-TaskIdle $selected
-Save-TaskJson ([ordered]@{kind='v12';runtime=$relative}) $configPath
+Save-TaskJson ([ordered]@{kind=$(if($receipt.status -eq 'MIGRATED_V13'){'v13'}else{'v12'});runtime=$relative}) $configPath
 Write-Host ('Selected '+$selectedConfig.kind+': '+$relative+'. Start with START.cmd.')

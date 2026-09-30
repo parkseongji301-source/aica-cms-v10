@@ -444,7 +444,10 @@ class BackofficeIntegrationTest {
     @Test void linkedMenuNamesFollowRenamesWithoutChangingDestinations() throws Exception {
         var browser=root();var actor=principal(ROOT);
         site.category(actor,null,"공지사항");long category=site.categories().get(0).id();
-        redirect(browser.post("/admin/menus",Map.of("destination","CATEGORY:"+category,"visible","true")),"/admin/menus");
+        // New category menus are no longer created; an existing legacy row is kept as-is until migration.
+        browser.post("/admin/menus",Map.of("destination","CATEGORY:"+category,"visible","true"));
+        assertThat(site.menus(actor)).isEmpty();
+        jdbc.update("INSERT INTO site_menus(label,kind,target_id,url,visible,sort_order) VALUES('공지사항','CATEGORY',?,'',TRUE,1)",category);
         long menu=site.menus(actor).get(0).id();
         jdbc.update("UPDATE site_menus SET label='legacy alias' WHERE id=?",menu);
         site.category(actor,category,"학교 소식");

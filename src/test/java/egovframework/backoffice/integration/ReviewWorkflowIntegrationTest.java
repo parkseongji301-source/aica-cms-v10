@@ -41,7 +41,7 @@ class ReviewWorkflowIntegrationTest {
         jdbc.update("INSERT INTO categories(id,name) VALUES(11,'기존 분류')");
         legacy=posts.save(actor("ADMIN"),null,null,"기존 일반 콘텐츠","기존 본문",11L,List.of(),"save",null);
         pageId=pages.save(actor("SUPER_ADMIN"),null,null,"기존 페이지","review-test","[{\"type\":\"POSTS\",\"categoryId\":11,\"visible\":true}]","publish");
-        site.menu(actor("SUPER_ADMIN"),null,"기존 분류","CATEGORY",11L,"",true);
+        jdbc.update("INSERT INTO site_menus(label,kind,target_id,url,visible,sort_order) SELECT name,'CATEGORY',id,'',TRUE,1 FROM categories WHERE id=11");
         seed();c6=id("cohorts","COHORT_06");c7=id("cohorts","COHORT_07");
         life=id("topics","REVIEW_LIFE");classes=id("topics","REVIEW_CLASS");project=id("topics","REVIEW_PROJECT");
     }

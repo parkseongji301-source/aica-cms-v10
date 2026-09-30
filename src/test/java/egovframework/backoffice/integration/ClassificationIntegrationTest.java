@@ -53,7 +53,7 @@ class ClassificationIntegrationTest {
         ownId=posts.save(actor("SUPPORTER"),null,null,"서포터 글","본문",12L,List.of(),"save",null);
         pageId=pages.save(actor("SUPER_ADMIN"),null,null,"기존 분류 페이지","existing-category",
             "[{\"type\":\"POSTS\",\"heading\":\"분류 글\",\"categoryId\":11,\"visible\":true}]","publish");
-        site.menu(actor("SUPER_ADMIN"),null,"기존 공지","CATEGORY",11L,"",true);
+        jdbc.update("INSERT INTO site_menus(label,kind,target_id,url,visible,sort_order) SELECT name,'CATEGORY',id,'',TRUE,1 FROM categories WHERE id=11");
     }
     String email(String role){return role.toLowerCase(Locale.ROOT)+"@classification.test";}
     AccountPrincipal actor(String role){return new AccountPrincipal(accounts.findByEmail(email(role)));}

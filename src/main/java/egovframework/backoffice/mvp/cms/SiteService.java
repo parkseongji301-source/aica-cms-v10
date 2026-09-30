@@ -50,6 +50,12 @@ public class SiteService {
  public void menu(AccountPrincipal principal,Long id,String label,String kind,Long targetId,String url,boolean visible) {
   store.lock();var actor=access.structure(principal);
   if(!Set.of("PAGE","CATEGORY","LINK").contains(kind)) throw new BusinessException("메뉴 종류를 선택하세요.");
+  // Content collections are pages with POSTS query blocks. Only menus that already point to a category keep that link until migration.
+  if(kind.equals("CATEGORY")) {
+   Menu current=id==null?null:store.one("menu",id);
+   if(current==null||!"CATEGORY".equals(current.kind())||!Objects.equals(current.targetId(),targetId))
+    throw new BusinessException("새 메뉴 연결은 페이지 또는 직접 링크만 선택할 수 있습니다. 기존 카테고리 연결 메뉴는 이관 전까지 그대로 유지됩니다.");
+  }
   String address="";
   if(kind.equals("LINK")) {address=CmsRules.url(url,true);targetId=null;}
   else {

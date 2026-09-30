@@ -157,8 +157,16 @@ class NextWorkspaceIntegrationTest {
     @Test void menusAndStructureShareConnectionsVisibilityOrderAndLabels()throws Exception {
         var admin=login("SUPER_ADMIN");String csrf=token(admin);var before=ok(admin.get(API+"/menus"));
         long menuId=before.get(0).path("id").asLong();
-        write(admin,"PUT","/menus/"+menuId,Map.of("kind","CATEGORY","targetId",12,"visible",false),csrf);
-        var boot=ok(admin.get(API+"/bootstrap"));assertThat(boot.path("menus").get(0).path("label").asText()).isEqualTo("교육 소식");assertThat(boot.path("menus").get(0).path("visible").asBoolean()).isFalse();
+        long categoryMenu=jdbc.queryForObject("SELECT id FROM site_menus WHERE kind='CATEGORY'",Long.class);
+        // New category links are rejected; the existing category menu keeps its target and can still be edited or moved to a page.
+        denied(admin.json("POST",API+"/menus",json.writeValueAsString(Map.of("kind","CATEGORY","targetId",12,"visible",true)),csrf),400);
+        denied(admin.json("PUT",API+"/menus/"+menuId,json.writeValueAsString(Map.of("kind","CATEGORY","targetId",12,"visible",false)),csrf),400);
+        denied(admin.json("PUT",API+"/menus/"+categoryMenu,json.writeValueAsString(Map.of("kind","CATEGORY","targetId",12,"visible",true)),csrf),400);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_menus WHERE kind='CATEGORY'",Integer.class)).isEqualTo(1);
+        write(admin,"PUT","/menus/"+categoryMenu,Map.of("kind","CATEGORY","targetId",11,"visible",false),csrf);
+        assertThat(jdbc.queryForObject("SELECT target_id FROM site_menus WHERE id=?",Long.class,categoryMenu)).isEqualTo(11L);
+        write(admin,"PUT","/menus/"+menuId,Map.of("kind","PAGE","targetId",65,"visible",false),csrf);
+        var boot=ok(admin.get(API+"/bootstrap"));assertThat(boot.path("menus").get(0).path("label").asText()).isEqualTo("인사교 소개");assertThat(boot.path("menus").get(0).path("visible").asBoolean()).isFalse();
         List<Long> ids=new ArrayList<>();for(var menu:boot.path("menus"))ids.add(menu.path("id").asLong());Collections.reverse(ids);
         var sorted=write(admin,"PUT","/menus/order",Map.of("ids",ids),csrf);assertThat(sorted.get(0).path("id").asLong()).isEqualTo(ids.get(0));
         assertThat(ok(admin.get(API+"/bootstrap")).path("menus")).isEqualTo(sorted);

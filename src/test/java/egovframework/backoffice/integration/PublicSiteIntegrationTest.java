@@ -59,7 +59,8 @@ class PublicSiteIntegrationTest {
         var manual=block("POSTS","default").put("sourceMode","manual");manual.set("manual",json.valueToTree(Map.of("postIds",List.of(restaurant,draft,faq,999999L,life))));blocks.add(manual);
         blocks.add(block("IMAGE","default").put("visible",false).put("heading","숨겨진 비밀").put("imageId",hiddenImage));
         page=pages.save(actor(),null,null,"공개 페이지","public-test",blocks.toString(),"publish");
-        site.menu(actor(),null,"","PAGE",page,"",true);site.menu(actor(),null,"","CATEGORY",11L,"",true);
+        site.menu(actor(),null,"","PAGE",page,"",true);
+        jdbc.update("INSERT INTO site_menus(label,kind,target_id,url,visible,sort_order) SELECT name,'CATEGORY',id,'',TRUE,(SELECT COALESCE(MAX(sort_order),0)+1 FROM site_menus) FROM categories WHERE id=11");
         anonymous=new HttpBrowser(port);
     }
     long create(String title,String type,List<Long> cohorts,List<Long> topics,String action){return posts.save(actor(),null,null,title,"발행 본문",11L,List.of(),action,null,new Selection(type,cohorts,topics));}

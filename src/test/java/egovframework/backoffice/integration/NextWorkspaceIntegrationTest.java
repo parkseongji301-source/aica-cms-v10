@@ -74,6 +74,42 @@ class NextWorkspaceIntegrationTest {
         assertThat(write(root,"DELETE","/categories/"+added,Map.of(),csrf)).hasSize(2);
         assertThat(jdbc.queryForObject("SELECT category_id FROM posts WHERE id=101",Long.class)).isEqualTo(11L);
     }
+    @Test void accountsAreIssuedChangedAndResetThroughAccountServiceWithOneTimePasswords()throws Exception {
+        var admin=login("ADMIN");String adminCsrf=token(admin);
+        denied(admin.json("POST",API+"/accounts",json.writeValueAsString(Map.of("email","x@workspace.test","displayName","x","role","SUPPORTER")),adminCsrf),403);
+        denied(admin.json("POST",API+"/accounts/"+id("SUPPORTER")+"/reset-password","{}",adminCsrf),403);
+        var supporter=login("SUPPORTER");
+        var root=login("SUPER_ADMIN");String csrf=token(root);
+        assertThat(ok(root.get(API+"/accounts/creatable-roles")).findValuesAsText("code")).containsExactly("ADMIN","SUPPORTER");
+        denied(root.json("POST",API+"/accounts",json.writeValueAsString(Map.of("email","root2@workspace.test","displayName","두번째","role","SUPER_ADMIN")),csrf),400);
+        denied(root.json("POST",API+"/accounts",json.writeValueAsString(Map.of("email","not-an-email","displayName","잘못","role","ADMIN")),csrf),400);
+        denied(root.json("POST",API+"/accounts",json.writeValueAsString(Map.of("email","new@workspace.test","displayName","신규","role","ADMIN")),null),403);
+        var created=root.json("POST",API+"/accounts",json.writeValueAsString(Map.of("email","new@workspace.test","displayName","신규","role","ADMIN")),csrf);
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        assertThat(created.headers().firstValue("cache-control").orElse("")).contains("no-store");
+        var issued=json.readTree(created.body());String temporary=issued.path("temporaryPassword").asText();
+        assertThat(temporary).isNotBlank();assertThat(issued.path("email").asText()).isEqualTo("new@workspace.test");
+        denied(root.json("POST",API+"/accounts",json.writeValueAsString(Map.of("email","new@workspace.test","displayName","중복","role","ADMIN")),csrf),400);
+        var list=root.get(API+"/accounts");assertThat(list.body()).doesNotContain(temporary).doesNotContain("password_hash").doesNotContain("passwordHash");
+        var fresh=new HttpBrowser(port);fresh.login("new@workspace.test",temporary,"/account/password");
+        denied(fresh.get(API+"/bootstrap"),403);
+        long supporterId=id("SUPPORTER");
+        denied(root.json("PUT",API+"/accounts/"+id("SUPER_ADMIN")+"/role",json.writeValueAsString(Map.of("role","ADMIN")),csrf),400);
+        denied(root.json("PUT",API+"/accounts/"+supporterId+"/role",json.writeValueAsString(Map.of("role","OWNER")),csrf),400);
+        var changed=write(root,"PUT","/accounts/"+supporterId+"/role",Map.of("role","ADMIN"),csrf);
+        assertThat(changed.findValuesAsText("role")).contains("ADMIN");
+        denied(supporter.get(API+"/bootstrap"),401);
+        var reset=json.readTree(root.json("POST",API+"/accounts/"+id("ADMIN")+"/reset-password","{}",csrf).body());
+        assertThat(reset.path("temporaryPassword").asText()).isNotBlank().isNotEqualTo(temporary);
+        denied(admin.get(API+"/bootstrap"),401);
+        new HttpBrowser(port).login(email("ADMIN"),reset.path("temporaryPassword").asText(),"/account/password");
+        var deactivated=write(root,"POST","/accounts/"+supporterId+"/deactivate",Map.of(),csrf);
+        assertThat(jdbc.queryForObject("SELECT active FROM users WHERE id=?",Boolean.class,supporterId)).isFalse();
+        assertThat(deactivated).isNotEmpty();
+        denied(root.json("POST",API+"/accounts/"+supporterId+"/reset-password","{}",csrf),400);
+        denied(root.json("POST",API+"/accounts/"+id("SUPER_ADMIN")+"/deactivate","{}",csrf),400);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_log WHERE action IN ('계정 발급','계정 역할 변경','비밀번호 초기화','계정 비활성화')",Integer.class)).isEqualTo(4);
+    }
     @Test void everyImplementedMenuLoadsAndBootstrapReflectsExistingRowsWithoutWrites()throws Exception {
         var root=login("SUPER_ADMIN");var boot=ok(root.get(API+"/bootstrap"));
         assertThat(boot.path("pages").size()).isEqualTo(2);assertThat(boot.path("menus").size()).isEqualTo(3);

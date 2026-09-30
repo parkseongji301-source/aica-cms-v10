@@ -160,6 +160,32 @@ public class NextWorkspaceApi {
     public List<AccountRow> accounts(@AuthenticationPrincipal AccountPrincipal actor) {
         return accounts.list(actor).stream().map(a->new AccountRow(a.id(),a.email(),a.displayName(),a.role().name(),a.role().getLabel(),a.active(),a.passwordChangeRequired(),a.createdAt())).toList();
     }
+    // Account changes reuse AccountService: last SUPER_ADMIN protection, no self-change, audit and session invalidation stay there.
+    public record AccountInput(String email,String displayName,String role) {}
+    public record RoleInput(String role) {}
+    public record RoleOption(String code,String label) {}
+    /** The temporary password is returned only in this no-store response and cannot be read again. */
+    public record IssuedAccount(long accountId,String email,String temporaryPassword) {}
+    @GetMapping("/accounts/creatable-roles")
+    public List<RoleOption> creatableRoles(@AuthenticationPrincipal AccountPrincipal actor) {accounts.list(actor);return policy.creatableRoles().stream().map(r->new RoleOption(r.name(),r.getLabel())).toList();}
+    @PostMapping("/accounts")
+    @ResponseStatus(org.springframework.http.HttpStatus.CREATED)
+    public IssuedAccount createAccount(@AuthenticationPrincipal AccountPrincipal actor,@RequestBody AccountInput input) {
+        return issued(accounts.create(actor,input.email(),input.displayName(),role(input.role())));
+    }
+    @PutMapping("/accounts/{id}/role")
+    public List<AccountRow> changeRole(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody RoleInput input) {
+        accounts.changeRole(actor,id,role(input.role()));return accounts(actor);
+    }
+    @PostMapping("/accounts/{id}/deactivate")
+    public List<AccountRow> deactivate(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {accounts.deactivate(actor,id);return accounts(actor);}
+    @PostMapping("/accounts/{id}/reset-password")
+    public IssuedAccount resetPassword(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {return issued(accounts.resetPassword(actor,id));}
+    private static IssuedAccount issued(egovframework.backoffice.mvp.account.IssuedCredential c) {return new IssuedAccount(c.accountId(),c.email(),c.temporaryPassword());}
+    private static egovframework.backoffice.mvp.account.Role role(String value) {
+        if(value==null||value.isBlank())throw new BusinessException("역할을 선택하세요.");
+        try{return egovframework.backoffice.mvp.account.Role.valueOf(value);}catch(IllegalArgumentException e){throw new BusinessException("역할을 확인하세요.");}
+    }
     @GetMapping("/roles")
     public List<RoleRow> roles(@AuthenticationPrincipal AccountPrincipal actor) {
         access.operator(actor);return Arrays.stream(Role.values()).map(r->new RoleRow(r.name(),r.getLabel(),policy.canManageAccounts(r),policy.canManageAllPosts(r),policy.canPublish(r),policy.canManageSite(r),policy.canDelete(r))).toList();

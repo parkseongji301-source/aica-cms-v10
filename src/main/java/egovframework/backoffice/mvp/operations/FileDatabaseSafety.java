@@ -12,7 +12,7 @@ import java.util.*;
 public final class FileDatabaseSafety {
     public static final ObjectMapper JSON = new ObjectMapper();
     public static final String LOCATION = "classpath:db/migration/h2";
-    public static final String CURRENT_VERSION = "13";
+    public static final String CURRENT_VERSION = "14";
     private FileDatabaseSafety() {}
     public static void require(boolean condition, String reason) {
         if (!condition) throw new IllegalStateException("DB safety STOP: " + reason);

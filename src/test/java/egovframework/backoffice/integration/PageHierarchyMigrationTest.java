@@ -40,7 +40,7 @@ class PageHierarchyMigrationTest {
   var receipt=V13PromotionTool.migrate(plan,"jar","plan","sa","");
   assertThat(receipt.path("status").asText()).isEqualTo("MIGRATED_V13");assertThat(receipt.path("after").path("history").size()).isEqualTo(13);
   assertThat(hash(original)).isEqualTo(originalHash);
-  requireCurrentSchema(copy,"sa","");
+  requireSchema(copy,"sa","","13");
   assertThat(rows(copy,"SELECT id,title,slug,status,revision,author_id FROM site_pages ORDER BY id")).isEqualTo(pagesBefore);
   assertThat(rows(copy,"SELECT id,parent_id,sort_order FROM site_pages ORDER BY id")).containsExactly("1|null|0","65|null|0","97|null|0");
   assertThat(rows(copy,"SELECT label,kind,target_id FROM site_menus")).containsExactly("소개|PAGE|65");
@@ -59,7 +59,7 @@ class PageHierarchyMigrationTest {
   assertThatThrownBy(()->requireSchema(copy,"sa","","12")).isInstanceOf(IllegalStateException.class);
   Path v12Receipt=dir.resolve("v12-receipt.json");
   JSON.writeValue(v12Receipt.toFile(),Map.of("status","MIGRATED_V12","databasePath",copy.toRealPath().toString(),"jarSha256","same","workaround","AUTO_COMPACT_FILL_RATE=0"));
-  assertThatThrownBy(()->requireReceipt(copy,v12Receipt,"same",CURRENT_VERSION)).hasMessageContaining("V13");
+  assertThatThrownBy(()->requireReceipt(copy,v12Receipt,"same",CURRENT_VERSION)).hasMessageContaining("V"+CURRENT_VERSION);
  }
 
  @Test void planRefusesAChangedCopyAndANonV12Database()throws Exception {

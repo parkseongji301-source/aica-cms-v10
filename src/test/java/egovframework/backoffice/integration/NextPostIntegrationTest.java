@@ -297,7 +297,7 @@ class NextPostIntegrationTest {
             var saved=ok(put(b,id,fields,csrf));assertThat(saved.path("status")).isEqualTo(before.path("status"));
             assertThat(saved.path("categoryId").isNull()).isTrue();assertThat(saved.path("publishedRevision")).isEqualTo(before.path("publishedRevision"));
         }
-        assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10","11","12","13");
+        assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10","11","12","13","14");
         assertThat(b.get("/admin/legacy/posts/new").statusCode()).isEqualTo(200);
     }
 }

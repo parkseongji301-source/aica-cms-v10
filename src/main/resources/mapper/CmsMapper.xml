@@ -115,10 +115,15 @@
   FROM posts p LEFT JOIN post_publications pp ON pp.post_id=p.id
   WHERE p.id IN <foreach collection="postIds" item="postId" open="(" close=")" separator=",">#{postId}</foreach>
  </select>
- <sql id="pageColumns">p.id,p.title,p.slug,p.sections_json,p.status,p.revision,pp.revision AS published_revision,p.author_id,p.updated_at</sql>
- <select id="pages" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id ORDER BY p.id DESC</select>
+ <sql id="pageColumns">p.id,p.title,p.slug,p.sections_json,p.status,p.revision,pp.revision AS published_revision,p.author_id,p.updated_at,p.parent_id,p.sort_order</sql>
+ <select id="pages" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id ORDER BY p.sort_order,p.id</select>
  <select id="page" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id WHERE p.id=#{value}</select>
- <insert id="createPage" useGeneratedKeys="true" keyProperty="id">INSERT INTO site_pages(title,slug,sections_json,author_id) VALUES(#{title},#{slug},#{sectionsJson},#{authorId})</insert>
+ <!-- A new page goes to the end of its siblings (callers hold the CMS lock). -->
+ <insert id="createPage" useGeneratedKeys="true" keyProperty="id">INSERT INTO site_pages(title,slug,sections_json,author_id,parent_id,sort_order) VALUES(#{title},#{slug},#{sectionsJson},#{authorId},#{parentId,jdbcType=BIGINT},
+  (SELECT COALESCE(MAX(sort_order)+1,0) FROM site_pages WHERE parent_id IS NOT DISTINCT FROM #{parentId,jdbcType=BIGINT}))</insert>
+ <!-- Hierarchy is structure, not document content: it never changes the page revision. -->
+ <update id="placePage">UPDATE site_pages SET parent_id=#{parentId,jdbcType=BIGINT},sort_order=#{sortOrder} WHERE id=#{id}</update>
+ <update id="pageSortOrder">UPDATE site_pages SET sort_order=#{sortOrder} WHERE id=#{id}</update>
  <update id="editPage">UPDATE site_pages SET title=#{title},slug=#{slug},sections_json=#{sectionsJson},revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
  <update id="pageVisibility">UPDATE site_pages SET status=#{status},updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
  <update id="withdrawPage">UPDATE site_pages SET status='PRIVATE',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=#{value}</update>

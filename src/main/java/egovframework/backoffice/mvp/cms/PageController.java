@@ -51,10 +51,10 @@ public class PageController {
  @ResponseBody
  public org.springframework.http.ResponseEntity<?> saveJson(@AuthenticationPrincipal AccountPrincipal actor,
   @RequestParam(required=false) Long id,@RequestParam(required=false) Long revision,@RequestParam String title,
-  @RequestParam(defaultValue="") String slug,@RequestParam String sectionsJson,@RequestParam(defaultValue="save") String action,@RequestParam(required=false) String saveIntent) {
+  @RequestParam(defaultValue="") String slug,@RequestParam String sectionsJson,@RequestParam(defaultValue="save") String action,@RequestParam(required=false) String saveIntent,@RequestParam(required=false) Long parentId) {
   try {
    if(id!=null && revision==null) throw new BusinessException("저장 버전을 확인할 수 없습니다. 다시 열어 주세요.");
-   var page=pages.saveDocument(actor,id,revision,title,slug,sectionsJson,action,egovframework.backoffice.mvp.version.SaveIntent.request(saveIntent));long saved=page.id();
+   var page=pages.saveDocument(actor,id,revision,title,slug,sectionsJson,action,egovframework.backoffice.mvp.version.SaveIntent.request(saveIntent),parentId);long saved=page.id();
    return org.springframework.http.ResponseEntity.ok(java.util.Map.of("id",saved,"revision",page.revision(),"status",page.status(),"pending",page.pending(),"slug",page.slug()));
   } catch(BusinessException error) {return org.springframework.http.ResponseEntity.badRequest().body(java.util.Map.of("error",error.getMessage()));}
  }

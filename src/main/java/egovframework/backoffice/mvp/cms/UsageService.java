@@ -36,6 +36,8 @@ public class UsageService {
                     uses.add(new Usage("페이지 · "+page.title(),"/admin/pages/"+page.id()+"/edit"));
             }
         }
+        if(type.equals("pages")) for(Page child:store.<Page>all("pages",null)) if(Objects.equals(child.parentId(),id))
+            uses.add(new Usage("하위 페이지 · "+child.title(),"/admin/pages/"+child.id()+"/edit"));
         if(type.equals("categories") || type.equals("pages")) {
             String kind=type.equals("pages")?"PAGE":"CATEGORY";
             for(Menu menu:store.<Menu>all("menus",null)) if(menu.kind().equals(kind) && Objects.equals(menu.targetId(),id))

@@ -7,8 +7,9 @@ public final class CmsModels {
     public record Media(long id, String name, String alt, String mime, int width, int height,
                         long byteSize, long ownerId, String ownerName, LocalDateTime createdAt) {}
     public record MediaFile(String mime, byte[] data) {}
+    /** parentId is null for a top-level page; siblings are ordered by sortOrder, then id. */
     public record Page(long id, String title, String slug, String sectionsJson, String status,
-                       long revision, Long publishedRevision, long authorId, LocalDateTime updatedAt) {
+                       long revision, Long publishedRevision, long authorId, LocalDateTime updatedAt, Long parentId, int sortOrder) {
         public boolean pending() { return publishedRevision != null && revision != publishedRevision; }
     }
     public record Section(String type, String heading, String body, Long imageId, Long categoryId,

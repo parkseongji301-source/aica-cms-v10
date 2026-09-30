@@ -115,6 +115,10 @@ public class SiteService {
     String home=CmsRules.optional(fields.get("homePageId"),20,"첫 화면");
     if(!home.isEmpty()) {
      long id=positiveId(home); if(store.one("publicPageById",id)==null) throw new BusinessException("발행된 페이지를 첫 화면으로 선택하세요.");
+     // Current operating rule: the home page is top-level and has no child pages.
+     List<Page> all=store.all("pages",null);
+     if(PageHierarchy.find(all,id).map(Page::parentId).orElse(null)!=null || !PageHierarchy.children(all,id).isEmpty())
+      throw new BusinessException("첫 화면은 최상위이면서 하위 페이지가 없는 페이지만 선택할 수 있습니다.");
     }
     updated.put("homePageId",home);
    }

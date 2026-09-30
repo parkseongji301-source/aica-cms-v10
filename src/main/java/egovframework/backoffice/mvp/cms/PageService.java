@@ -86,22 +86,29 @@ public class PageService {
  }
  @Transactional
  public long save(AccountPrincipal principal,Long id,Long revision,String title,String slug,String sectionsJson,String action) {
-  return saveInternal(principal,id,revision,title,slug,sectionsJson,action,SaveIntent.LEGACY,false);
+  return saveInternal(principal,id,revision,title,slug,sectionsJson,action,SaveIntent.LEGACY,false,null);
  }
  @Transactional
  public long save(AccountPrincipal principal,Long id,Long revision,String title,String slug,String sectionsJson,String action,SaveIntent intent) {
-  return saveInternal(principal,id,revision,title,slug,sectionsJson,action,intent,false);
+  return saveInternal(principal,id,revision,title,slug,sectionsJson,action,intent,false,null);
+ }
+ /** parentId places a new page under a top-level page (at the end); existing pages move with place(). */
+ @Transactional
+ public long save(AccountPrincipal principal,Long id,Long revision,String title,String slug,String sectionsJson,String action,SaveIntent intent,Long parentId) {
+  return saveInternal(principal,id,revision,title,slug,sectionsJson,action,intent,false,parentId);
  }
  /** Complete history snapshots intentionally replace fields; ordinary client omission guards remain in effect. */
  @Transactional
  public void restoreDraft(AccountPrincipal principal,long id,long revision,String title,String sectionsJson) {
-  saveInternal(principal,id,revision,title,required(id).slug(),sectionsJson,"save",SaveIntent.LEGACY,true);
+  saveInternal(principal,id,revision,title,required(id).slug(),sectionsJson,"save",SaveIntent.LEGACY,true,null);
  }
- private long saveInternal(AccountPrincipal principal,Long id,Long revision,String title,String slug,String sectionsJson,String action,SaveIntent intent,boolean restoring) {
+ private long saveInternal(AccountPrincipal principal,Long id,Long revision,String title,String slug,String sectionsJson,String action,SaveIntent intent,boolean restoring,Long parentId) {
   store.lock();var actor=access.manager(principal);
   if(!Set.of("save","publish").contains(action)) throw new BusinessException("저장 방식을 확인하세요.");
   var existing=id==null?null:required(id);
   if(existing==null) access.structure(principal);
+  if(existing!=null && parentId!=null) throw new BusinessException("기존 페이지의 위치는 전체 페이지 현황의 위치 변경에서 바꿉니다.");
+  if(existing==null) PageHierarchy.requirePlacement(store.all("pages",null),homePageId(),null,parentId);
   if(existing!=null && revision==null) throw new BusinessException("저장 버전을 확인할 수 없습니다. 다시 열어 주세요.");
   if(existing!=null) CmsRules.revision(existing.revision(),revision);
   String name=InputRules.text(title,200,"페이지 제목");
@@ -127,7 +134,7 @@ public class PageService {
   if(action.equals("publish") && blocks.stream().noneMatch(Section::visible)) throw new BusinessException("발행하려면 표시할 섹션을 하나 이상 추가하세요.");
   try {
    String document=json.writeValueAsString(blocks);
-   var values=values("id",id,"title",name,"slug",path,"sectionsJson",document,"authorId",actor.id());
+   var values=values("id",id,"title",name,"slug",path,"sectionsJson",document,"authorId",actor.id(),"parentId",parentId);
    if(id==null) id=store.create("createPage",values); else store.change("editPage",values);
    identities.synchronize(id,previous,blocks);
    attach(id,blocks,false);
@@ -156,6 +163,10 @@ public class PageService {
   return required(save(actor,id,revision,title,slug,sectionsJson,action,intent));
  }
  @Transactional
+ public Page saveDocument(AccountPrincipal actor,Long id,Long revision,String title,String slug,String sectionsJson,String action,SaveIntent intent,Long parentId) {
+  return required(save(actor,id,revision,title,slug,sectionsJson,action,intent,parentId));
+ }
+ @Transactional
  public void unpublish(AccountPrincipal principal,long id,Long revision) {
   store.lock();var actor=access.manager(principal);var page=required(id);CmsRules.revision(page.revision(),revision);
   store.change("withdrawPage",id);
@@ -165,8 +176,55 @@ public class PageService {
  public void delete(AccountPrincipal principal,long id,Long revision) {
   access.permanentDelete(principal);
   store.lock();var actor=access.manager(principal);var page=required(id);CmsRules.revision(page.revision(),revision);
+  long children=PageHierarchy.children(store.all("pages",null),id).size();
+  if(children>0) throw new BusinessException("하위 페이지 "+children+"개가 있습니다. 하위 페이지를 먼저 다른 곳으로 옮기거나 삭제하세요.");
   if(store.<Long>one("pageUsage",id)>0) throw new BusinessException("메뉴나 홈페이지 첫 화면에서 사용 중입니다. 연결을 해제한 후 삭제하세요.");
   store.change("deletePage",id);audit.record(actor,"페이지 삭제","페이지 #"+id,page.title());
+ }
+ /**
+  * Moves a page under parentId (null = top level) at the end of its new siblings and renumbers both sibling
+  * groups contiguously. expectedParentId is the parent the operator saw; a different current parent means
+  * someone else moved it first. Placement is structure, so the page revision (document edits) is untouched.
+  */
+ @Transactional
+ public List<Page> place(AccountPrincipal principal,long id,Long parentId,Long expectedParentId) {
+  store.lock();var actor=access.structure(principal);
+  List<Page> all=store.all("pages",null);
+  var page=PageHierarchy.find(all,id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"페이지를 찾을 수 없습니다."));
+  if(!Objects.equals(page.parentId(),expectedParentId)) throw new BusinessException("다른 작업에서 변경되었습니다. 다른 사용자가 먼저 이 페이지의 위치를 바꿨습니다. 목록을 새로 고친 뒤 다시 시도하세요.");
+  if(Objects.equals(page.parentId(),parentId)) return all;
+  PageHierarchy.requirePlacement(all,homePageId(),id,parentId);
+  var source=PageHierarchy.children(all,page.parentId()).stream().filter(p->p.id()!=id).toList();
+  var target=PageHierarchy.children(all,parentId);
+  store.change("placePage",values("id",id,"parentId",parentId,"sortOrder",target.size()));
+  renumber(source);renumber(target);
+  audit.record(actor,"페이지 위치 변경","페이지 #"+id,page.title()+": "+parentLabel(all,page.parentId())+" → "+parentLabel(all,parentId));
+  return store.all("pages",null);
+ }
+ /** Saves the order of the pages directly under parentId (null = top level); the ids must be exactly those pages. */
+ @Transactional
+ public List<Page> reorder(AccountPrincipal principal,Long parentId,List<Long> ids) {
+  store.lock();var actor=access.structure(principal);
+  List<Page> all=store.all("pages",null);
+  if(parentId!=null && PageHierarchy.find(all,parentId).isEmpty()) throw new BusinessException("상위 페이지를 찾을 수 없습니다. 목록을 새로 고친 뒤 다시 정렬하세요.");
+  var actual=PageHierarchy.children(all,parentId).stream().map(Page::id).toList();
+  if(ids==null || ids.size()!=actual.size() || new HashSet<>(ids).size()!=ids.size() || !new HashSet<>(actual).equals(new HashSet<>(ids)))
+   throw new BusinessException("페이지 목록이 바뀌었습니다. 목록을 새로 고친 뒤 다시 정렬하세요.");
+  for(int i=0;i<ids.size();i++) store.change("pageSortOrder",values("id",ids.get(i),"sortOrder",i));
+  audit.record(actor,"페이지 순서 변경",parentId==null?"최상위 페이지":"페이지 #"+parentId,parentLabel(all,parentId)+" 아래 "+ids.size()+"개");
+  return store.all("pages",null);
+ }
+ private void renumber(List<Page> siblings) {
+  for(int i=0;i<siblings.size();i++) if(siblings.get(i).sortOrder()!=i) store.change("pageSortOrder",values("id",siblings.get(i).id(),"sortOrder",i));
+ }
+ private static String parentLabel(List<Page> all,Long parentId) {
+  return parentId==null?"최상위":PageHierarchy.find(all,parentId).map(Page::title).orElse("페이지 #"+parentId);
+ }
+ /** The first-screen page (site setting homePageId), or null. */
+ Long homePageId() {
+  for(Setting setting:store.<Setting>all("settings",null))
+   if(setting.settingKey().equals("homePageId") && setting.settingValue().matches("[1-9][0-9]{0,18}")) return Long.valueOf(setting.settingValue());
+  return null;
  }
  @Transactional(readOnly=true)
  public PublishedPage publication(AccountPrincipal actor,long id) {

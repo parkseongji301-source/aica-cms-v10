@@ -35,8 +35,11 @@ public class NextWorkspaceApi {
         this.site=site; this.media=media; this.accounts=accounts; this.usages=usages;
     }
 
+    /** parentId null = top level. Rows come in sibling order (sortOrder, then id). */
     public record PageRow(long id, String title, String slug, String status, long revision,
-                          boolean pending, LocalDateTime updatedAt) {}
+                          boolean pending, LocalDateTime updatedAt, Long parentId, int sortOrder) {}
+    public record PlacementInput(Long parentId, Long expectedParentId) {}
+    public record PageOrderInput(Long parentId, List<Long> pageIds) {}
     public record PostRow(long id, String title, long authorId, String authorName, Long categoryId,
                           String status, boolean pending, LocalDateTime updatedAt,Classification classification) {}
     public record AccountRow(long id, String email, String displayName, String role, String roleLabel,
@@ -68,7 +71,18 @@ public class NextWorkspaceApi {
 
     @GetMapping("/pages")
     public List<PageRow> pageRows(@AuthenticationPrincipal AccountPrincipal actor) {
-        return pages.list(actor).stream().map(p->new PageRow(p.id(),p.title(),p.slug(),p.status(),p.revision(),p.pending(),p.updatedAt())).toList();
+        return rows(pages.list(actor));
+    }
+    private static List<PageRow> rows(List<CmsModels.Page> list) {
+        return list.stream().map(p->new PageRow(p.id(),p.title(),p.slug(),p.status(),p.revision(),p.pending(),p.updatedAt(),p.parentId(),p.sortOrder())).toList();
+    }
+    @PutMapping("/pages/{id}/placement")
+    public List<PageRow> placement(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody PlacementInput input) {
+        return rows(pages.place(actor,id,input.parentId(),input.expectedParentId()));
+    }
+    @PutMapping("/page-order")
+    public List<PageRow> pageOrder(@AuthenticationPrincipal AccountPrincipal actor,@RequestBody PageOrderInput input) {
+        return rows(pages.reorder(actor,input.parentId(),input.pageIds()));
     }
 
     @GetMapping("/dashboard")

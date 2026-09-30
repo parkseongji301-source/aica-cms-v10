@@ -11,7 +11,16 @@ $ErrorActionPreference='Stop'
 if(-not $AuthorizeRelocation){throw 'Explicit -AuthorizeRelocation is required.'}
 function Save-TaskJson($value,$path){[IO.File]::WriteAllText($path,($value|ConvertTo-Json -Depth 50),[Text.UTF8Encoding]::new($false))}
 function Get-TaskJson($path){Get-Content -LiteralPath $path -Raw -Encoding utf8 | ConvertFrom-Json}
-function Get-TaskSame($a,$b){($a|ConvertTo-Json -Depth 50 -Compress) -ceq ($b|ConvertTo-Json -Depth 50 -Compress)}
+# Inspections print row fingerprints from Java Map.of, whose key order changes between JVM runs;
+# compare values with object keys sorted (array order is kept: migration history order matters).
+function ConvertTo-TaskCanonical($value){
+    if($null -eq $value){return $null}
+    if($value -is [Management.Automation.PSCustomObject]){$out=[ordered]@{};foreach($name in @($value.PSObject.Properties.Name|Sort-Object -CaseSensitive)){$out[$name]=ConvertTo-TaskCanonical $value.$name};return $out}
+    if($value -is [Collections.IDictionary]){$out=[ordered]@{};foreach($name in @($value.Keys|Sort-Object -CaseSensitive)){$out[$name]=ConvertTo-TaskCanonical $value[$name]};return $out}
+    if(($value -is [Collections.IEnumerable]) -and -not ($value -is [string])){return ,@(foreach($item in $value){ConvertTo-TaskCanonical $item})}
+    $value
+}
+function Get-TaskSame($a,$b){(ConvertTo-Json -InputObject (ConvertTo-TaskCanonical $a) -Depth 50 -Compress) -ceq (ConvertTo-Json -InputObject (ConvertTo-TaskCanonical $b) -Depth 50 -Compress)}
 # Same string as Java Path.toRealPath() for plain folders: true on-disk casing, no junctions.
 function Get-TaskRealPath($path){
     $full=[IO.Path]::GetFullPath($path);$root=[IO.Path]::GetPathRoot($full).ToUpperInvariant();$real=$root

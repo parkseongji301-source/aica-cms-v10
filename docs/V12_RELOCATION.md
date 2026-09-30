@@ -34,6 +34,10 @@ receipt를 다시 쓰기 전에 모두 통과해야 한다.
 
 통과하면 이전 receipt를 `migration-receipt.before-relocation-<시각>.json`으로 보관하고, `databasePath`만 새 경로로 바꾸며 `relocations`에 이전 경로·검사 파일·해시를 남긴다. `-Java`를 주면 `runtime.json`의 `java`를 바꾸고 이전 파일을 보관한다. DB는 수정하거나 migration하지 않는다. 경로에 junction/symlink가 있으면 거부한다(Java `toRealPath`와 같은 문자열을 보장하기 위해).
 
+## 검사 비교 수정 (2026-09-30)
+
+검사 파일의 표별 지문은 Java `Map.of`로 출력되어 JVM 실행마다 키 순서가 바뀐다. 이전 스크립트는 JSON 문자열을 그대로 비교해서, DB가 같아도 키 순서가 다르면 "Relocated database differs from the normal-stop inspection: fingerprints"로 거부할 수 있었다. 객체 키를 정렬한 뒤 비교하도록 고쳤다(배열 순서는 그대로 비교). V12 JAR 교체 리허설에서 발견했다.
+
 ## 검증 (2026-09-30)
 
 회사 PC에서 정상 종료한 RC1을 ZIP으로 묶어 다른 경로(scratchpad)에 풀고 포트만 8098로 바꿔 확인했다. 원본 8095 실행본은 건드리지 않았다.

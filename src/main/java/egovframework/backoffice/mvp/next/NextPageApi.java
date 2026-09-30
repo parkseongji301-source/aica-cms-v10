@@ -70,6 +70,15 @@ public class NextPageApi {
         current(actor,id,input.revision());pages.unpublish(actor,id,input.revision());
         return document(target(actor,id));
     }
+    public record AddressRequest(Long revision,String slug) {}
+    /** Draft address change as in the legacy page form: the public address follows at the next publish. PageService requires structure permission. */
+    @PutMapping(value="/pages/{id}/address",consumes="application/json")
+    public PageDocument address(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody AddressRequest input) {
+        Page existing=current(actor,id,input.revision());
+        if(input.slug()==null||input.slug().isBlank())throw new BusinessException("페이지 주소를 입력하세요.");
+        if(input.slug().trim().equalsIgnoreCase(existing.slug()))throw new BusinessException("현재 주소와 같습니다.");
+        return document(pages.saveDocument(actor,id,input.revision(),existing.title(),input.slug().trim(),existing.sectionsJson(),"save",egovframework.backoffice.mvp.version.SaveIntent.MANUAL_DRAFT));
+    }
     /** The same impact list as the legacy delete-confirm screen, read before a permanent delete. */
     @GetMapping("/pages/{id}/delete-impact")
     public DeletionImpactService.Impact deleteImpact(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {return impacts.get(actor,"pages",id);}

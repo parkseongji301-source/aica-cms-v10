@@ -96,6 +96,27 @@ class NextAdminIntegrationTest {
         var anonymous=new HttpBrowser(port);
         assertThat(anonymous.get("/api/public/v1/pages/"+id+"/blocks/"+block.path("id").asText()+"/posts").statusCode()).isEqualTo(200);
     }
+    @Test void addressChangeIsADraftChangeForSuperAdminsAndGoesPublicAtTheNextPublish()throws Exception {
+        var admin=login("ADMIN");String adminCsrf=token(admin);
+        error(admin.json("PUT",API+"/pages/65/address",json.writeValueAsString(Map.of("revision",4,"slug","about-us")),adminCsrf),403);
+        var root=login("SUPER_ADMIN");String csrf=token(root);
+        error(root.json("PUT",API+"/pages/65/address",json.writeValueAsString(Map.of("revision",4,"slug","about")),csrf),400);
+        error(root.json("PUT",API+"/pages/65/address",json.writeValueAsString(Map.of("revision",4,"slug","Bad Address")),csrf),400);
+        error(root.json("PUT",API+"/pages/65/address",json.writeValueAsString(Map.of("revision",3,"slug","about-us")),csrf),409);
+        error(root.json("PUT",API+"/pages/65/address",json.writeValueAsString(Map.of("revision",4,"slug","about-us")),null),403);
+        var changed=ok(root.json("PUT",API+"/pages/65/address",json.writeValueAsString(Map.of("revision",4,"slug","about-us")),csrf));
+        assertThat(changed.path("slug").asText()).isEqualTo("about-us");assertThat(changed.path("pending").asBoolean()).isTrue();
+        var publishedBlock=ok(root.get(API+"/pages/65/publication")).path("sections").get(0);var draftBlock=changed.path("sections").get(0);
+        assertThat(changed.path("sections").size()).isEqualTo(1);
+        for(String field:List.of("id","type","heading","body","visible"))assertThat(draftBlock.path(field)).isEqualTo(publishedBlock.path(field));
+        var anonymous=new HttpBrowser(port);
+        assertThat(anonymous.get("/api/public/v1/pages/by-slug/about").statusCode()).isEqualTo(200);
+        assertThat(anonymous.get("/api/public/v1/pages/by-slug/about-us").statusCode()).isEqualTo(404);
+        ok(root.json("POST",API+"/pages/65/publish",json.writeValueAsString(Map.of("revision",changed.path("revision").asLong(),"title",changed.path("title").asText(),"sections",changed.path("sections"))),csrf));
+        assertThat(anonymous.get("/api/public/v1/pages/by-slug/about-us").statusCode()).isEqualTo(200);
+        assertThat(anonymous.get("/api/public/v1/pages/by-slug/about").statusCode()).isEqualTo(404);
+        assertThat(jdbc.queryForObject("SELECT target_id FROM site_menus WHERE kind='PAGE'",Long.class)).isEqualTo(65L);
+    }
     @Test void reactPermanentPageDeleteUsesTheLegacyImpactAndUsageRules()throws Exception {
         long author=jdbc.queryForObject("SELECT id FROM users WHERE role='SUPER_ADMIN'",Long.class);
         jdbc.update("INSERT INTO site_pages(id,title,slug,sections_json,status,revision,author_id) VALUES(66,'정리할 페이지','cleanup','[]','DRAFT',1,?)",author);

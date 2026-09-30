@@ -141,7 +141,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
       {Object.entries(visited).map(([key,savedRoute])=>{
         const active=key===route.path,match=/^\/pages\/(\d+)\/edit$/.exec(key),postMatch=/^\/posts\/(\d+)\/edit$/.exec(key);
         const inspectedId=mode==='structure'&&key==='/pages'?pageOverviewId(new URLSearchParams(savedRoute.query)):null;
-        const props={active,version,data,go,refresh,search:new URLSearchParams(savedRoute.query)};
+        const props={active,version,data,go,refresh,registerGuard,search:new URLSearchParams(savedRoute.query)};
         let panel;
         if(!canOpen(key,data))panel=<><Heading title={entries.some(e=>e.path===key)||match?'접근 권한이 없습니다.':'화면을 찾을 수 없습니다.'}/><Empty>사이트 관리에서 사용할 수 있는 메뉴를 선택하세요.</Empty></>;
         else if(match)panel=<PagePanel blockId={new URLSearchParams(savedRoute.query).get('block')} viewMode={mode} onSelectBlock={(block,replace)=>navigate(pagePath(Number(match[1]),block),replace)} onOutline={updatedOutline} registerGuard={registerGuard} id={Number(match[1])} active={active} data={data} go={go} onTitle={name=>savedPage(Number(match[1]),name)}/>;
@@ -149,7 +149,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
         else if(inspectedId!==null)panel=<PageOverview page={data.pages.find(p=>p.id===inspectedId)} menus={data.menus} outline={structure.data?.find(p=>p.pageId===inspectedId)} loading={structure.loading} error={structure.error} blockId={new URLSearchParams(savedRoute.query).get('block')} onSelectBlock={block=>go(pageOverviewPath(inspectedId,block))} onEdit={block=>editPage(inspectedId,block)} onRetry={structure.reload}/>;
         else switch(key) {
           case '/dashboard':panel=<DashboardPanel {...props}/>;break;
-          case '/posts':panel=<PostsPanel {...props}/>;break;
+          case '/posts':panel=<PostsPanel {...props} onChanged={trashChanged}/>;break;
           case '/trash':panel=<TrashPanel {...props} onChanged={trashChanged} registerGuard={registerGuard}/>;break;
           case '/pages':panel=<PagesPanel {...props} onOverview={id=>{navigate(pageOverviewPath(id),false,false,'structure');setSidebarOpen(false);}}/>;break;
           case '/media':panel=<MediaPanel {...props}/>;break;

@@ -1,4 +1,5 @@
 import {useId,useRef,useState} from 'react';
+import type {ReactNode} from 'react';
 import type {Bootstrap,ClassificationCatalog,Go,PostRow} from './types';
 import type {ContentContext} from './contentNavigation';
 import {contextualPostPath,filterValues} from './contentNavigation';
@@ -8,15 +9,16 @@ import {date,LegacyLink} from './ui';
 
 export const postStatusLabels:Record<string,string>={DRAFT:'임시보관',PUBLISHED:'게시됨',PRIVATE:'비공개'};
 
-export function ContentListTable({items,categories,go,scope,filtered,onReset}:{items:PostRow[];categories:Bootstrap['categories'];go:Go;scope:ContentContext|null;filtered:boolean;onReset:()=>void}) {
+export function ContentListTable({items,categories,go,scope,filtered,onReset,selection}:{items:PostRow[];categories:Bootstrap['categories'];go:Go;scope:ContentContext|null;filtered:boolean;onReset:()=>void;selection?:{selectAll:ReactNode;checkbox:(post:PostRow)=>ReactNode;rowButton:(post:PostRow)=>ReactNode}}) {
   if(!items.length)return <div className="posts-empty"><strong>{filtered?'조건에 맞는 콘텐츠가 없습니다.':'아직 등록된 콘텐츠가 없습니다.'}</strong><p>{filtered?'검색어나 분류 조건을 바꿔 다시 찾아보세요.':'새 콘텐츠를 작성해 첫 이야기를 시작하세요.'}</p>{filtered&&<button onClick={onReset}>검색 조건 초기화</button>}</div>;
-  return <div className="posts-table-wrap"><table className="data-table posts-table"><caption className="posts-sr-only">콘텐츠 목록 · 분류는 저장된 작성본 기준</caption>
-    <thead><tr><th scope="col">{scope?.type==='FAQ'?'질문':scope?.type==='RESTAURANT'?'식당명':'제목'}</th><th scope="col">상태</th><th scope="col">유형</th><th scope="col">기수·주제</th><th scope="col">작성자</th><th scope="col">최근 수정</th><th scope="col">작업</th></tr></thead>
+  return <div className="posts-table-wrap"><table className={'data-table posts-table'+(selection?' has-selection':'')}><caption className="posts-sr-only">콘텐츠 목록 · 분류는 저장된 작성본 기준</caption>
+    <thead><tr>{selection&&<th scope="col" className="bulk-cell">{selection.selectAll}</th>}<th scope="col">{scope?.type==='FAQ'?'질문':scope?.type==='RESTAURANT'?'식당명':'제목'}</th><th scope="col">상태</th><th scope="col">유형</th><th scope="col">기수·주제</th><th scope="col">작성자</th><th scope="col">최근 수정</th><th scope="col">작업</th></tr></thead>
     <tbody>{items.map(post=>{
       const category=categories.find(c=>c.id===post.categoryId)?.name||'미분류';
       const cohorts=post.classification.cohorts.map(t=>t.name).join(', ')||'선택 없음';
       const topics=post.classification.topics.map(t=>t.name).join(', ')||'선택 없음';
       return <tr key={post.id} data-content-id={post.id}>
+        {selection&&<td className="bulk-cell">{selection.checkbox(post)}</td>}
         <td className="post-title-cell"><button className="text-link content-title" data-content-id={post.id} onClick={()=>go(contextualPostPath(post.id,scope))}>{post.title}</button><small className="post-category">기존 카테고리 · {category}</small>
           <details className="post-mobile-details"><summary>분류·작성자 보기</summary><dl><dt>유형</dt><dd>{post.classification.typeName}</dd><dt>기수</dt><dd>{cohorts}</dd><dt>주제</dt><dd>{topics}</dd><dt>작성자</dt><dd>{post.authorName}</dd><dt>기존 카테고리</dt><dd>{category}</dd></dl></details>
         </td>
@@ -25,7 +27,7 @@ export function ContentListTable({items,categories,go,scope,filtered,onReset}:{i
         <td className="post-classification-cell"><span><span className="post-meta-label">기수</span>{cohorts}</span><span><span className="post-meta-label">주제</span>{topics}</span></td>
         <td className="post-author-cell">{post.authorName}</td>
         <td className="post-date-cell"><span className="post-mobile-label">최근 수정 </span><time dateTime={post.updatedAt}>{date(post.updatedAt)}</time></td>
-        <td className="post-action-cell"><button aria-label={post.title+' 편집'} onClick={()=>go(contextualPostPath(post.id,scope))}>편집</button></td>
+        <td className="post-action-cell"><button aria-label={post.title+' 편집'} onClick={()=>go(contextualPostPath(post.id,scope))}>편집</button>{selection?.rowButton(post)}</td>
       </tr>;
     })}</tbody></table></div>;
 }

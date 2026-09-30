@@ -20,3 +20,7 @@
 *.lock.db
 __pycache__/
 *.py[cod]
+
+# Local transfer bundles contain runtime data and are not repository sources.
+/트랜스퍼 0930/
+/.pnpm-store/

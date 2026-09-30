@@ -178,10 +178,9 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
     </div><aside className="card writer-properties" aria-label="콘텐츠 속성"><h2>콘텐츠 속성</h2><p className="writer-properties-note">유형과 분류를 설정합니다.</p>
       <ClassificationFields value={doc.classification} catalog={catalog} baseline={baseline.current} problem={classificationIssue} onChange={patch=>change({classification:{...doc.classification,...patch}})}/>
       {addressIssue&&<div className="classification-warning" role="alert"><p>{addressIssue}</p>{doc.classification.typeCode!=='RESTAURANT'&&<button onClick={()=>change({restaurant:{address:''}})}>주소를 비우고 유형 변경</button>}</div>}
-      <div className="writer-category"><label htmlFor={'content-category-'+doc.id}>기존 카테고리</label>
-        <select id={'content-category-'+doc.id} value={doc.categoryId??''} onChange={e=>change({categoryId:e.target.value?Number(e.target.value):null})}>
-          <option value="">미분류</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-        </select></div>
+      {/* Legacy categories are retired: an existing one can only be cleared, never newly set. */}
+      {doc.categoryId!=null&&<div className="writer-category" role="note"><p>기존 카테고리: <strong>{category}</strong></p><p className="writer-save-help">레거시 카테고리는 새로 지정할 수 없습니다. 분류는 유형·주제로 정합니다.</p>
+        <button type="button" onClick={()=>change({categoryId:null})}>카테고리 해제</button></div>}
       {doc.classification.typeCode==='RESTAURANT'&&<label className="restaurant-address">주소 <small>선택 입력 · 최대 500자</small><input aria-label="주소" maxLength={500} value={doc.restaurant?.address||''} onChange={e=>change({restaurant:{address:e.target.value}})}/></label>}
       <p className="writer-save-help">입력 내용은 자동저장됩니다. ‘임시보관’을 누르면 버전 이력에도 남습니다.</p>
     </aside><aside id={'writer-preview-'+doc.id} hidden={!previewOpen} className="card preview-panel writer-preview" aria-label="작성 내용 미리보기"><header><div>작성 내용 미리보기</div>

@@ -161,7 +161,9 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[blockTypes,setBlockTypes]=useState<string[]|null>(null);
   const pending=useRef(false);
   useEffect(()=>{if(group)return;let cancelled=false;
-    void getPage(page.id).then(doc=>{if(!cancelled)setBlockTypes(doc.sections.filter(s=>s.type==='POSTS').map(s=>(s as {query?:{typeCode?:string}}).query?.typeCode??'').filter(Boolean));}).catch(()=>{if(!cancelled)setBlockTypes([]);});
+    void getPage(page.id).then(doc=>{if(!cancelled)setBlockTypes(doc.sections.filter(s=>s.type==='POSTS').map(s=>{const q=(s as {query?:{typeCode?:string|null}}).query;
+      // All types (query without a type, or the old category mode without a category) lists every type.
+      return s.sourceMode==='query'?(q?.typeCode??'*'):(s.sourceMode==null||s.sourceMode==='category')&&s.categoryId==null?'*':'';}).filter(Boolean));}).catch(()=>{if(!cancelled)setBlockTypes([]);});
     return()=>{cancelled=true;};},[group,page.id]);
   const representedBy=(code:string)=>pages.find(p=>p.id!==page.id&&p.contentTypeCode===code);
   const types=catalog?.types.filter(t=>t.active||t.code===page.contentTypeCode)??[];
@@ -173,7 +175,7 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
     catch(e){setError(messageOf(e));onStale();}
     finally{pending.current=false;setBusy(false);onBusy(false);}
   }
-  const missingBlock=!group&&!!type&&blockTypes!==null&&!blockTypes.includes(type);
+  const missingBlock=!group&&!!type&&blockTypes!==null&&!blockTypes.includes(type)&&!blockTypes.includes('*');
   // 구성에서 제거 / 다시 포함 (V15): separate from menu visibility; the homepage follows at the next structure publication.
   const childrenInStructure=pages.filter(p=>p.parentId===page.id&&p.inStructure).length;
   const parentRemoved=page.parentId!=null&&pages.some(p=>p.id===page.parentId&&!p.inStructure);

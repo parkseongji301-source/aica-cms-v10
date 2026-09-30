@@ -19,7 +19,7 @@ function SnapshotView({value,html,mediaBase}:{value:VersionSnapshot;html?:string
  {b.body&&<p className="version-plain">{b.body}</p>}{b.imageId&&<p>이미지 #{b.imageId}</p>}
  {b.label&&<p>버튼: {b.label} · {b.link}</p>}
  {b.type==='POSTS'&&<><p>콘텐츠 소스: {b.sourceMode||'category'} · category #{b.categoryId??'전체'}</p>
- {b.query&&<p>조건: {b.query.typeCode} / 기수 {b.query.cohortIds.join(', ')||'전체'} / 주제 {b.query.topicIds.join(', ')||'전체'} / {b.query.sort} / {b.query.limit}개</p>}
+ {b.query&&<p>조건: {b.query.typeCode??'전체 유형'} / 기수 {b.query.cohortIds.join(', ')||'전체'} / 주제 {b.query.topicIds.join(', ')||'전체'} / {b.query.sort} / {b.query.limit}개</p>}
  {b.manual&&<p>직접 선택 순서: {b.manual.postIds.join(' → ')||'없음'}</p>}</>}
  <details><summary>전체 블록 설정 · 식별 정보</summary><pre>{JSON.stringify(b,null,2)}</pre></details>
  </li>)}</ol>}

@@ -1,4 +1,5 @@
-export type PostsQuery = {typeCode:string;cohortIds:number[];topicIds:number[];sort:'LATEST';limit:number};
+// typeCode null = all content types (the meaning of the old category mode without a category).
+export type PostsQuery = {typeCode:string|null;cohortIds:number[];topicIds:number[];sort:'LATEST';limit:number};
 export type SelectedPost = {id:number;title:string;status:'PUBLISHED'|'UNPUBLISHED'|'PRIVATE'|'DELETED'|'UNAVAILABLE';publicationTitle:string|null};
 export type PublicPost = {id:number;title:string;content:string;publishedAt:string};
 export type Section = { id:string; schemaVersion:2; variation:string; type: 'HERO'|'TEXT'|'IMAGE'|'POSTS'|'CTA'; heading: string; body: string; bodyDoc: string|null; imageId: number|null; categoryId: number|null; link: string; label: string; visible: boolean;sourceMode?:'category'|'query'|'manual'|null;query?:PostsQuery|null;manual?:{postIds:number[]}|null };

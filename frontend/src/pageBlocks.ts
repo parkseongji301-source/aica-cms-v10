@@ -1,7 +1,10 @@
 import type {Section,ComponentDefinition} from './types';
+import {allTypesQuery} from './manualPosts.ts';
 
 export const newBlockId=()=>`block_${crypto.randomUUID()}`;
-export const newSection=(type:Section['type'],definition?:ComponentDefinition):Section=>({heading:'',body:'',bodyDoc:null,imageId:null,categoryId:null,link:'',label:'',visible:true,...definition?.defaults,id:newBlockId(),schemaVersion:definition?.schemaVersion??2,variation:definition?.defaultVariation??'default',type});
+// New POSTS blocks start in query mode with all types; the legacy category mode is not offered for new blocks.
+const postsStart=(type:Section['type'],definition?:ComponentDefinition):Partial<Section>=>type==='POSTS'?{sourceMode:'query',query:allTypesQuery(definition?.postsQuery?.defaultLimit??6)}:{};
+export const newSection=(type:Section['type'],definition?:ComponentDefinition):Section=>({...postsStart(type,definition),heading:'',body:'',bodyDoc:null,imageId:null,categoryId:null,link:'',label:'',visible:true,...definition?.defaults,id:newBlockId(),schemaVersion:definition?.schemaVersion??2,variation:definition?.defaultVariation??'default',type});
 // Query arrays must be independent as well as the top-level block fields.
 export const duplicateSection=(section:Section):Section=>({...structuredClone(section),id:newBlockId()});
 export const changeSection=(sections:Section[],id:string,patch:Partial<Section>)=>sections.map(s=>s.id===id?{...s,...patch,id:s.id}:s);

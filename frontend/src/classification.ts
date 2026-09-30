@@ -4,7 +4,7 @@ export const classificationSelection=(value:ClassificationSelection):Classificat
   typeCode:value.typeCode,cohortIds:[...value.cohortIds].sort((a,b)=>a-b),topicIds:[...value.topicIds].sort((a,b)=>a-b)
 });
 export const toggleId=(values:number[],id:number)=>values.includes(id)?values.filter(v=>v!==id):[...values,id].sort((a,b)=>a-b);
-export const allowedTopicIds=(catalog:ClassificationCatalog,typeCode:string)=>catalog.allowedTopics.filter(t=>t.typeCode===typeCode).map(t=>t.topicId);
+export const allowedTopicIds=(catalog:ClassificationCatalog,typeCode:string|null)=>typeCode===null?[]:catalog.allowedTopics.filter(t=>t.typeCode===typeCode).map(t=>t.topicId);
 export const invalidTopicIds=(value:ClassificationSelection,catalog:ClassificationCatalog)=>value.topicIds.filter(id=>!allowedTopicIds(catalog,value.typeCode).includes(id));
 export function classificationProblem(value:ClassificationSelection,catalog:ClassificationCatalog,baseline:ClassificationSelection):string {
   if(invalidTopicIds(value,catalog).length)return '유형에 맞지 않는 주제가 남아 있습니다. 아래에서 직접 해제하거나 유형을 되돌려 주세요.';

@@ -146,7 +146,6 @@ function Workspace({initial}:{initial:Bootstrap}) {
       <button className={'content-work-home'+(wholeContentSelected?' selected':'')} aria-current={wholeContentSelected?'page':undefined} onClick={()=>go('/posts')}><NavigationIcon name="content"/><span className="nav-item-copy"><span>전체 콘텐츠</span></span></button>
       {data.permissions.site&&<>
       {areas.map((area,index)=><ContentTree key={area.pageId} area={area} areas={areas} catalog={reviewCatalog.data} selected={(route.path==='/posts'||activePost)&&contentLocation?.pageId===area.pageId?contentLocation.key:null} go={go} error={index===0?reviewCatalog.error:''}/>)}
-      {data.categories.map(category=><button key={category.id} data-category-id={category.id} className={selected(contentPath(category.id))?'selected':''} aria-current={selected(contentPath(category.id))?'page':undefined} onClick={()=>go(contentPath(category.id))}><NavigationIcon name="folder"/><span className="nav-item-copy"><span>{category.name}</span></span></button>)}
       </>}
     </nav>}</div><div className="sidebar-footer"><span>홈페이지 연결 전</span><small>동일한 원본 · 두 가지 탐색</small></div></aside>
     <main id="next-workspace"><WorkspaceBreadcrumbs mode={mode} path={route.path} query={route.query} title={title} catalog={reviewCatalog.data} areas={areas} listPath={listForPost(route.path,route.query)} categoryLabel={data.categories.find(c=>String(c.id)===activeListSearch.get('categoryId'))?.name} pageSelected={activePageId!==null} go={go}/><Feedback error={navigationError}/>

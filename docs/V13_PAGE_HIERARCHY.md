@@ -39,7 +39,7 @@ CREATE INDEX site_pages_parent_order ON site_pages(parent_id, sort_order, id);
 | 깊이 | 서비스 상수 `MAX_DEPTH = 2`. `새 상위의 깊이 + 1 + 옮길 페이지 아래 하위의 높이 ≤ 2`. 현재는 하위 페이지를 가진 페이지를 다른 페이지 아래로 옮길 수 없고, 상위가 될 수 있는 것은 최상위 페이지뿐이다 |
 | 순환 | 새 상위의 조상을 끝까지 따라가 자기 자신이 나오면 거부한다. 깊이 제한을 풀 때를 대비한 일반 검사다 |
 | 홈 | 첫 화면(`homePageId`) 페이지는 **최상위 고정이고 하위 페이지를 가질 수 없다**(현재 운영 규칙, 서비스·UI 규칙). 위치 변경에서 홈을 옮기거나 홈 아래로 옮기는 요청을 거부하고, 첫 화면 설정 저장도 최상위이면서 하위 페이지가 없는 페이지만 허용한다 |
-| 동시 변경 | 위치 변경 요청은 화면이 본 현재 상위(`expectedParentId`)를 함께 보낸다. 다르면 "다른 사용자가 먼저 위치를 바꿨습니다"로 거부한다 |
+| 동시 변경 | 위치 변경 요청은 화면이 본 현재 상위(`expectedParentId`)를 함께 보낸다. 다르면 "다른 사용자가 먼저 위치를 바꿨습니다"로 거부한다(409 `REVISION_CONFLICT`) |
 | 문서 버전과 분리 | 위치·순서 변경은 페이지 `revision`을 올리지 않는다. 편집기를 열어 둔 사용자의 저장과 충돌하지 않는다 |
 | 정렬 | 형제 사이 정렬은 **`sort_order ASC → id ASC`로 고정**하고 서버 SQL 한 곳에서만 정한다. 화면은 서버 순서를 그대로 묶기만 한다 |
 | 순서 정규화 | 순서 저장은 현재 형제 목록과 정확히 같은 집합이어야 하고, 저장하면 형제를 0부터 연속값으로 다시 매긴다. 위치 변경 때도 원래 형제와 새 형제 양쪽을 연속값으로 정리하고, 옮긴 페이지는 새 형제의 맨 끝에 둔다 |
@@ -99,3 +99,40 @@ CREATE INDEX site_pages_parent_order ON site_pages(parent_id, sort_order, id);
 3. RC 빌드 → 최신 V12 백업 사본으로 리허설 → 보고 → 8095 적용(사용자 승인 후)
 
 각 단계의 결과는 이 문서에 추가한다.
+
+## 1단계 결과: 서버 (2026-09-30)
+
+| 파일 | 내용 |
+|---|---|
+| `db/migration/h2/V13__page_hierarchy.sql` | 1절의 SQL. 데이터 변경 없음 |
+| `FileDatabaseSafety.CURRENT_VERSION` | `"13"`. 서버는 V13 DB와 `MIGRATED_V13` receipt만 받는다. V12 DB·receipt는 거부 |
+| `V13PromotionTool` | plan/migrate(5절). 웹 서버는 `AICA_V13_PROMOTION_ENABLED`로 시작할 수 없다 |
+| `V12PromotionTool` | V11→V12 전용으로 manifest·검사를 V12까지로 한정(V13이 JAR에 있어도 동작). `inspect`는 현재 schema의 읽기 전용 검사로 계속 실행 스크립트가 쓴다 |
+| `PageHierarchy` | 깊이·순환·홈 규칙(`MAX_DEPTH = 2`), 형제 정렬 |
+| `PageService` | `place`(위치 변경, 양쪽 형제 정규화), `reorder`(형제 순서, 연속값), 상위를 지정한 생성, 하위가 있으면 삭제 거부 |
+| `SiteService` | 첫 화면은 최상위이면서 하위 페이지가 없는 페이지만 |
+| `UsageService`·`DeletionImpactService` | 삭제 영향에 "하위 페이지 · 제목" |
+| `CmsMapper.xml` | 목록 `ORDER BY sort_order, id`, 생성 시 형제 맨 끝, `placePage`·`pageSortOrder`(revision 불변) |
+| `NextWorkspaceApi`·`PageController`·`SecurityConfiguration` | 3절의 API. 새 PUT 2개는 MANAGE_SITE |
+
+API 목록 행은 `sort_order, id` 순서의 평평한 목록이다(상위와 하위가 섞여 나온다). 화면은 이 순서를 유지한 채 상위 아래로 묶는다.
+
+검증: 서버 전체 테스트 202개 실행, 실패 0, 환경 조건 제외 6. 프런트 테스트 70개(변경 없음).
+
+- `PageHierarchyMigrationTest`(2):
+  - V12 파일 DB 사본에서 plan/migrate가 성공하고 원본 해시 불변, 기존 페이지·메뉴 행 불변, 새 열 NULL/0
+  - 자기 참조와 하위가 있는 상위 삭제는 DB가 거부하지만, 3단계 삽입은 DB가 막지 않는다(운영 제한은 서비스에만 있음을 확인)
+  - V12 schema·V12 receipt는 V13 런타임에서 거부
+  - 계획 뒤 바뀐 사본, V11 DB는 거부
+- `PageHierarchyIntegrationTest`(8):
+  - 위치 변경과 양쪽 형제 정규화, revision 불변, 활동 이력
+  - 2단계·자기 하위·자기 자신·홈 양방향·없는 상위 거부, 오래된 화면은 409
+  - 형제 순서 저장과 집합 불일치 거부
+  - ADMIN·SUPPORTER 403, CSRF 없음 403, 비로그인 조회 401
+  - 상위를 지정한 생성(맨 끝), 홈·하위 페이지 아래 생성 거부, 기존 페이지에 상위 지정 거부
+  - 하위가 있으면 삭제 거부·삭제 영향 표시, 하위를 먼저 지우면 상위 삭제 가능
+  - 첫 화면 설정 규칙
+  - 문서 저장·되돌리기가 계층 유지, 상위 공개 중단 후에도 하위는 게시 유지, 공개 API에 계층 필드 없음
+- 기존 테스트는 migration 이력 기대값에 13 추가, 검토된 migration 목록에 V13 추가, V11→V12 도구 테스트가 schema 12를 명시적으로 확인하도록 고쳤다.
+
+아직 하지 않은 것: React 화면(2단계), 실행 스크립트의 `MIGRATED_V13` 지원과 RC 빌드·리허설(3단계). 8095(V12 RC2)와 운영 DB는 바꾸지 않았다.

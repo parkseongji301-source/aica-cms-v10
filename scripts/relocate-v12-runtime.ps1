@@ -62,7 +62,7 @@ if((Test-Path -LiteralPath $taskActivePath) -and ($taskActive=Get-TaskJson $task
 }
 $taskHandle=[IO.File]::Open($taskDb,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None);$taskHandle.Dispose()
 $taskReceipt=Get-TaskJson $taskReceiptPath
-if($taskReceipt.status -notin @('MIGRATED_V12','MIGRATED_V13','MIGRATED_V14') -or $taskReceipt.jarSha256 -ne $taskConfig.jarSha256 -or $taskReceipt.workaround -ne 'AUTO_COMPACT_FILL_RATE=0'){throw 'Receipt is not a completed V12/V13 receipt for this JAR.'}
+if($taskReceipt.status -notin @('MIGRATED_V12','MIGRATED_V13','MIGRATED_V14','MIGRATED_V15') -or $taskReceipt.jarSha256 -ne $taskConfig.jarSha256 -or $taskReceipt.workaround -ne 'AUTO_COMPACT_FILL_RATE=0'){throw 'Receipt is not a completed V12/V13 receipt for this JAR.'}
 $taskStamp=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 if($taskReceipt.databasePath -ceq $taskDb){
     Write-Host 'Receipt already matches this folder; database binding unchanged.'

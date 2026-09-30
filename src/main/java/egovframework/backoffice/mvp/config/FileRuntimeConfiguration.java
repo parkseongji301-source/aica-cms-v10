@@ -30,6 +30,7 @@ public class FileRuntimeConfiguration {
             require(FileDatabaseSafety.LOCATION.equals(env.getProperty("spring.flyway.locations",FileDatabaseSafety.LOCATION)),"unapproved Flyway migration location");
             require(!env.getProperty("AICA_CUTOVER_ENABLED","false").equalsIgnoreCase("true"),"cutover mode must not be used by the web server");
             require(!env.getProperty("AICA_V11_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
+            require(!env.getProperty("AICA_V12_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
             Path db=requireWriter(ds.getJdbcUrl());
             boolean original=db.toString().replace('\\','/').toLowerCase(Locale.ROOT).contains("/.local-data/");
             String receipt=env.getProperty("AICA_RUNTIME_RECEIPT","");

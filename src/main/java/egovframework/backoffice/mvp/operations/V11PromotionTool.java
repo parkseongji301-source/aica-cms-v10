@@ -14,6 +14,7 @@ public final class V11PromotionTool {
   var rows=new ArrayList<Map<String,Object>>();
   for(var m:flyway(url,user,password,"11").info().all()){
    require(m.getVersion()!=null,"unversioned migration is forbidden");
+   if(m.getVersion().compareTo(org.flywaydb.core.api.MigrationVersion.fromVersion("11"))>0)continue;
    var row=new LinkedHashMap<String,Object>();row.put("version",m.getVersion().getVersion());row.put("script",m.getScript());row.put("checksum",m.getChecksum());rows.add(row);
   }
   require(rows.size()==11,"exactly V1..V11 required");
@@ -57,7 +58,7 @@ public final class V11PromotionTool {
    for(var entry:oldColumns.entrySet())require(entry.getValue().equals(afterColumns.get(entry.getKey())),"legacy columns changed");
    try(var s=c.createStatement();var r=s.executeQuery("SELECT COUNT(*) FROM post_trash")){r.next();require(r.getLong(1)==0,"trash must start empty; no legacy backfill");}
   }
-  requireCurrentSchema(file,user,password);var after=JSON.valueToTree(inspect(file,user,password));
+  requireSchema(file,user,password,"11");var after=JSON.valueToTree(inspect(file,user,password));
   require(after.path("history").equals(p.path("migrations")),"cold migration history mismatch");
   var beforeFields=p.path("before").path("fingerprints").fields();while(beforeFields.hasNext()){var e=beforeFields.next();require(e.getValue().equals(after.path("fingerprints").path(e.getKey())),"cold legacy data mismatch: "+e.getKey());}
   var receipt=JSON.createObjectNode();receipt.put("status","MIGRATED_V11").put("approvalKind",KIND).put("databasePath",file.toString())
@@ -72,7 +73,7 @@ public final class V11PromotionTool {
   JsonNode value;
   switch(args[0]){
    case "plan" -> value=plan(Path.of(args[1]),jarHash,user,password);
-   case "inspect" -> {Path file=Path.of(args[1]).toRealPath();requireCurrentSchema(file,user,password);value=JSON.valueToTree(inspect(file,user,password));}
+   case "inspect" -> {Path file=Path.of(args[1]).toRealPath();requireSchema(file,user,password,"11");value=JSON.valueToTree(inspect(file,user,password));}
    case "migrate" -> {
     require("true".equals(System.getenv("AICA_V11_PROMOTION_ENABLED")),"explicit V11 promotion flag required");
     Path planFile=Path.of(args[1]).toRealPath();String planHash=hash(planFile);

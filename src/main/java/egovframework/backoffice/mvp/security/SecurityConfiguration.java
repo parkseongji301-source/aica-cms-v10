@@ -59,6 +59,8 @@ public class SecurityConfiguration {
                         .requestMatchers("/admin/roles").hasAuthority(AccessPolicy.Capability.MANAGE_ACCOUNTS.name())
                         .requestMatchers("/admin/accounts/**").hasAuthority(AccessPolicy.Capability.MANAGE_ACCOUNTS.name())
                         .requestMatchers("/", "/admin", "/account/password", "/admin/posts", "/admin/posts/**", "/admin/media", "/admin/media/**").authenticated()
+                        .requestMatchers("/api/admin/next/writing-templates/manage", "/api/admin/next/writing-templates/manage/**").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
+                        .requestMatchers("/api/admin/next/writing-templates", "/api/admin/next/writing-templates/*", "/api/admin/next/writing-templates/*/prepare").authenticated()
                         .anyRequest().denyAll())
                 .exceptionHandling(errors -> errors
                     .authenticationEntryPoint((request,response,error) -> {

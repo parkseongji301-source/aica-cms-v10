@@ -18,7 +18,7 @@ class V11PromotionSafetyTest {
   V11PromotionTool.validatePlan(p,"rc","sa","");assertThat(hash(db)).isEqualTo(before);
   var receipt=V11PromotionTool.migrate(p,"rc","plan","sa","");
   assertThat(receipt.path("status").asText()).isEqualTo("MIGRATED_V11");assertThat(receipt.path("migrationsExecuted").asInt()).isEqualTo(1);
-  assertThat(receipt.path("after").path("history").size()).isEqualTo(11);requireCurrentSchema(db,"sa","");
+  assertThat(receipt.path("after").path("history").size()).isEqualTo(11);requireSchema(db,"sa","","11");
   var fields=p.path("before").path("fingerprints").fields();while(fields.hasNext()){var e=fields.next();assertThat(receipt.path("after").path("fingerprints").path(e.getKey())).isEqualTo(e.getValue());}
   assertThatThrownBy(()->V11PromotionTool.validatePlan(p,"rc","sa","")).hasMessageContaining("target changed");
  }

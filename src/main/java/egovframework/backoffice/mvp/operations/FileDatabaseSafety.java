@@ -12,7 +12,7 @@ import java.util.*;
 public final class FileDatabaseSafety {
     public static final ObjectMapper JSON = new ObjectMapper();
     public static final String LOCATION = "classpath:db/migration/h2";
-    public static final String CURRENT_VERSION = "11";
+    public static final String CURRENT_VERSION = "12";
     private FileDatabaseSafety() {}
     public static void require(boolean condition, String reason) {
         if (!condition) throw new IllegalStateException("DB safety STOP: " + reason);
@@ -130,9 +130,12 @@ public final class FileDatabaseSafety {
         require(f.info().current()!=null&&"10".equals(f.info().current().getVersion().getVersion())&&f.info().pending().length==0,"normal runtime accepts V10 only; use approved one-shot cutover");
     }
     public static void requireCurrentSchema(Path file,String user,String password) throws Exception {
-        var f=flyway(readUrl(file),user,password,null);f.validate();
-        require(f.info().current()!=null&&CURRENT_VERSION.equals(f.info().current().getVersion().getVersion())&&f.info().pending().length==0,
-            "normal runtime accepts V"+CURRENT_VERSION+" only; migrate and validate a separate copy first");
+        requireSchema(file,user,password,CURRENT_VERSION);
+    }
+    public static void requireSchema(Path file,String user,String password,String version) throws Exception {
+        var f=flyway(readUrl(file),user,password,version);f.validate();
+        require(f.info().current()!=null&&version.equals(f.info().current().getVersion().getVersion())&&f.info().pending().length==0,
+            "runtime requires V"+version+"; migrate and validate a separate copy first");
     }
     public static void requireReceipt(Path file,Path receipt,String jarHash) throws Exception {
         requireReceipt(file,receipt,jarHash,"10");

@@ -22,8 +22,8 @@ class PostTrashMigrationTest {
         }
         Path file=Path.of(base+".mv.db").toRealPath();String hash=hash(file);
         requireV10(file,"sa","");assertThatThrownBy(()->requireCurrentSchema(file,"sa","")).isInstanceOf(Exception.class);assertThat(hash(file)).isEqualTo(hash);
-        var migration=flyway(url,null);assertThat(migration.migrate().migrationsExecuted).isEqualTo(1);migration.validate();
-        assertThat(migration.migrate().migrationsExecuted).isZero();requireCurrentSchema(file,"sa","");
+        var migration=flyway(url,"11");assertThat(migration.migrate().migrationsExecuted).isEqualTo(1);migration.validate();
+        assertThat(migration.migrate().migrationsExecuted).isZero();requireSchema(file,"sa","","11");
         try(var c=DriverManager.getConnection(url,"sa","");var s=c.createStatement()){
             assertThat(fingerprints(c,columns)).isEqualTo(before);
             try(var r=s.executeQuery("SELECT COUNT(*) FROM post_trash")){assertThat(r.next()).isTrue();assertThat(r.getLong(1)).isZero();}
@@ -34,6 +34,6 @@ class PostTrashMigrationTest {
     @Test void newRuntimeRejectsAnOldReceiptEvenIfJarAndPathMatch()throws Exception {
         Path base=directory.resolve("receipt-copy");flyway(url(base),null).migrate();Path file=Path.of(base+".mv.db").toRealPath(),receipt=directory.resolve("receipt.json");
         JSON.writeValue(receipt.toFile(),Map.of("status","MIGRATED_V10","databasePath",file.toString(),"jarSha256","same","workaround","AUTO_COMPACT_FILL_RATE=0"));
-        assertThatThrownBy(()->requireReceipt(file,receipt,"same",CURRENT_VERSION)).hasMessageContaining("V11");
+        assertThatThrownBy(()->requireReceipt(file,receipt,"same",CURRENT_VERSION)).hasMessageContaining("V"+CURRENT_VERSION);
     }
 }

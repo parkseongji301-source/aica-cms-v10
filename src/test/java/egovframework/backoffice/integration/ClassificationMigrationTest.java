@@ -45,7 +45,7 @@ class ClassificationMigrationTest {
         String url="jdbc:h2:mem:resolved-migrations;DB_CLOSE_DELAY=-1";
         var scripts=Arrays.stream(flyway(url,null).info().all()).map(i->i.getScript()).toList();
         assertThat(scripts).containsExactly("V1__backoffice.sql","V2__cms.sql","V3__rich_editor.sql",
-            "V4__content_classification_schema.sql","V5__content_classification_baseline.sql","V6__content_classification_constraints.sql","V7__restaurant_details.sql","db.migration.h2.V8__page_block_identity","V9__page_templates.sql","V10__document_versions.sql","V11__post_trash.sql");
+            "V4__content_classification_schema.sql","V5__content_classification_baseline.sql","V6__content_classification_constraints.sql","V7__restaurant_details.sql","db.migration.h2.V8__page_block_identity","V9__page_templates.sql","V10__document_versions.sql","V11__post_trash.sql","V12__writing_templates.sql");
         assertThatThrownBy(()->Class.forName("db.migration.h2.V4__navigation")).isInstanceOf(ClassNotFoundException.class);
         var archive=Path.of("workbench/navigation-draft/src/main/java/db/migration/h2/V4__navigation.java.txt");
         assertThat(archive).exists();

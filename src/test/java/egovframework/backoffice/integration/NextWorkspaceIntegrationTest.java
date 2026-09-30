@@ -64,7 +64,7 @@ class NextWorkspaceIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages",Integer.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM categories",Integer.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_log",Integer.class)).isZero();
-        assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10","11");
+        assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10","11","12");
         jdbc.update("DELETE FROM site_menus");jdbc.update("DELETE FROM page_publications");jdbc.update("DELETE FROM site_pages");
         assertThat(ok(root.get(API+"/bootstrap")).path("pages").size()).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages",Integer.class)).isZero();

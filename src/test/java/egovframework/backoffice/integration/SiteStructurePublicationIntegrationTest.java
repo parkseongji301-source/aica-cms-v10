@@ -151,21 +151,49 @@ class SiteStructurePublicationIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_log WHERE action='사이트 구성 게시'",Integer.class)).isEqualTo(1);
     }
 
-    @Test void menuAreasOfTheLatestPublicationAreProtectedAndOlderStructuresCanBePublishedAgain()throws Exception {
+    private HttpResponse<String> membership(HttpBrowser b,long id,boolean in,String csrf)throws Exception{return send(b,"PUT","/pages/"+id+"/structure-membership",Map.of("inStructure",in),csrf);}
+    private static Map<String,Object> top(Long expected){var m=new HashMap<String,Object>();m.put("parentId",null);m.put("expectedParentId",expected);return m;}
+
+    @Test void everyAreaOfTheLatestPublicationIsProtectedUntilRemovedFromTheStructureAndRepublished()throws Exception {
         var admin=login("SUPER_ADMIN");String csrf=csrf(admin);
         jdbc.update("DELETE FROM site_menus WHERE kind<>'LINK'");
         long g=group(admin,csrf,"묶음B",null);
         send(admin,"PUT","/pages/70/placement",Map.of("parentId",g),csrf);
-        for(long id:List.of(g,70L,72L))send(admin,"PUT","/pages/"+id+"/composition",composition(null,true,null,id==g?"묶음B":null),csrf);
+        for(long id:List.of(g,70L))send(admin,"PUT","/pages/"+id+"/composition",composition(null,true,null,id==g?"묶음B":null),csrf);
         var first=body(send(admin,"POST","/site-structure/publications",publish(status(admin)),csrf));
         long firstId=latestId(first);
-        assertThat(failure(send(admin,"DELETE","/pages/72",Map.of("revision",2,"confirmed",true),csrf),400)).contains("게시된 사이트 구성","메뉴 숨김");
-        // Hide 72 and the group, move 70 out, publish: both become deletable.
-        var toTop=new HashMap<String,Object>();toTop.put("parentId",null);toTop.put("expectedParentId",g);
-        body(send(admin,"PUT","/pages/70/placement",toTop,csrf));
-        send(admin,"PUT","/pages/72/composition",composition(null,false,null,null),csrf);
-        send(admin,"PUT","/pages/"+g+"/composition",composition(null,false,null,"묶음B"),csrf);
+        // 72 is hidden from the menu but still in the published structure: hidden is not removed.
+        assertThat(publicJson("/structure").findValuesAsText("id")).contains("72");
+        assertThat(failure(send(admin,"DELETE","/pages/72",Map.of("revision",2,"confirmed",true),csrf),400)).contains("게시된 사이트 구성","구성에서 제거");
+        assertThat(body(admin.get(API+"/pages/72/delete-impact")).path("uses").toString()).contains("게시된 사이트 구성");
+        // Removal rules: no children left in the structure, no content-work link.
+        assertThat(failure(membership(admin,g,false,csrf),400)).contains("하위 영역이 1개");
+        send(admin,"PUT","/pages/70/composition",composition("REVIEW",true,null,null),csrf);
+        assertThat(failure(membership(admin,70,false,csrf),400)).contains("콘텐츠 작업에 연결");
+        send(admin,"PUT","/pages/70/composition",composition(null,true,null,null),csrf);
+        body(send(admin,"PUT","/pages/70/placement",top(g),csrf));
+        var rows=body(membership(admin,72,false,csrf));
+        for(var r:rows)if(r.path("id").asLong()==72)assertThat(r.path("inStructure").asBoolean()).isFalse();
+        body(membership(admin,g,false,csrf));
+        // Nothing goes under a removed area, and a removed area takes no content-work link.
+        var under=new HashMap<String,Object>();under.put("parentId",g);under.put("expectedParentId",null);
+        assertThat(failure(send(admin,"PUT","/pages/70/placement",under,csrf),400)).contains("구성에서 제거된 영역 아래");
+        var child=new HashMap<String,Object>();child.put("name","하위");child.put("parentId",g);
+        assertThat(failure(send(admin,"POST","/page-groups",child,csrf),400)).contains("구성에서 제거된 영역 아래");
+        assertThat(failure(send(admin,"PUT","/pages/72/composition",composition("FAQ",false,null,null),csrf),400)).contains("구성에서 제거된 영역에는");
+        // A child comes back only under a parent that is in the structure.
+        body(membership(admin,72,true,csrf));body(send(admin,"PUT","/pages/65/placement",Map.of("parentId",72),csrf));
+        body(membership(admin,65,false,csrf));body(membership(admin,72,false,csrf));
+        assertThat(failure(membership(admin,65,true,csrf),400)).contains("상위 영역이 구성에서 제거");
+        body(send(admin,"PUT","/pages/65/placement",top(72L),csrf));body(membership(admin,65,true,csrf));
+        // Removal is a draft change: the public structure keeps 72 until the next publication; the page is kept.
+        assertThat(publicJson("/structure").findValuesAsText("id")).contains("72",""+g);
+        assertThat(failure(send(admin,"DELETE","/pages/72",Map.of("revision",2,"confirmed",true),csrf),400)).contains("게시된 사이트 구성");
+        assertThat(status(admin).path("changes").toString()).contains("구성에서 제거");
         var second=body(send(admin,"POST","/site-structure/publications",publish(status(admin)),csrf));
+        assertThat(publicJson("/structure").findValuesAsText("id")).doesNotContain("72",""+g);
+        assertThat(new HttpBrowser(port).get("/api/public/v1/pages/by-slug/location").statusCode()).isEqualTo(200);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_structure_publication_pages WHERE publication_id=?",Integer.class,latestId(second))).isEqualTo(3);
         assertThat(send(admin,"DELETE","/pages/72",Map.of("revision",2,"confirmed",true),csrf).statusCode()).isEqualTo(200);
         assertThat(send(admin,"DELETE","/pages/"+g,Map.of("revision",0,"confirmed",true),csrf).statusCode()).isEqualTo(200);
         String draft=status(admin).path("draftFingerprint").asText();
@@ -177,10 +205,28 @@ class SiteStructurePublicationIntegrationTest {
         assertThat(again.path("status").path("latest").path("sourcePublicationId").asLong()).isEqualTo(firstId);
         assertThat(again.path("status").path("draftFingerprint").asText()).isEqualTo(draft);
         assertThat(menuLine(publicJson("/menus"))).containsExactly("area:70<>PAGE:후기:reviews","menu:"+link+"<>LINK:블로그:");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_log WHERE detail LIKE '%구성에서 제거'",Integer.class)).isGreaterThanOrEqualTo(3);
         var history=body(admin.get(API+"/site-structure/publications"));
         assertThat(history).hasSize(3);assertThat(history.get(0).path("reason").asText()).isEqualTo("REPUBLISH");
         assertThat(failure(send(admin,"POST","/site-structure/publications/"+latestId(again.path("status"))+"/republish",Map.of("expectedLatestId",latestId(again.path("status"))),csrf),400)).contains("이미 현재");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_log WHERE action='사이트 구성 다시 게시'",Integer.class)).isEqualTo(1);
+    }
+
+    @Test void thePublicStructureAndMenusNeverShowAnAreaThatNoLongerExists()throws Exception {
+        var admin=login("SUPER_ADMIN");String csrf=csrf(admin);
+        jdbc.update("DELETE FROM site_menus WHERE kind<>'LINK'");
+        long g=group(admin,csrf,"묶음C",null);
+        send(admin,"PUT","/pages/70/placement",Map.of("parentId",g),csrf);
+        for(long id:List.of(g,70L))send(admin,"PUT","/pages/"+id+"/composition",composition(null,true,null,id==g?"묶음C":null),csrf);
+        body(send(admin,"POST","/site-structure/publications",publish(status(admin)),csrf));
+        assertThat(menuLine(publicJson("/menus"))).containsExactly("area:"+g+"<>GROUP:묶음C:","area:70<area:"+g+">PAGE:후기:reviews","menu:"+link+"<>LINK:블로그:");
+        // The service refuses this deletion; data changed outside it must still never surface as a dangling area.
+        jdbc.update("UPDATE site_pages SET parent_id=NULL WHERE id=70");jdbc.update("DELETE FROM site_pages WHERE id=?",g);
+        assertThat(menuLine(publicJson("/menus"))).containsExactly("area:70<>PAGE:후기:reviews","menu:"+link+"<>LINK:블로그:");
+        var structure=publicJson("/structure");
+        assertThat(structure.findValuesAsText("id")).doesNotContain(""+g);
+        assertThat(structure.findValuesAsText("title")).doesNotContain("","묶음C");
+        assertThat(structure.path("items").findValuesAsText("id")).contains("70");
     }
 
     @Test void blockingProblemsStopThePublication()throws Exception {

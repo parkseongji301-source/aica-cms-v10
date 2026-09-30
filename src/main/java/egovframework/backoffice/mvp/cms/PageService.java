@@ -182,7 +182,7 @@ public class PageService {
   long children=PageHierarchy.children(store.all("pages",null),id).size();
   if(children>0) throw new BusinessException("하위 페이지 "+children+"개가 있습니다. 하위 페이지를 먼저 다른 곳으로 옮기거나 삭제하세요.");
   if(store.<Long>one("pageUsage",id)>0) throw new BusinessException("메뉴나 홈페이지 첫 화면에서 사용 중입니다. 연결을 해제한 후 삭제하세요.");
-  if(store.<Long>one("publishedStructureReferences",id)>0) throw new BusinessException("현재 게시된 사이트 구성의 메뉴에 있습니다. 전체 페이지 현황에서 메뉴 숨김으로 바꾼 뒤 구성을 다시 게시하면 삭제할 수 있습니다.");
+  if(store.<Long>one("publishedStructureReferences",id)>0) throw new BusinessException("현재 게시된 사이트 구성에 포함되어 있습니다(메뉴 숨김 포함). 전체 페이지 현황에서 구성에서 제거한 뒤 구성을 다시 게시하면 삭제할 수 있습니다.");
   store.change("deletePage",id);audit.record(actor,"페이지 삭제","페이지 #"+id,page.title());
  }
  /**
@@ -246,6 +246,7 @@ public class PageService {
   var page=PageHierarchy.find(all,id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"페이지를 찾을 수 없습니다."));
   String type=contentTypeCode==null||contentTypeCode.isBlank()?null:contentTypeCode.trim();
   if(type!=null && page.group()) throw new BusinessException("묶음에는 콘텐츠 작업을 연결할 수 없습니다. 실제 화면이 있는 페이지에 연결하세요.");
+  if(type!=null && !type.equals(page.contentTypeCode()) && !page.inStructure()) throw new BusinessException("구성에서 제거된 영역에는 콘텐츠 작업을 연결할 수 없습니다. 먼저 구성에 다시 포함하세요.");
   if(type!=null && !type.equals(page.contentTypeCode())) {
    String typeName=store.one("activeContentTypeName",type);
    if(typeName==null) throw new BusinessException("사용할 수 있는 콘텐츠 유형을 선택하세요.");
@@ -267,6 +268,29 @@ public class PageService {
   audit.record(actor,"사이트 구성 변경","페이지 #"+id,title+": "+String.join(", ",changes));
   return store.all("pages",null);
  }
+ /**
+  * 구성에서 제거 / 다시 포함 (V15). Removal is a draft change: the public structure follows at the next
+  * structure publication, and the page, its publication and its content are kept. An area can be removed
+  * only without children left in the structure and without a content-work link; it comes back only under a
+  * parent that is in the structure. Permanent deletion additionally waits until the latest published
+  * structure no longer refers to it.
+  */
+ @Transactional
+ public List<Page> membership(AccountPrincipal principal,long id,boolean inStructure) {
+  store.lock();var actor=access.structure(principal);
+  List<Page> all=store.all("pages",null);
+  var page=PageHierarchy.find(all,id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"페이지를 찾을 수 없습니다."));
+  if(page.inStructure()==inStructure) return all;
+  if(!inStructure) {
+   long children=PageHierarchy.children(all,id).stream().filter(Page::inStructure).count();
+   if(children>0) throw new BusinessException("구성에 남은 하위 영역이 "+children+"개 있습니다. 하위 영역을 먼저 다른 곳으로 옮기거나 구성에서 제거하세요.");
+   if(page.contentTypeCode()!=null) throw new BusinessException("콘텐츠 작업에 연결된 영역입니다. 구성에서 연결을 먼저 해제하세요. 글은 그대로 남습니다.");
+  } else if(page.parentId()!=null && PageHierarchy.find(all,page.parentId()).map(p->!p.inStructure()).orElse(false))
+   throw new BusinessException("상위 영역이 구성에서 제거되어 있습니다. 상위 영역을 먼저 구성에 다시 포함하세요.");
+  store.change("pageMembership",values("id",id,"inStructure",inStructure));
+  audit.record(actor,"사이트 구성 변경","페이지 #"+id,page.title()+": "+(inStructure?"구성에 다시 포함":"구성에서 제거"));
+  return store.all("pages",null);
+ }
  /** A content type's representative work area as the 콘텐츠 작업 sidebar needs it: no document, no status. */
  public record ContentArea(long pageId,String typeCode,String label,List<String> groups) {}
  /** Linked PAGE areas in site-structure order for every signed-in role; groups are the ancestor titles. */
@@ -280,6 +304,7 @@ public class PageService {
  private void collectAreas(List<Page> all,Long parentId,List<String> groups,List<ContentArea> out,int depth) {
   if(depth>all.size())return;
   for(Page page:PageHierarchy.children(all,parentId)) {
+   if(!page.inStructure()) continue;
    if(!page.group() && page.contentTypeCode()!=null) out.add(new ContentArea(page.id(),page.contentTypeCode(),page.title(),List.copyOf(groups)));
    var next=new ArrayList<>(groups);next.add(page.title());
    collectAreas(all,page.id(),next,out,depth+1);

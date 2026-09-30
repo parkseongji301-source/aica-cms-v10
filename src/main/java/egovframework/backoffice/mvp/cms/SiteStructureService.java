@@ -59,14 +59,25 @@ public class SiteStructureService {
  public List<PublicDocuments.Menu> menus() {
   var latest=latest();
   if(latest==null) return store.<PublicMenuRow>all("publicMenus",null).stream().map(m->menu(m,null)).toList();
-  return derived(snapshot(latest));
+  return derived(existing(snapshot(latest),labels()));
  }
  /** The public site structure: every public area in the published structure, including areas hidden from the menu. */
  @Transactional(readOnly=true)
  public PublicDocuments.Structure structure() {
   var latest=latest();
   if(latest==null) return new PublicDocuments.Structure(1,null,List.of());
-  return new PublicDocuments.Structure(1,latest.publishedAt(),resolve(snapshot(latest),heads(),labels()::get,false).stream().map(this::node).toList());
+  var labels=labels();
+  return new PublicDocuments.Structure(1,latest.publishedAt(),resolve(existing(snapshot(latest),labels),heads(),labels::get,false).stream().map(this::node).toList());
+ }
+ /**
+  * Dangling-reference guard: a published snapshot never names an area that no longer exists. Deletion is
+  * refused while the latest publication refers to a page, so this only matters for data changed outside
+  * the service; such an area is left out and its children move up, as in a republish.
+  */
+ private static Snapshot existing(Snapshot snapshot,Map<Long,String> pages) {
+  var missing=new TreeSet<Long>();
+  for(Area a:snapshot.areas()) if(!pages.containsKey(a.areaId())) missing.add(a.areaId());
+  return SiteStructure.without(snapshot,missing);
  }
  private PublicDocuments.StructureNode node(Node n) {
   return new PublicDocuments.StructureNode(n.areaId(),n.kind(),n.title(),n.label(),n.pageId(),n.slug(),n.pageId()==null?null:PUBLIC_BASE+"/pages/"+n.pageId(),
@@ -178,6 +189,7 @@ public class SiteStructureService {
     case "PAGE" -> {
      Page p=m.targetId()==null?null:byId.get(m.targetId());
      if(p==null||p.group()) {notes.add("메뉴 '"+m.label()+"'의 페이지를 찾을 수 없어 건너뜁니다.");continue;}
+     if(!p.inStructure()) {notes.add("'"+p.title()+"'는 구성에서 제거된 영역이라 건너뜁니다. 구성에 다시 포함한 뒤 가져오세요.");continue;}
      seen.merge(p.id(),1,Integer::sum);
      shown.merge(p.id(),m.visible(),Boolean::logicalOr);
     }

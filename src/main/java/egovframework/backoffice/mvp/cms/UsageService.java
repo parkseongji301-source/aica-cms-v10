@@ -38,7 +38,7 @@ public class UsageService {
         }
         if(type.equals("pages")) for(Page child:store.<Page>all("pages",null)) if(Objects.equals(child.parentId(),id))
             uses.add(new Usage("하위 페이지 · "+child.title(),"/admin/pages/"+child.id()+"/edit"));
-        if(type.equals("pages") && store.<Long>one("publishedStructureReferences",id)>0) uses.add(new Usage("게시된 사이트 구성",null));
+        if(type.equals("pages") && store.<Long>one("publishedStructureReferences",id)>0) uses.add(new Usage("게시된 사이트 구성 · 구성에서 제거한 뒤 구성을 다시 게시하면 삭제할 수 있습니다",null));
         if(type.equals("categories") || type.equals("pages")) {
             String kind=type.equals("pages")?"PAGE":"CATEGORY";
             for(Menu menu:store.<Menu>all("menus",null)) if(menu.kind().equals(kind) && Objects.equals(menu.targetId(),id))

@@ -47,6 +47,7 @@ final class PageHierarchy {
   if(parentId==null)return;
   if(find(pages,parentId).isEmpty())throw new BusinessException("상위 페이지를 찾을 수 없습니다. 목록을 새로 고친 뒤 다시 선택하세요.");
   if(parentId.equals(homePageId))throw new BusinessException("홈(첫 화면) 페이지 아래에는 하위 페이지를 둘 수 없습니다.");
+  if(!find(pages,parentId).get().inStructure())throw new BusinessException("구성에서 제거된 영역 아래로는 옮기거나 추가할 수 없습니다. 그 영역을 먼저 구성에 다시 포함하세요.");
   if(pageId!=null && ancestorOrSelf(pages,parentId,pageId))throw new BusinessException("페이지를 자기 자신이나 자기 하위 페이지 아래로 옮길 수 없습니다.");
   int levels=pageId==null?1:height(pages,pageId);
   if(depth(pages,parentId)+levels>MAX_DEPTH)

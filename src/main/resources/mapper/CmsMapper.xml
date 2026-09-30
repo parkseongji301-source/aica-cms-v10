@@ -116,7 +116,7 @@
   FROM posts p LEFT JOIN post_publications pp ON pp.post_id=p.id
   WHERE p.id IN <foreach collection="postIds" item="postId" open="(" close=")" separator=",">#{postId}</foreach>
  </select>
- <sql id="pageColumns">p.id,p.title,p.slug,p.sections_json,p.status,p.revision,pp.revision AS published_revision,p.author_id,p.updated_at,p.parent_id,p.sort_order,p.area_kind,p.content_type_code,p.menu_visible,p.menu_label</sql>
+ <sql id="pageColumns">p.id,p.title,p.slug,p.sections_json,p.status,p.revision,pp.revision AS published_revision,p.author_id,p.updated_at,p.parent_id,p.sort_order,p.area_kind,p.content_type_code,p.menu_visible,p.menu_label,p.in_structure</sql>
  <select id="pages" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id ORDER BY p.sort_order,p.id</select>
  <select id="page" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id WHERE p.id=#{value}</select>
  <!-- A new page goes to the end of its siblings (callers hold the CMS lock). -->
@@ -128,6 +128,8 @@
  <!-- Site composition: structure attributes, never the document revision. -->
  <update id="pageComposition">UPDATE site_pages SET content_type_code=#{contentTypeCode,jdbcType=VARCHAR},menu_visible=#{menuVisible},menu_label=#{menuLabel,jdbcType=VARCHAR} WHERE id=#{id}</update>
  <update id="groupName">UPDATE site_pages SET title=#{title},updated_at=CURRENT_TIMESTAMP WHERE id=#{id} AND area_kind='GROUP'</update>
+ <!-- Structure membership (V15): separate from menu visibility; never the document revision. -->
+ <update id="pageMembership">UPDATE site_pages SET in_structure=#{inStructure} WHERE id=#{id}</update>
  <select id="activeContentTypeName" resultType="string">SELECT name FROM content_types WHERE code=#{value} AND active=TRUE</select>
  <!-- Only the latest published structure protects the pages it refers to. -->
  <select id="publishedStructureReferences" resultType="long">SELECT COUNT(*) FROM site_structure_publication_pages WHERE page_id=#{value} AND publication_id=(SELECT MAX(id) FROM site_structure_publications)</select>

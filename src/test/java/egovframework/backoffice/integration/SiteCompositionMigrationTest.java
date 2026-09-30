@@ -41,7 +41,7 @@ class SiteCompositionMigrationTest {
   var receipt=V14PromotionTool.migrate(plan,"jar","plan","sa","");
   assertThat(receipt.path("status").asText()).isEqualTo("MIGRATED_V14");assertThat(receipt.path("after").path("history").size()).isEqualTo(14);
   assertThat(hash(original)).isEqualTo(originalHash);
-  requireCurrentSchema(copy,"sa","");
+  requireSchema(copy,"sa","","14");
   assertThat(rows(copy,"SELECT id,title,slug,status,revision,author_id,parent_id,sort_order FROM site_pages ORDER BY id")).isEqualTo(before);
   assertThat(rows(copy,"SELECT id,area_kind,content_type_code,menu_visible,menu_label FROM site_pages ORDER BY id"))
    .containsExactly("1|PAGE|null|false|null","65|PAGE|null|false|null","70|PAGE|null|false|null");
@@ -59,7 +59,7 @@ class SiteCompositionMigrationTest {
   assertThatThrownBy(()->requireSchema(copy,"sa","","13")).isInstanceOf(IllegalStateException.class);
   Path v13Receipt=dir.resolve("v13-receipt.json");
   JSON.writeValue(v13Receipt.toFile(),Map.of("status","MIGRATED_V13","databasePath",copy.toRealPath().toString(),"jarSha256","same","workaround","AUTO_COMPACT_FILL_RATE=0"));
-  assertThatThrownBy(()->requireReceipt(copy,v13Receipt,"same",CURRENT_VERSION)).hasMessageContaining("V14");
+  assertThatThrownBy(()->requireReceipt(copy,v13Receipt,"same",CURRENT_VERSION)).hasMessageContaining("V"+CURRENT_VERSION);
  }
 
  @Test void planRefusesAChangedCopyAndANonV13Database()throws Exception {

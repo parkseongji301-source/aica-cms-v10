@@ -32,7 +32,8 @@ public final class SiteStructure {
  public static Snapshot draft(List<Page> pages) {
   var areas=new ArrayList<Area>();
   var byParent=new LinkedHashMap<Long,List<Page>>();
-  for(Page p:pages) byParent.computeIfAbsent(p.parentId(),k->new ArrayList<>()).add(p);
+  // Areas removed from the structure (V15) are not part of the draft; menu visibility does not decide this.
+  for(Page p:pages) if(p.inStructure()) byParent.computeIfAbsent(p.parentId(),k->new ArrayList<>()).add(p);
   for(var siblings:byParent.values()) {
    siblings.sort(PageHierarchy.ORDER);
    for(int i=0;i<siblings.size();i++) {
@@ -165,11 +166,11 @@ public final class SiteStructure {
   return nodes;
  }
  /**
-  * Areas the published menu refers to (shown in the menu); the latest publication protects them from permanent
-  * deletion. Hidden areas are not protected: a deleted page simply drops out of the public structure.
+  * Every area of a snapshot, shown in the menu or not: the latest publication protects all of them from
+  * permanent deletion, so the public structure never refers to a page that no longer exists.
   */
  public static Set<Long> pageIds(Snapshot snapshot) {
-  var ids=new TreeSet<Long>();snapshot.areas().stream().filter(Area::menuVisible).forEach(a->ids.add(a.areaId()));return ids;
+  var ids=new TreeSet<Long>();snapshot.areas().forEach(a->ids.add(a.areaId()));return ids;
  }
  /**
   * An older snapshot without the areas that no longer exist. Children of a removed area move up to its

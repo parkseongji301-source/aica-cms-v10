@@ -43,6 +43,20 @@ React 화면은 JAR 내부 파일을 쓴다. Thymeleaf 로그인 화면은 `/css
 
 8095에서 실행 중인 V12 개발 실행본(`.cache/runtime-v12-writing-templates`, JAR `8e18dbb5…`)과 비교했다(`evidence/rc-vs-development-jar.json`). Java 클래스와 라이브러리는 모두 같다. `WritingTemplateMapper.xml`은 줄바꿈만 다르다. 개발 JAR에는 이전 빌드의 사용하지 않는 UI 파일이 남아 있었고, 실제로 제공된 개발 오버레이 UI(`index-nIyg0aCm.js`, `index-DF4G3WZw.css`, `index.html`, 글꼴)는 RC JAR 내부 파일과 바이트 단위로 같다.
 
+## V12 RC2 실행물 (2026-09-30)
+
+schema는 RC1과 같은 V12다. React 전환 5단계(`/admin` 전환)를 담은 JAR만 바꿨다([5단계 결과](REACT_ADMIN_STEP5.md), [V12 JAR 교체](V12_JAR_SWAP.md)).
+
+| 항목 | 값 |
+|---|---|
+| 위치(Git 제외) | `.cache/v12-release/V12-RC2-20260930/` |
+| JAR SHA-256 | `90718f0ab1783bdea964b70d5ecbb83c9ee7a35166c60b731260e95adfb848a6` |
+| 소스 | `081a35e`를 새 worktree에서 Vite 빌드 후 `mvnw -o package`(테스트 192개, 실패 0, 제외 6) |
+| 정상 종료 도구·로그인 스타일 오버레이 | RC1과 같은 파일(`d4365a44…`, `e94da365…`) |
+| DB | `runtime.json`의 `database`로 **RC1 폴더의 같은 DB 파일**을 쓴다 |
+| receipt | RC2 폴더의 `migration-receipt.json`(`MIGRATED_V12`, RC2 JAR·RC1 DB에 묶임). RC1 receipt는 그대로 유효하다 |
+| migration | `db/migration` 항목 15개가 RC1 JAR과 바이트 단위로 같다. 아래 V1~V12 checksum 그대로 |
+
 ## Flyway V1~V12
 
 | 버전 | 스크립트 | checksum |
@@ -77,14 +91,17 @@ V1~V11은 V11 receipt와 같고, V12는 개발 실행본 receipt와 같다. pend
 
 ## 이 PC의 실행 상태
 
-- 8095: **V12 RC1**(`.cache/v12-release/V12-RC1-20260930/runtime`, JAR `3ba3a701…9eaf`)이 실행 중이다. `.cache/current-ui.json`은 `{"kind":"v12","runtime":".cache/v12-release/V12-RC1-20260930/runtime"}`, `runtime.json`의 포트는 8095다. 실행 중인 PID는 같은 폴더의 `active.json`에서 확인한다.
-- 2026-09-30 14:31 전환 기록(사용자 승인):
+- 8095: **V12 RC2**(`.cache/v12-release/V12-RC2-20260930/runtime`, JAR `90718f0a…48a6`)가 실행 중이다. `.cache/current-ui.json`은 `{"kind":"v12","runtime":".cache/v12-release/V12-RC2-20260930/runtime"}`, 포트는 8095다. 실행 중인 PID는 RC2 폴더의 `active.json`에서 확인한다.
+  - DB는 RC1 폴더의 `db/aica-local.mv.db`를 그대로 쓴다. `/admin`은 React, `/admin-next/**`는 과도기 호환 302, `/admin/legacy/**`는 비교·복구용 기존 화면이다.
+  - RC1(`.cache/v12-release/V12-RC1-20260930/runtime`, JAR `3ba3a701…9eaf`)은 정상 종료 상태로 두고 rollback용으로 유지한다. RC1 receipt는 바뀌지 않았다.
+- 2026-09-30 19:48 RC1 → RC2 전환 기록(사용자 승인): RC1 정상 종료(`stopped-1790765329895.json`, DB `3ea4fe5b…0c32`) → DB 백업 → `scripts/swap-v12-jar.ps1`로 RC2 receipt 발급 → `scripts/select-v12-runtime.ps1`로 RC2 선택 → START → 정상 종료·재시작(migration 이력 동일, 37개 표 행 수·지문 변화 0) → 3개 역할 검증 PASS. 자세한 결과는 [5단계 결과](REACT_ADMIN_STEP5.md)의 "8095 적용 결과".
+- 2026-09-30 14:31 개발 실행본 → RC1 전환 기록(사용자 승인):
   1. 개발 실행본을 `STOP` 경로로 정상 종료하고 cold 검사했다.
   2. 개발 DB와 개발 receipt·RC1 DB의 fingerprint를 비교했다. **정정(같은 날 17시 확인)**: 당시 비교 스크립트의 함수 이름 `Diff`가 PowerShell 기본 별칭 `diff`(Compare-Object)에 가려져 실제로는 비교하지 않았고, "차이 없음"은 잘못된 결과였다. 개발 DB에는 migration 뒤 13:28~13:55에 쓴 7건(글 #137 신규, 글 #135 수정, 페이지 #97 임시저장·버전 2건, 글쓰기 템플릿 #1 저장 2회)이 있었고 RC1 DB에는 없다. 사용자가 7건 모두 QA·테스트 데이터로 확인해 RC1로 옮기지 않기로 했다. 개발 DB는 그대로 보관한다.
   3. RC1 `runtime.json` 포트를 8095로 바꾸고 `current-ui.json`을 RC1로 바꾼 뒤 시작했다. 이전 설정은 `.cache/current-ui.before-rc1.json`에 보관했다.
   4. 시작 후 `V12 file runtime`·`AUTO_COMPACT_FILL_RATE=0`·validate-only 로그, `/login` 200, 공개 메뉴 API 200, 익명 글쓰기 템플릿 API 401, 로그인 스타일 제공을 확인했다.
 - V12 개발 실행본(`.cache/runtime-v12-writing-templates`)은 **백업으로만 보관**한다(같은 폴더의 `ARCHIVED.json`, DB SHA-256 `5301809b…19b1`). 운영에 다시 쓰지 않는다. RC1은 전환 뒤 메뉴 변경 등 새 작업이 있어, 개발 DB로 되돌리면 그 내용이 빠진다. `.cache/current-ui.before-rc1.json`은 기록용이다.
-- `START.cmd`/`STOP.cmd` → `scripts/start-current-ui.ps1` → V12면 `scripts/start-v12-runtime.ps1`. 이 스크립트는 JAR·정상 종료 도구·오버레이 해시와 포트 사용 여부를 확인하고 receipt와 validate-only로 시작한다. 강제 종료하지 않는다.
+- `START.cmd`/`STOP.cmd` → `scripts/start-current-ui.ps1` → V12면 `scripts/start-v12-runtime.ps1`. 이 스크립트는 JAR·정상 종료 도구·오버레이 해시와 포트 사용 여부를 확인하고, `runtime.json`의 `database`(없으면 폴더 안 `db/`)를 쓰며, 같은 DB를 쓰는 다른 Java 프로세스가 있으면 시작을 거부한다. receipt와 validate-only로 시작하고 강제 종료하지 않는다.
 
 ## 보존 자료와 되돌리기
 
@@ -95,8 +112,11 @@ V1~V11은 V11 receipt와 같고, V12는 개발 실행본 receipt와 같다. pend
 | V11 실행본·DB | `트랜스퍼 0930/실행본/AICA_V11_20260929/working/runtime` | DB `31a17a4d…8112`(정상 종료 상태) |
 | V11 복귀용 실행 설정 | `.cache/previous-ui.json`(V11 실행본 + 당시 UI release) | 변경 없음 |
 | V12 개발 실행본·DB | `.cache/runtime-v12-writing-templates` | receipt `MIGRATED_V12`, JAR `8e18dbb5…` |
-| V12 RC1 | `.cache/v12-release/V12-RC1-20260930` | 위 표 |
+| V12 RC1 | `.cache/v12-release/V12-RC1-20260930` | 위 표. 정상 종료 상태, receipt 유효(rollback용). 8095 DB가 이 폴더에 있다 |
+| V12 RC2 | `.cache/v12-release/V12-RC2-20260930` | 위 표. 8095 실행 중 |
+| RC2 전환 직전 DB 백업 | `.cache/v12-release/backups/aica-local.before-RC2-20260930-stopped-1790765329895.mv.db` | SHA-256 `3ea4fe5b…0c32`, RC1 종료 기록·receipt 사본 같은 폴더 |
 
+- RC2 → RC1로 되돌릴 때: `STOP.cmd` → `scripts/select-v12-runtime.ps1 -Runtime .cache\v12-release\V12-RC1-20260930\runtime -AuthorizeSelection` → `START.cmd`. 같은 DB와 RC1 receipt를 쓰므로 RC2에서 작성한 내용도 그대로다.
 - V12 → V11로 되돌릴 때: V12 서버를 정상 종료하고, `.cache/current-ui.json`을 `previous-ui.json`의 V11 실행본으로 되돌린 뒤 시작한다. V11 DB는 V12 migration 전 상태 그대로다. 단, V12에서 새로 작성한 내용은 V11 DB에 없으므로 되돌리기 전에 V12 DB를 보관하고 차이를 확인한다.
 - V12 DB를 V11 JAR로, V11 DB를 V12 JAR로 열 수 없다(버전·receipt 검사로 시작 거부).
 - 소모된 migration plan(`*.spent`)을 다시 쓰지 않는다. 새 사본에는 새 plan을 만든다.

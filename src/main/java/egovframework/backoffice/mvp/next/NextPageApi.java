@@ -16,9 +16,9 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/admin/next")
 public class NextPageApi {
-    private final PageService pages; private final RichTextService rich; private final ObjectMapper json;
-    public NextPageApi(PageService pages,RichTextService rich,ObjectMapper json) {
-        this.pages=pages;this.rich=rich;this.json=json;
+    private final PageService pages; private final RichTextService rich; private final ObjectMapper json; private final DeletionImpactService impacts;
+    public NextPageApi(PageService pages,RichTextService rich,ObjectMapper json,DeletionImpactService impacts) {
+        this.pages=pages;this.rich=rich;this.json=json;this.impacts=impacts;
     }
     public record PageDocument(long id,String title,String slug,List<Section> sections,String status,
                                long revision,Long publishedRevision,boolean pending) {}
@@ -69,6 +69,18 @@ public class NextPageApi {
     public PageDocument unpublish(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody RevisionRequest input) {
         current(actor,id,input.revision());pages.unpublish(actor,id,input.revision());
         return document(target(actor,id));
+    }
+    /** The same impact list as the legacy delete-confirm screen, read before a permanent delete. */
+    @GetMapping("/pages/{id}/delete-impact")
+    public DeletionImpactService.Impact deleteImpact(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {return impacts.get(actor,"pages",id);}
+    public record DeleteRequest(Long revision,boolean confirmed) {}
+    /** Permanent delete through PageService.delete; menu or home-page use still blocks it. */
+    @DeleteMapping(value="/pages/{id}",consumes="application/json")
+    public Map<String,Object> delete(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody DeleteRequest input) {
+        if(!input.confirmed())throw new BusinessException("영구 삭제 영향을 확인하고 확인란을 선택하세요.");
+        if(input.revision()==null)throw new BusinessException("저장 버전이 필요합니다.");
+        pages.delete(actor,id,input.revision());
+        return Map.of("id",id,"deleted",true);
     }
     private Page current(AccountPrincipal actor,long id,Long revision) {
         Page existing=target(actor,id);

@@ -75,6 +75,25 @@ class NextAdminIntegrationTest {
         assertThat(withdrawn.path("status").asText()).isEqualTo("PRIVATE");
         assertThat(new HttpBrowser(port).get("/api/public/v1/pages/65").statusCode()).isNotEqualTo(200);
     }
+    @Test void reactPermanentPageDeleteUsesTheLegacyImpactAndUsageRules()throws Exception {
+        long author=jdbc.queryForObject("SELECT id FROM users WHERE role='SUPER_ADMIN'",Long.class);
+        jdbc.update("INSERT INTO site_pages(id,title,slug,sections_json,status,revision,author_id) VALUES(66,'정리할 페이지','cleanup','[]','DRAFT',1,?)",author);
+        var admin=login("ADMIN");String adminCsrf=token(admin);
+        error(admin.get(API+"/pages/66/delete-impact"),403);
+        error(admin.json("DELETE",API+"/pages/66",json.writeValueAsString(Map.of("revision",1,"confirmed",true)),adminCsrf),403);
+        var root=login("SUPER_ADMIN");String csrf=token(root);
+        var used=ok(root.get(API+"/pages/65/delete-impact"));
+        assertThat(used.path("uses").size()).isPositive();assertThat(used.path("revision").asLong()).isEqualTo(4);
+        error(root.json("DELETE",API+"/pages/65",json.writeValueAsString(Map.of("revision",4,"confirmed",true)),csrf),400);
+        assertThat(ok(root.get(API+"/pages/66/delete-impact")).path("title").asText()).isEqualTo("정리할 페이지");
+        error(root.json("DELETE",API+"/pages/66",json.writeValueAsString(Map.of("revision",1,"confirmed",false)),csrf),400);
+        error(root.json("DELETE",API+"/pages/66",json.writeValueAsString(Map.of("revision",0,"confirmed",true)),csrf),409);
+        error(root.json("DELETE",API+"/pages/66",json.writeValueAsString(Map.of("revision",1,"confirmed",true)),null),403);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages WHERE id=66",Integer.class)).isEqualTo(1);
+        assertThat(ok(root.json("DELETE",API+"/pages/66",json.writeValueAsString(Map.of("revision",1,"confirmed",true)),csrf)).path("deleted").asBoolean()).isTrue();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages WHERE id=66",Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages WHERE id=65",Integer.class)).isEqualTo(1);
+    }
     @Test void bothEntrancesShareThePageAndSavingRoundTripsThroughLegacyEditor()throws Exception {
         var admin=login("ADMIN");var boot=boot(admin);String csrf=boot.path("csrf").path("token").asText();
         assertThat(boot.path("pages").get(0).path("id").asLong()).isEqualTo(65);

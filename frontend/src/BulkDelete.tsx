@@ -12,9 +12,10 @@ export function SelectionBox({checked,mixed=false,label,disabled=false,onChange}
   return <input ref={input} className="bulk-checkbox" type="checkbox" aria-label={label} checked={checked} disabled={disabled} onChange={onChange}/>;
 }
 
-export function useBulkDelete<T extends {id:number}>({items,active,scope,allowed,disabled=false,label,prepare,remove,onDone,description,permanent=false,registerGuard,guardPath}:{
+export function useBulkDelete<T extends {id:number}>({items,active,scope,allowed,disabled=false,label,prepare,remove,onDone,description,permanent=false,registerGuard,guardPath,order}:{
   items:T[];active:boolean;scope:string;allowed:boolean;disabled?:boolean;label:(item:T)=>string;
-  prepare:(item:T)=>Promise<DeleteTarget>;remove:(target:DeleteTarget)=>Promise<unknown>;onDone:(ids:number[])=>void;
+  // prepare sees the whole selection; order sets the delete sequence (for example child pages before their parent).
+  prepare:(item:T,chosen:T[])=>Promise<DeleteTarget>;remove:(target:DeleteTarget)=>Promise<unknown>;onDone:(ids:number[])=>void;order?:(chosen:T[])=>T[];
   description:string;permanent?:boolean;
   registerGuard?:(path:string,guard:EditorGuard|null)=>void;guardPath?:string;
 }) {
@@ -36,8 +37,9 @@ export function useBulkDelete<T extends {id:number}>({items,active,scope,allowed
     lock.current=true;setBusy(true);setPreparing(true);setTargets([]);setFailures([]);setMessage('');setConfirmed(false);setProgress(0);
     const ready:DeleteTarget[]=[],errors:BatchFailure[]=[];
     try{
-      for(const item of chosen){
-        try{ready.push(await prepare(item));}
+      const ordered=order?order(chosen):chosen;
+      for(const item of ordered){
+        try{ready.push(await prepare(item,ordered));}
         catch(error){errors.push({id:item.id,label:label(item),message:messageOf(error)});}
       }
       setTargets(ready);setFailures(errors);

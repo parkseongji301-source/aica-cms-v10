@@ -87,7 +87,8 @@ class PageHierarchyIntegrationTest {
         // ADMIN reads the hierarchy.
         var admin=login("ADMIN");
         assertThat(layout(body(admin.get(API+"/pages")))).contains("71:65:0");
-        assertThat(layout(json.readTree(admin.get(API+"/bootstrap").body()).path("pages"))).contains("71:65:0");
+        var boot=json.readTree(admin.get(API+"/bootstrap").body());
+        assertThat(layout(boot.path("pages"))).contains("71:65:0");assertThat(boot.path("homePageId").asLong()).isEqualTo(1);
     }
 
     @Test void placementEnforcesTwoLevelsCyclesHomeAndStaleViews()throws Exception {

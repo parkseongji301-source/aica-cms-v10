@@ -64,6 +64,8 @@ public class NextWorkspaceApi {
             "permissions", Map.of("site",manager,"operations",operator,"templateManage",PageTemplateService.canManage(actor.role()),"templateUse",PageTemplateService.canUse(actor.role()),"structure",policy.canManageSite(actor.role()),"publish",policy.canPublish(actor.role()),"permanentDelete",policy.canDelete(actor.role())),
             "csrf", Map.of("headerName",csrf.getHeaderName(),"token",csrf.getToken()),
             "pages", manager?pageRows(principal):List.of(),
+            // The home page stays top-level without child pages; 0 when no home page is set.
+            "homePageId", manager?Objects.requireNonNullElse(pages.homePageId(),0L):0L,
             "menus", manager?site.menus(principal):List.of(),
             "categories", site.categories(),
             "images", media.list(principal,"").stream().filter(m->m.mime().startsWith("image/")).toList());

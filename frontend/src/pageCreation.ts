@@ -2,8 +2,11 @@ import type {ClassificationCatalog} from './types';
 import {newBlockId} from './pageBlocks.ts';
 
 /** Use the existing page form API with an explicit, unpublished draft; sections default to none. */
-export function pageDraftForm(title:string,slug:string,sections:unknown[]=[]) {
-  return new URLSearchParams({title:title.trim(),slug:slug.trim().toLowerCase(),sectionsJson:JSON.stringify(sections),action:'save',saveIntent:'MANUAL_DRAFT'});
+export function pageDraftForm(title:string,slug:string,sections:unknown[]=[],parentId:number|null=null) {
+  const form=new URLSearchParams({title:title.trim(),slug:slug.trim().toLowerCase(),sectionsJson:JSON.stringify(sections),action:'save',saveIntent:'MANUAL_DRAFT'});
+  // Without a parent the page is created at the top level, at the end of its siblings.
+  if(parentId!=null)form.set('parentId',String(parentId));
+  return form;
 }
 export type CreatedPage = {id:number;revision:number;slug:string;status:string;pending:boolean};
 

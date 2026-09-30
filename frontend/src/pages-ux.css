@@ -80,3 +80,16 @@
 .phase-two .page-create-collection label {display:grid;gap:6px;font-size:13px;font-weight:600;}
 @media (max-width:680px){.phase-two .page-create-collection {grid-template-columns:1fr;}}
 .phase-two .page-address {display:flex;gap:10px;align-items:center;margin:6px 0 0;font-size:13px;color:var(--ui-muted);} .phase-two .page-address code {font-size:13px;}
+/* V13 page hierarchy: child pages are indented under their parent; warnings never block. */
+.phase-two .page-title-cell {display:flex;gap:6px;align-items:flex-start;}
+.phase-two .page-title-child {padding-left:22px;}
+.phase-two .page-child-mark {color:var(--ui-muted);line-height:1.6;}
+.phase-two .page-child-row td {background:var(--ui-soft);}
+.phase-two .page-hierarchy-warning {display:block;margin-top:4px;color:#8a4b00;font-size:12px;}
+.phase-two .page-location {margin:0 0 4px;font-size:13px;color:var(--ui-muted);}
+.phase-two .page-location strong {color:var(--ui-ink);}
+.phase-two .page-row-actions .order-buttons {display:inline-flex;flex-direction:row;gap:4px;}
+.phase-two .page-row-actions .order-buttons button {min-width:32px;min-height:32px;padding:0 6px;}
+/* With the selection column first, keep it narrow and give the page title the 30% width. */
+.phase-two .pages-table th.bulk-cell:first-child {width:44px;}
+.phase-two .pages-table th.bulk-cell + th {width:30%;}

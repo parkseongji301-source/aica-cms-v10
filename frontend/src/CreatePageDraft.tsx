@@ -4,12 +4,17 @@ import {BlockDialog} from './BlockDialog';
 import {Feedback,messageOf,useRemote,useUnsaved} from './ui';
 import {COLLECTION_LIMITS,collectionSections,collectionTitle} from './pageCreation';
 import type {CollectionPreset,CreatedPage} from './pageCreation';
-import type {ClassificationCatalog} from './types';
+import type {ClassificationCatalog,PageRow} from './types';
+import {parentOptions} from './pageHierarchy';
 
 export type PageCreationState={busy:boolean;dirty:boolean};
-export function CreatePageDraft({active,onCreated,onClose,onCheckList,onStateChange}:{
+export function CreatePageDraft({active,onCreated,onClose,onCheckList,onStateChange,pages=[],homePageId=null}:{
   active:boolean;onCreated:(page:CreatedPage)=>void;onClose:()=>void;onCheckList:()=>void;onStateChange:(state:PageCreationState)=>void;
+  pages?:PageRow[];homePageId?:number|null;
 }) {
+  // Default: no parent. Only pages that can take a child page are offered (top-level, not the home page).
+  const [parentId,setParentId]=useState<number|null>(null);
+  const parents=parentOptions(pages,null,homePageId).filter(option=>!option.reason);
   const [title,setTitle]=useState(''),[slug,setSlug]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false);
   const pending=useRef(false),titleInput=useRef<HTMLInputElement>(null);
   const [kind,setKind]=useState<'blank'|'collection'>('blank'),[preset,setPreset]=useState<CollectionPreset>({typeCode:'',cohortId:null,topicId:null,limit:COLLECTION_LIMITS.default});
@@ -23,7 +28,7 @@ export function CreatePageDraft({active,onCreated,onClose,onCheckList,onStateCha
     setPreset(next);if(!terms)return;
     const title2=collectionTitle(terms,next);if(!title.trim()||title===suggested.current){setTitle(title2);}suggested.current=title2;
   }
-  const dirty=!!(title||slug)||kind==='collection';
+  const dirty=!!(title||slug)||kind==='collection'||parentId!==null;
   const ready=kind==='blank'||!!preset.typeCode;
   useUnsaved(dirty||busy);
   useEffect(()=>{titleInput.current?.focus();return()=>onStateChange({busy:false,dirty:false});},[onStateChange]);
@@ -34,7 +39,7 @@ export function CreatePageDraft({active,onCreated,onClose,onCheckList,onStateCha
     pending.current=true;setBusy(true);setError('');onStateChange({busy:true,dirty});
     let created:CreatedPage|undefined;
     try{
-      created=await createPage(title,slug,kind==='collection'?collectionSections(preset,title):[]);
+      created=await createPage(title,slug,kind==='collection'?collectionSections(preset,title):[],parentId);
       if(!Number.isSafeInteger(created.id)||created.id<=0)throw new Error('페이지 생성 결과를 확인하지 못했습니다.');
     }catch(e){
       const unknown=!(e instanceof ApiError&&e.status>=400&&e.status<500);
@@ -64,6 +69,8 @@ export function CreatePageDraft({active,onCreated,onClose,onCheckList,onStateCha
       <label htmlFor="new-page-title"><span>페이지 제목 <span aria-hidden="true">*</span></span><input ref={titleInput} id="new-page-title" required maxLength={200} value={title} disabled={busy||uncertain} onChange={event=>setTitle(event.target.value)} placeholder="예: 교육생 후기"/></label>
       <label htmlFor="new-page-slug"><span>페이지 주소 <small>선택</small></span><input id="new-page-slug" maxLength={100} pattern="[a-z0-9]+(-[a-z0-9]+)*" title="영문 소문자·숫자와 단어 사이 하이픈으로 입력하세요." value={slug} disabled={busy||uncertain} onChange={event=>setSlug(event.target.value.toLowerCase())} placeholder="예: reviews · 비워두면 자동 생성" aria-describedby="new-page-slug-help" autoCapitalize="none" spellCheck={false}/></label>
       <p id="new-page-slug-help" className="page-create-help">영문 소문자·숫자·하이픈을 사용할 수 있습니다. 이미 사용 중인 주소는 사용할 수 없습니다.</p>
+      <label htmlFor="new-page-parent"><span>상위 페이지 <small>선택</small></span><select id="new-page-parent" value={parentId??''} disabled={busy||uncertain} onChange={e=>setParentId(e.target.value?Number(e.target.value):null)}><option value="">상위 없음</option>{parents.map(option=><option key={option.id} value={option.id}>{option.title}</option>)}</select></label>
+      <p className="page-create-help">상위 페이지를 고르면 그 아래 맨 끝에 하위 페이지로 만들어집니다. 주소와 메뉴는 상위 페이지와 따로 정합니다.</p>
       <Feedback error={error}/>
       <div className="dialog-actions"><button type="button" disabled={busy} onClick={close}>취소</button>{uncertain?<button type="button" className="primary" onClick={onCheckList}>목록에서 확인</button>:<button type="submit" className="primary" disabled={busy||!title.trim()||!ready}>{busy?'페이지 만드는 중…':'만들고 편집하기'}</button>}</div>
     </form>

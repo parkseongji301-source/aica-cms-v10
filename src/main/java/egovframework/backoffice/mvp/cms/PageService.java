@@ -221,7 +221,7 @@ public class PageService {
   return parentId==null?"최상위":PageHierarchy.find(all,parentId).map(Page::title).orElse("페이지 #"+parentId);
  }
  /** The first-screen page (site setting homePageId), or null. */
- Long homePageId() {
+ public Long homePageId() {
   for(Setting setting:store.<Setting>all("settings",null))
    if(setting.settingKey().equals("homePageId") && setting.settingValue().matches("[1-9][0-9]{0,18}")) return Long.valueOf(setting.settingValue());
   return null;

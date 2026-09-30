@@ -1,7 +1,7 @@
 import {restaurantPayload} from './restaurantFields';
 import {pageDraftForm} from './pageCreation';
 import type {CreatedPage} from './pageCreation';
-import type {Bootstrap, PageDocument, PreviewDocument, ImageFile,PostDocument,PostPreview,ClassificationCatalog,PostPublication,ClassificationSelection} from './types';
+import type {Bootstrap, PageDocument, PageRow, PreviewDocument, ImageFile,PostDocument,PostPreview,ClassificationCatalog,PostPublication,ClassificationSelection} from './types';
 import {classificationSelection} from './classification';
 import {loggedOut} from './logout';
 let csrf: Bootstrap['csrf']|null = null;
@@ -30,9 +30,12 @@ export async function logout():Promise<boolean> {
 }
 export const bootstrap=async()=>{const data=await request<Bootstrap>(base+'/bootstrap');csrf=data.csrf;return data;};
 export const getPage=(id:number)=>request<PageDocument>(`${base}/pages/${id}`);
-export const createPage=(title:string,slug='',sections:unknown[]=[])=>request<CreatedPage>('/admin/pages/save-json',{
-  method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:pageDraftForm(title,slug,sections)
+export const createPage=(title:string,slug='',sections:unknown[]=[],parentId:number|null=null)=>request<CreatedPage>('/admin/pages/save-json',{
+  method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:pageDraftForm(title,slug,sections,parentId)
 });
+// Hierarchy changes are SUPER_ADMIN structure actions; expectedParentId is the parent this screen showed.
+export const placePage=(id:number,parentId:number|null,expectedParentId:number|null)=>request<PageRow[]>(`${base}/pages/${id}/placement`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({parentId,expectedParentId})});
+export const reorderPages=(parentId:number|null,pageIds:number[])=>request<PageRow[]>(`${base}/page-order`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({parentId,pageIds})});
 // Publishing keeps the page address; address changes stay a separate SUPER_ADMIN action.
 export const publishPage=(page:PageDocument)=>request<PageDocument>(`${base}/pages/${page.id}/publish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:page.title,revision:page.revision,sections:page.sections})});
 export const changePageAddress=(id:number,revision:number,slug:string)=>request<PageDocument>(`${base}/pages/${id}/address`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,slug})});

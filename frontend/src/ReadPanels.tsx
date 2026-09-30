@@ -1,9 +1,7 @@
 import type {EditorGuard} from './editorGuard';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {CreatePageDraft} from './CreatePageDraft';
-import type {PageCreationState} from './CreatePageDraft';
 import {useBulkDelete} from './BulkDelete';
-import {getPost,send,deletePage,getPageDeleteImpact} from './api';
+import {getPost,send} from './api';
 import type {ActivityList,Bootstrap,Dashboard,Go,PostList,PostRow,RoleRow,ClassificationCatalog} from './types';
 import {postTypeFilterChange} from './postListFilters';
 import {AppliedPostFilters,ContentListTable,PostListFilters,postStatusLabels} from './PostListPresentation';
@@ -68,23 +66,8 @@ export function PostsPanel({active,version,data,go,search,onChanged,registerGuar
     </section>
   </section>;
 }
-export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Props&{onOverview:(id:number)=>void;refresh:()=>void}) {
-  const [creating,setCreating]=useState(false);
-  const creationState=useRef<PageCreationState>({busy:false,dirty:false}),deleting=useRef(false);
-  const onCreationState=useCallback((state:PageCreationState)=>{creationState.current=state;},[]);
-  useEffect(()=>{registerGuard?.('/pages',()=>deleting.current||creationState.current.busy?'busy':!creationState.current.dirty);return()=>registerGuard?.('/pages',null);},[registerGuard]);
-  useEffect(()=>{if(!active)setCreating(false);},[active]);
-  const [q,setQ]=useState(''),[status,setStatus]=useState('');const items=data.pages.filter(p=>p.title.toLowerCase().includes(q.toLowerCase())&&(!status||p.status===status));
-  const deletion=useBulkDelete({items,active,scope:q+':'+status,allowed:!!data.permissions.permanentDelete,label:page=>page.title,permanent:true,
-    // The server's delete-impact (same as the legacy confirm screen) decides what blocks deletion and what goes with it.
-    prepare:async page=>{const impact=await getPageDeleteImpact(page.id);
-      if(impact.uses.length)throw new Error('사용 중: '+impact.uses.map(use=>use.label).join(', ')+'. 연결을 해제한 뒤 삭제하세요.');
-      return {id:page.id,label:page.title,revision:impact.revision,details:[impact.consequence,...(impact.history?['버전 이력 '+impact.history.versionCount+'개도 함께 삭제됩니다.']:[])]};},
-    remove:target=>deletePage(target.id,target.revision!),onDone:()=>refresh(),
-    description:'선택한 페이지와 구성·발행본·버전 이력을 영구삭제합니다. 복구할 수 없습니다. 메뉴나 홈페이지 첫 화면에서 사용 중인 페이지는 삭제되지 않습니다. 미디어 파일은 유지됩니다.'});
-  deleting.current=deletion.busy;
-  return <section className="pages-workspace"><Heading title="전체 페이지 현황" note="페이지 상태와 연결된 메뉴를 확인하고 내용을 편집합니다." actions={<>{data.permissions.structure&&<button type="button" className="primary" onClick={()=>setCreating(true)}>＋ 새 페이지</button>}</>}/>{creating&&active&&data.permissions.structure&&<CreatePageDraft active={active} onStateChange={onCreationState} onClose={()=>setCreating(false)} onCheckList={()=>{setCreating(false);setQ('');setStatus('');refresh();}} onCreated={page=>{setCreating(false);refresh();go(pagePath(page.id));}}/>}<section className="card"><div className="search-bar"><input aria-label="페이지 검색" value={q} onChange={e=>setQ(e.target.value)} placeholder="페이지 이름 검색"/><select aria-label="페이지 상태" value={status} onChange={e=>setStatus(e.target.value)}><option value="">전체 상태</option><option value="DRAFT">임시보관</option><option value="PUBLISHED">게시됨</option><option value="PRIVATE">비공개</option></select><span>{items.length}개</span></div>{deletion.feedback}{deletion.dialog}<div className="table-scroll"><table className="data-table pages-table"><thead><tr><th>페이지</th><th>상태</th><th>연결된 메뉴</th><th>최근 수정</th><th>작업</th></tr></thead><tbody>{items.map(p=>{const links=data.menus.filter(m=>m.kind==='PAGE'&&m.targetId===p.id);return <tr key={p.id}><td><button className="text-link" data-page-id={p.id} onClick={()=>go(pagePath(p.id))}>{p.title}</button><small className="row-meta">/{p.slug}</small></td><td><Status value={p.status} pending={p.pending} pageWording/></td><td>{links.length?links.map(m=><span className="page-menu-label" key={m.id}>{m.label}{!m.visible&&<small> · 메뉴 숨김</small>}</span>):<span className="muted">메뉴 미연결</span>}</td><td>{date(p.updatedAt)}</td><td><div className="page-row-actions"><button onClick={()=>go(pagePath(p.id))}>편집</button><button onClick={()=>onOverview(p.id)}>구조 보기</button>{deletion.rowButton(p)}</div></td></tr>;})}</tbody></table>{!items.length&&<Empty>{q||status?'조건에 맞는 페이지가 없습니다. 검색어나 상태를 바꿔보세요.':'등록된 페이지가 없습니다.'}</Empty>}</div></section><p className="muted page-list-note">메뉴 연결과 게시 상태를 함께 확인하세요. 내용 저장만으로 현재 공개본이 바뀌지는 않습니다.</p></section>;
-}
+// The page list lives in PagesPanel.tsx (page hierarchy); re-exported for existing imports.
+export {PagesPanel} from './PagesPanel';
 export function RolesPanel({active,version}:Props) {
   const result=useRemote<RoleRow[]>('/roles',active,version);
   return <section className="roles-workspace"><Heading title="역할·권한 안내" note="역할별로 가능한 업무를 확인하세요. 계정의 역할 변경은 운영 계정 관리에서 진행합니다." badge="조회"/><Feedback {...result}/><div className="roles-grid">{result.data?.map(role=><article className="card panel-pad" key={role.code}><span className="eyebrow">{role.code}</span><h2>{role.label}</h2><ul className="plain-list"><li>로그인 · 본인 비밀번호 변경</li><li>{role.allPosts?'전체 콘텐츠 관리':'본인 콘텐츠 관리'}</li><li>{role.allPosts?'전체 미디어 관리':'본인이 올린 미디어 관리'}</li>{role.allPosts&&<li>기존 페이지 내용·블록 편집 및 게시</li>}{role.publish?<li>콘텐츠 게시·공개 중단</li>:<li>본인 콘텐츠 작성·수정 (게시 불가)</li>}{role.structure&&<li>새 페이지·URL · 메뉴 · 디자인 · 사이트 설정 · 페이지 템플릿</li>}{role.permanentDelete&&<li>영구 삭제</li>}{role.manageAccounts&&<><li>운영 계정 · 역할 변경</li><li>활동 이력 조회</li></>}</ul></article>)}</div><p className="muted">서포터즈는 작성본을 준비하고 관리자 또는 최상위 관리자가 게시합니다. 별도의 승인·반려 절차는 없습니다.</p></section>;

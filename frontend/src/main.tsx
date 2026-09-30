@@ -17,6 +17,7 @@ import {Empty,Feedback,Heading,messageOf,useRemote,setOperatingZone} from './ui'
 import {ReviewTree} from './ReviewTree';
 import {useWorkspaceRoutes} from './useWorkspaceRoutes';
 import {routePath} from './adminBase';
+import {pageLocation,publishedChildren} from './pageHierarchy';
 import {PageOverview} from './PageOverview';
 import {BlockDialog} from './BlockDialog';
 import {ContentTree} from './ContentTree';
@@ -51,7 +52,9 @@ function PagePanel({id,active,data,onTitle,go,blockId,viewMode,onSelectBlock,onO
     void Promise.all([getPage(id),get<ComponentDefinition[]>('/page-components')]).then(([value,catalog])=>{if(!cancelled){setDefinitions(catalog);setDocument(value);}}).catch(e=>{if(!cancelled)setError(e.message);});
     return()=>{cancelled=true;};
   },[id,active,document,retry]);
-  return document?<PageEditor canChangeAddress={!!data.permissions.structure} templateUse={data.permissions.templateUse} templateManage={data.permissions.templateManage} blockId={blockId} viewMode={viewMode} onSelectBlock={onSelectBlock} onOutline={onOutline} onGuard={onGuard} initial={document} definitions={definitions} active={active} categories={data.categories} images={data.images} onTitle={onTitle} onContent={category=>go(contentPath(category))}/>:<><Feedback error={error} loading={!error}/>{error&&<button onClick={()=>{setError('');setRetry(n=>n+1);}}>다시 시도</button>}</>;
+  const row=data.pages.find(p=>p.id===id),parent=row?.parentId==null?null:data.pages.find(p=>p.id===row.parentId)??null;
+  const location={parent:parent?pageLocation(data.pages,parent.id):null,parentPublished:!parent||parent.status==='PUBLISHED',publishedChildren:publishedChildren(data.pages,id)};
+  return document?<PageEditor location={location} canChangeAddress={!!data.permissions.structure} templateUse={data.permissions.templateUse} templateManage={data.permissions.templateManage} blockId={blockId} viewMode={viewMode} onSelectBlock={onSelectBlock} onOutline={onOutline} onGuard={onGuard} initial={document} definitions={definitions} active={active} categories={data.categories} images={data.images} onTitle={onTitle} onContent={category=>go(contentPath(category))}/>:<><Feedback error={error} loading={!error}/>{error&&<button onClick={()=>{setError('');setRetry(n=>n+1);}}>다시 시도</button>}</>;
 }
 
 function Workspace({initial}:{initial:Bootstrap}) {

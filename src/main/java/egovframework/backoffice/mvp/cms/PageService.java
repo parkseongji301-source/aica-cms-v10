@@ -269,6 +269,11 @@ public class PageService {
   if(!Objects.equals(label,page.menuLabel())) changes.add("메뉴 표시명 "+Objects.toString(label,"제목 사용"));
   if(!title.equals(page.title())) changes.add("이름 "+page.title()+" → "+title);
   if(changes.isEmpty()) return all;
+  // 콘텐츠 작업 하위 항목 (V16) belong to the linked type: another type or no link removes them (posts and topics stay).
+  if(!Objects.equals(type,page.contentTypeCode())) {
+   int nodes=store.<ContentNode>all("contentNodesOfPage",id).size();
+   if(nodes>0) {store.change("deleteContentNodesOfPage",id);changes.add("하위 항목 "+nodes+"개 제거(글·주제 유지)");}
+  }
   store.change("pageComposition",values("id",id,"contentTypeCode",type,"menuVisible",menuVisible,"menuLabel",label));
   if(!title.equals(page.title())) store.change("groupName",values("id",id,"title",title));
   audit.record(actor,"사이트 구성 변경","페이지 #"+id,title+": "+String.join(", ",changes));
@@ -298,22 +303,26 @@ public class PageService {
   return store.all("pages",null);
  }
  /** A content type's representative work area as the 콘텐츠 작업 sidebar needs it: no document, no status. */
- public record ContentArea(long pageId,String typeCode,String label,List<String> groups) {}
+ public record ContentArea(long pageId,String typeCode,String label,List<String> groups,List<ContentNodeView> nodes) {}
+ /** One operator-made sub-navigation entry (V16): the sidebar shows exactly these, in their saved order. */
+ public record ContentNodeView(long id,String name,Long topicId) {}
  /** Linked PAGE areas in site-structure order for every signed-in role; groups are the ancestor titles. */
  @Transactional(readOnly=true)
  public List<ContentArea> contentAreas(AccountPrincipal principal) {
   access.actor(principal);
   List<Page> all=store.all("pages",null);var out=new ArrayList<ContentArea>();
-  collectAreas(all,null,new ArrayList<>(),out,0);
+  var nodes=new HashMap<Long,List<ContentNodeView>>();
+  for(ContentNode node:store.<ContentNode>all("contentNodes",null)) nodes.computeIfAbsent(node.pageId(),k->new ArrayList<>()).add(new ContentNodeView(node.id(),node.name(),node.topicId()));
+  collectAreas(all,null,new ArrayList<>(),out,0,nodes);
   return out;
  }
- private void collectAreas(List<Page> all,Long parentId,List<String> groups,List<ContentArea> out,int depth) {
+ private void collectAreas(List<Page> all,Long parentId,List<String> groups,List<ContentArea> out,int depth,Map<Long,List<ContentNodeView>> nodes) {
   if(depth>all.size())return;
   for(Page page:PageHierarchy.children(all,parentId)) {
    if(!page.inStructure()) continue;
-   if(!page.group() && page.contentTypeCode()!=null) out.add(new ContentArea(page.id(),page.contentTypeCode(),page.title(),List.copyOf(groups)));
+   if(!page.group() && page.contentTypeCode()!=null) out.add(new ContentArea(page.id(),page.contentTypeCode(),page.title(),List.copyOf(groups),List.copyOf(nodes.getOrDefault(page.id(),List.of()))));
    var next=new ArrayList<>(groups);next.add(page.title());
-   collectAreas(all,page.id(),next,out,depth+1);
+   collectAreas(all,page.id(),next,out,depth+1,nodes);
   }
  }
  /** The first-screen page (site setting homePageId), or null. */

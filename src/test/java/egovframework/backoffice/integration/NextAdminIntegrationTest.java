@@ -219,7 +219,7 @@ class NextAdminIntegrationTest {
             error(admin.json("PUT",API+"/pages/"+target,edit("다른 대상",4).toString(),csrf),404);
             error(admin.json("POST",API+"/pages/"+target+"/preview",edit("다른 대상",4).toString(),csrf),404);
         }
-        assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15");
+        assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages",Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_menus",Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM categories",Integer.class)).isZero();

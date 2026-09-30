@@ -15,7 +15,11 @@ export type PageRow = {id:number;title:string;slug:string;status:string;revision
   // false = removed from the site structure (V15); menuVisible only matters inside the structure.
   inStructure:boolean};
 // Sent to every role: the 콘텐츠 작업 sidebar follows the site composition. groups are the ancestor titles.
-export type ContentArea = {pageId:number;typeCode:string;label:string;groups:string[]};
+// nodes (V16) are the sub-navigation entries the operator saved for the area, in saved order; never the topic dictionary.
+export type ContentNode = {id:number;name:string;topicId:number|null};
+export type ContentArea = {pageId:number;typeCode:string;label:string;groups:string[];nodes:ContentNode[]};
+/** A node row as the composition dialog edits it (SUPER_ADMIN). */
+export type ContentNodeRow = {id:number;pageId:number;name:string;topicId:number|null;sortOrder:number};
 /** 구성 게시 (V14). key is unique per list; parentKey links an item to its parent (null at the top level). */
 export type PublicMenuItem = {id:number;label:string;kind:'PAGE'|'CATEGORY'|'LINK'|'GROUP';pageId:number|null;slug:string|null;categoryId:number|null;url:string|null;apiHref:string|null;key:string;parentKey:string|null};
 export type StructureIssue = {areaId:number|null;message:string};

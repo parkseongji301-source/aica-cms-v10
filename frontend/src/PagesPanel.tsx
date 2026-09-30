@@ -4,8 +4,8 @@ import {CreatePageDraft} from './CreatePageDraft';
 import type {PageCreationState} from './CreatePageDraft';
 import {useBulkDelete} from './BulkDelete';
 import {BlockDialog} from './BlockDialog';
-import {createPageGroup,deletePage,getPage,getPageDeleteImpact,placePage,reorderPages,saveComposition,setStructureMembership} from './api';
-import type {Bootstrap,ClassificationCatalog,Go,PageRow} from './types';
+import {addContentNode,createPageGroup,deleteContentNode,deletePage,editContentNode,getContentNodes,getPage,getPageDeleteImpact,placePage,reorderContentNodes,reorderPages,saveComposition,setStructureMembership} from './api';
+import type {Bootstrap,ClassificationCatalog,ContentNodeRow,Go,PageRow} from './types';
 import {pagePath} from './navigation';
 import {childrenAllSelected,deletionOrder,isGroup,movedSiblings,pageLocation,pageTree,parentOptions,parentWarning} from './pageHierarchy';
 import type {PageTreeRow} from './pageHierarchy';
@@ -22,6 +22,8 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
   const [grouping,setGrouping]=useState(false),[composing,setComposing]=useState<PageRow|null>(null);
   const catalog=useRemote<ClassificationCatalog>('/classifications',active);
   const typeName=(code:string)=>catalog.data?.types.find(t=>t.code===code)?.name??code;
+  // 콘텐츠 작업 하위 항목 (V16): the saved sub-navigation count comes with the areas every role receives.
+  const nodeCount=(pageId:number)=>(data.contentAreas??[]).find(a=>a.pageId===pageId)?.nodes.length??0;
   const [ordering,setOrdering]=useState(false),[orderError,setOrderError]=useState('');
   const creationState=useRef<PageCreationState>({busy:false,dirty:false}),deleting=useRef(false),moving=useRef(false);
   const onCreationState=useCallback((state:PageCreationState)=>{creationState.current=state;},[]);
@@ -66,7 +68,7 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
       <td><div className={depth>1&&!filtered?'page-title-cell page-title-child':'page-title-cell'}>{depth>1&&!filtered&&<span className="page-child-mark" aria-hidden="true">↳</span>}<div>
         <button className="text-link" data-page-id={page.id} onClick={()=>isGroup(page)?structure&&setComposing(page):go(pagePath(page.id))}>{page.title}</button>
         <small className="row-meta">{isGroup(page)?'묶음 · 화면 없음':'/'+page.slug}{page.id===home&&' · 홈(첫 화면)'}{!page.inStructure&&' · 구성에서 제거됨'}{filtered&&parent&&` · 상위: ${parent.title}`}{depth>1&&!filtered&&' · 하위 페이지'}{children>0&&` · 하위 ${children}개`}</small>
-        {(page.contentTypeCode||page.menuVisible)&&<small className="page-composition-meta">{page.contentTypeCode&&<span>콘텐츠 작업: {typeName(page.contentTypeCode)}</span>}{page.menuVisible&&<span>메뉴 노출{page.menuLabel?` · ${page.menuLabel}`:''}</span>}</small>}
+        {(page.contentTypeCode||page.menuVisible)&&<small className="page-composition-meta">{page.contentTypeCode&&<span>콘텐츠 작업: {typeName(page.contentTypeCode)}{nodeCount(page.id)>0?` · 관리자 하위 항목 ${nodeCount(page.id)}개`:''}</span>}{page.menuVisible&&<span>메뉴 노출{page.menuLabel?` · ${page.menuLabel}`:''}</span>}</small>}
         {warning&&<small className="page-hierarchy-warning" title="게시된 하위 페이지는 상위 페이지 상태와 관계없이 자기 주소로 공개됩니다.">{warning}</small>}
       </div></div></td>
       <td>{isGroup(page)?<span className="status-tag state-group">묶음</span>:<Status value={page.status} pending={page.pending} pageWording/>}</td>
@@ -85,7 +87,7 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
   return <section className="pages-workspace"><Heading title="전체 페이지 현황" note="페이지 상태와 연결된 메뉴를 확인하고 내용을 편집합니다. 하위 페이지는 상위 페이지 아래에 들여써서 보여 줍니다." actions={<>{structure&&<button type="button" onClick={()=>setGrouping(true)}>＋ 묶음</button>}{structure&&<button type="button" className="primary" onClick={()=>setCreating(true)}>＋ 새 페이지</button>}</>}/>
     {structure&&<StructurePublicationBar active={active} status={structureStatus} onChanged={refresh} onBusy={busy=>{moving.current=busy;}}/>}
     {grouping&&active&&structure&&<GroupDialog active={active} pages={data.pages} homePageId={home} onClose={()=>setGrouping(false)} onBusy={busy=>{moving.current=busy;}} onDone={()=>{setGrouping(false);refresh();}}/>}
-    {composing&&active&&structure&&<CompositionDialog active={active} page={composing} pages={data.pages} catalog={catalog.data} onClose={()=>setComposing(null)} onBusy={busy=>{moving.current=busy;}} onDone={()=>{setComposing(null);refresh();}} onStale={refresh}/>}
+    {composing&&active&&structure&&<CompositionDialog active={active} page={data.pages.find(p=>p.id===composing.id)??composing} pages={data.pages} catalog={catalog.data} onClose={()=>setComposing(null)} onBusy={busy=>{moving.current=busy;}} onDone={()=>{setComposing(null);refresh();}} onStale={refresh} onNodesChanged={refresh}/>}
     {creating&&active&&structure&&<CreatePageDraft active={active} pages={data.pages} homePageId={home} onStateChange={onCreationState} onClose={()=>setCreating(false)} onCheckList={()=>{setCreating(false);setQ('');setStatus('');refresh();}} onCreated={page=>{setCreating(false);refresh();go(pagePath(page.id));}}/>}
     {placing&&active&&structure&&<PagePlacementDialog active={active} page={placing} pages={data.pages} homePageId={home} onClose={()=>setPlacing(null)} onBusy={busy=>{moving.current=busy;}} onDone={()=>{setPlacing(null);refresh();}} onStale={refresh}/>}
     <section className="card"><div className="search-bar"><input aria-label="페이지 검색" value={q} onChange={e=>setQ(e.target.value)} placeholder="페이지 이름 검색"/><select aria-label="페이지 상태" value={status} onChange={e=>setStatus(e.target.value)}><option value="">전체 상태</option><option value="DRAFT">임시보관</option><option value="PUBLISHED">게시됨</option><option value="PRIVATE">비공개</option></select><span>{items.length}개</span>{deletion.action}</div>
@@ -155,11 +157,16 @@ function GroupDialog({active,pages,homePageId,onClose,onBusy,onDone}:{active:boo
  * area (one per type, an operating rule) and never limits where that type's posts appear; the menu
  * settings take effect on the homepage only after a structure publication.
  */
-function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onStale}:{active:boolean;page:PageRow;pages:PageRow[];catalog:ClassificationCatalog|null;onClose:()=>void;onBusy:(busy:boolean)=>void;onDone:()=>void;onStale:()=>void}) {
+function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onStale,onNodesChanged}:{active:boolean;page:PageRow;pages:PageRow[];catalog:ClassificationCatalog|null;onClose:()=>void;onBusy:(busy:boolean)=>void;onDone:()=>void;onStale:()=>void;onNodesChanged:()=>void}) {
   const group=isGroup(page);
   const [type,setType]=useState(page.contentTypeCode??''),[visible,setVisible]=useState(page.menuVisible),[label,setLabel]=useState(page.menuLabel??''),[name,setName]=useState(page.title);
-  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[blockTypes,setBlockTypes]=useState<string[]|null>(null);
+  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[blockTypes,setBlockTypes]=useState<string[]|null>(null);
   const pending=useRef(false);
+  // 콘텐츠 작업 하위 항목 (V16): loaded for a saved link; every change is saved at once and the sidebar follows.
+  const [nodes,setNodes]=useState<ContentNodeRow[]|null>(null);
+  useEffect(()=>{if(group||!page.contentTypeCode){setNodes([]);return;}let cancelled=false;
+    void getContentNodes(page.id).then(list=>{if(!cancelled)setNodes(list);}).catch(e=>{if(!cancelled){setNodes([]);setError(messageOf(e));}});
+    return()=>{cancelled=true;};},[group,page.id,page.contentTypeCode]);
   useEffect(()=>{if(group)return;let cancelled=false;
     void getPage(page.id).then(doc=>{if(!cancelled)setBlockTypes(doc.sections.filter(s=>s.type==='POSTS').map(s=>{const q=(s as {query?:{typeCode?:string|null}}).query;
       // All types (query without a type, or the old category mode without a category) lists every type.
@@ -171,7 +178,10 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
   async function save(){
     if(pending.current||unchanged||group&&!name.trim())return;
     pending.current=true;setBusy(true);onBusy(true);setError('');
-    try{await saveComposition(page.id,{contentTypeCode:type||null,menuVisible:visible,menuLabel:label.trim()||null,name:group?name.trim():null});onDone();}
+    // A newly saved link keeps the dialog open so the operator can add the sub-navigation right away.
+    const linkedNow=!group&&!!type&&type!==(page.contentTypeCode??'');
+    try{await saveComposition(page.id,{contentTypeCode:type||null,menuVisible:visible,menuLabel:label.trim()||null,name:group?name.trim():null});
+      if(linkedNow){setNotice('구성을 저장했습니다. 이제 아래에서 관리자 콘텐츠 작업 하위 항목을 추가할 수 있습니다.');onStale();}else onDone();}
     catch(e){setError(messageOf(e));onStale();}
     finally{pending.current=false;setBusy(false);onBusy(false);}
   }
@@ -200,6 +210,9 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
         </select></label>}
       {!group&&<p className="page-create-help">연결하면 이 페이지가 그 유형의 대표 작업 영역이 되어 콘텐츠 작업에 나타나고, 유형의 주제가 하위 탐색이 됩니다. 같은 유형의 글은 다른 페이지의 콘텐츠 목록 블록에도 계속 넣을 수 있습니다.</p>}
       {missingBlock&&<p className="page-hierarchy-warning" role="note">이 페이지에는 이 유형의 콘텐츠 목록 블록이 없습니다. 홈페이지에 글을 보여 주려면 편집기에서 콘텐츠 목록 블록을 추가하세요(연결은 저장할 수 있습니다).</p>}
+      {notice&&<p className="success-box" role="status">{notice}</p>}
+      {!group&&!!nodes?.length&&type!==(page.contentTypeCode??'')&&<p className="page-hierarchy-warning" role="note">글 종류를 바꾸거나 연결을 해제하면 아래 관리자 하위 항목 {nodes.length}개도 함께 제거됩니다. 글과 주제는 남습니다.</p>}
+      {!group&&<ContentNodeEditor page={page} catalog={catalog} nodes={nodes} pendingType={type} busy={busy} onBusy={onBusy} onChanged={list=>{setNodes(list);onNodesChanged();}}/>}
       <label className="checkbox-row"><input type="checkbox" checked={visible} disabled={busy} onChange={e=>setVisible(e.target.checked)}/> 홈페이지 메뉴에 노출</label>
       <label htmlFor="composition-label"><span>메뉴 표시명 <small>선택</small></span><input id="composition-label" maxLength={80} value={label} placeholder={page.title} disabled={busy} onChange={e=>setLabel(e.target.value)}/></label>
       <p className="page-create-help">메뉴 노출과 표시명은 구성 게시 뒤 홈페이지에 반영됩니다. 비워 두면 {group?'묶음 이름':'게시된 페이지 제목'}을 씁니다. 메뉴에서 숨겨도 게시된 페이지는 주소로 계속 열립니다.</p>
@@ -212,4 +225,65 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
       <div className="dialog-actions"><button type="button" disabled={busy} onClick={onClose}>취소</button><button type="submit" className="primary" disabled={busy||unchanged||group&&!name.trim()}>{busy?'저장 중…':'구성 저장'}</button></div>
     </form>
   </BlockDialog>;
+}
+
+/**
+ * 콘텐츠 작업 하위 항목 (V16). The operator builds the admin sub-navigation under a linked page by hand: each
+ * entry is a name and one topic of the page's content type, in the order saved here. Nothing comes from the
+ * topic dictionary, and removing an entry never touches posts or topics. This is admin navigation only and
+ * has nothing to do with the homepage's child pages (those are placed with 위치).
+ */
+function ContentNodeEditor({page,catalog,nodes,pendingType,busy,onBusy,onChanged}:{page:PageRow;catalog:ClassificationCatalog|null;nodes:ContentNodeRow[]|null;pendingType:string;busy:boolean;onBusy:(busy:boolean)=>void;onChanged:(nodes:ContentNodeRow[])=>void}) {
+  const linked=page.contentTypeCode;
+  const [name,setName]=useState(''),[topic,setTopic]=useState(''),[editing,setEditing]=useState<number|null>(null),[working,setWorking]=useState(false),[error,setError]=useState('');
+  const pending=useRef(false);
+  const topics=linked&&catalog?catalog.topics.filter(t=>t.active&&catalog.allowedTopics.some(a=>a.typeCode===linked&&a.topicId===t.id)):[];
+  const topicName=(id:number|null)=>id===null?'주제 없음':catalog?.topics.find(t=>t.id===id)?.name??`주제 #${id}`;
+  const usedBy=(topicId:number)=>nodes?.find(n=>n.id!==editing&&n.topicId===topicId);
+  const disabled=busy||working||nodes===null;
+  async function run(action:()=>Promise<ContentNodeRow[]>){
+    if(pending.current)return;pending.current=true;setWorking(true);onBusy(true);setError('');
+    try{onChanged(await action());return true;}
+    catch(e){setError(messageOf(e));return false;}
+    finally{pending.current=false;setWorking(false);onBusy(false);}
+  }
+  const reset=()=>{setName('');setTopic('');setEditing(null);};
+  async function submit(){
+    if(!name.trim()||!topic)return;
+    const value={name:name.trim(),topicId:Number(topic)};
+    if(await run(()=>editing===null?addContentNode(page.id,value):editContentNode(editing,value)))reset();
+  }
+  const move=(node:ContentNodeRow,delta:-1|1)=>{
+    if(!nodes)return;const ids=nodes.map(n=>n.id),index=ids.indexOf(node.id),target=index+delta;
+    if(index<0||target<0||target>=ids.length)return;
+    [ids[index],ids[target]]=[ids[target],ids[index]];void run(()=>reorderContentNodes(page.id,ids));
+  };
+  const remove=(node:ContentNodeRow)=>{
+    if(!confirm(`'${node.name}' 항목을 콘텐츠 작업 메뉴에서 제거합니다. 글과 주제는 그대로 남습니다.`))return;
+    if(editing===node.id)reset();void run(()=>deleteContentNode(node.id));
+  };
+  return <fieldset className="content-nodes"><legend>관리자 콘텐츠 작업 하위 항목</legend>
+    <p className="page-create-help">왼쪽 <strong>콘텐츠 작업</strong> 메뉴에서 이 페이지 아래에 보일 항목입니다. 홈페이지의 하위 페이지와는 별개이며 홈페이지에는 나타나지 않습니다. 항목마다 이 페이지 글 종류의 주제 하나를 골라 그 주제의 글만 보여 줍니다. 항목이 없어도 이 페이지에서 글을 쓰고 관리할 수 있고, 항목을 제거해도 글과 주제는 남습니다.</p>
+    {!linked?<p className="muted">{pendingType?'연결을 저장한 뒤 항목을 추가할 수 있습니다.':'글 종류를 연결해 저장하면 항목을 추가할 수 있습니다.'}</p>:<>
+      {nodes===null?<p role="status">불러오는 중…</p>:nodes.length===0?<p className="muted">아직 항목이 없습니다. 콘텐츠 작업 메뉴에는 이 페이지만 보입니다.</p>
+        :<ol className="content-node-list">{nodes.map((node,index)=><li key={node.id} className={editing===node.id?'editing':undefined}>
+          <span className="content-node-name">{node.name}<small className="muted">주제: {topicName(node.topicId)}</small></span>
+          <span className="content-node-actions"><button type="button" aria-label={`${node.name} 위로`} disabled={disabled||index===0} onClick={()=>move(node,-1)}>↑</button><button type="button" aria-label={`${node.name} 아래로`} disabled={disabled||index===nodes.length-1} onClick={()=>move(node,1)}>↓</button><button type="button" disabled={disabled} onClick={()=>{setEditing(node.id);setName(node.name);setTopic(node.topicId===null?'':String(node.topicId));setError('');}}>수정</button><button type="button" disabled={disabled} onClick={()=>remove(node)}>제거</button></span>
+        </li>)}</ol>}
+      <div className="content-node-form" role="group" aria-label={editing===null?'하위 항목 추가':'하위 항목 수정'}>
+        <label htmlFor="content-node-name"><span>항목 이름</span><input id="content-node-name" maxLength={80} value={name} disabled={disabled} placeholder="예: 프로젝트 후기" onChange={e=>setName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void submit();}}}/></label>
+        <label htmlFor="content-node-topic"><span>보여 줄 주제</span>
+          <select id="content-node-topic" value={topic} disabled={disabled||!catalog} onChange={e=>setTopic(e.target.value)}>
+            <option value="">{catalog?topics.length?'주제를 선택하세요':'이 글 종류에 등록된 주제가 없습니다':'불러오는 중'}</option>
+            {topics.map(t=>{const other=usedBy(t.id);return <option key={t.id} value={t.id} disabled={!!other}>{t.name}{other?` — '${other.name}' 항목이 사용 중`:''}</option>;})}
+          </select></label>
+        <span className="content-node-form-actions">
+          {editing!==null&&<button type="button" disabled={disabled} onClick={reset}>취소</button>}
+          <button type="button" className="secondary" disabled={disabled||!name.trim()||!topic} onClick={()=>void submit()}>{working?'저장 중…':editing===null?'항목 추가':'항목 저장'}</button>
+        </span>
+      </div>
+      {!topics.length&&catalog&&<p className="muted">주제가 없는 글 종류에는 항목을 만들 수 없습니다. 항목 없이도 이 페이지에서 글을 관리할 수 있습니다.</p>}
+    </>}
+    {error&&<p className="error-box" role="alert">{error}</p>}
+  </fieldset>;
 }

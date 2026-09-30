@@ -34,6 +34,7 @@ public class FileRuntimeConfiguration {
             require(!env.getProperty("AICA_V13_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
             require(!env.getProperty("AICA_V14_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
             require(!env.getProperty("AICA_V15_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
+            require(!env.getProperty("AICA_V16_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
             Path db=requireWriter(ds.getJdbcUrl());
             boolean original=db.toString().replace('\\','/').toLowerCase(Locale.ROOT).contains("/.local-data/");
             String receipt=env.getProperty("AICA_RUNTIME_RECEIPT","");

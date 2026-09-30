@@ -118,3 +118,17 @@
 .phase-two .location-relocate {display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 12px;}
 .phase-two .structure-membership {margin:12px 0 0;padding:10px 12px;border:1px solid var(--ui-line);border-radius:3px;}
 .phase-two .structure-membership legend {padding:0 4px;font-size:13px;font-weight:600;}
+/* V16 콘텐츠 작업 하위 항목: the admin sub-navigation an operator builds inside the composition dialog. */
+.phase-two .content-nodes {margin:12px 0 0;padding:10px 12px;border:1px solid var(--ui-line);border-radius:3px;}
+.phase-two .content-nodes legend {padding:0 4px;font-size:13px;font-weight:600;}
+.phase-two .content-node-list {margin:0 0 10px;padding:0;list-style:none;}
+.phase-two .content-node-list li {display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--ui-line);}
+.phase-two .content-node-list li.editing {background:var(--ui-soft);}
+.phase-two .content-node-name {display:flex;flex-direction:column;min-width:0;font-size:13px;font-weight:600;overflow-wrap:anywhere;}
+.phase-two .content-node-name small {font-weight:400;}
+.phase-two .content-node-actions {display:inline-flex;gap:4px;}
+.phase-two .content-node-actions button {min-width:32px;min-height:32px;padding:0 8px;}
+.phase-two .content-node-form {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;}
+.phase-two .content-node-form label {display:flex;flex-direction:column;gap:4px;margin:0;font-size:13px;}
+.phase-two .content-node-form-actions {display:inline-flex;gap:6px;}
+@media (max-width:680px){.phase-two .content-node-form {grid-template-columns:1fr;}}

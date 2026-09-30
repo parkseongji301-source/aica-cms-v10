@@ -57,8 +57,10 @@ public class SecurityConfiguration {
                         .requestMatchers("/admin/posts/*/delete", "/admin/posts/*/delete-confirm", "/admin/pages/*/delete", "/admin/pages/*/delete-confirm").hasAuthority(AccessPolicy.Capability.DELETE_PERMANENT.name())
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE,"/api/admin/next/pages/*").hasAuthority(AccessPolicy.Capability.DELETE_PERMANENT.name())
                         .requestMatchers("/api/admin/next/pages/*/delete-impact").hasAuthority(AccessPolicy.Capability.DELETE_PERMANENT.name())
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT,"/api/admin/next/pages/*/placement","/api/admin/next/page-order","/api/admin/next/pages/*/composition","/api/admin/next/pages/*/structure-membership").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
-                        .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/admin/next/page-groups","/api/admin/next/classifications/topics").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT,"/api/admin/next/pages/*/placement","/api/admin/next/page-order","/api/admin/next/pages/*/composition","/api/admin/next/pages/*/structure-membership","/api/admin/next/pages/*/content-node-order").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/admin/next/page-groups","/api/admin/next/classifications/topics","/api/admin/next/pages/*/content-nodes").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
+                        // 콘텐츠 작업 하위 항목 (V16): operator-made sub-navigation is a site-structure action; reading it comes with pages/** below.
+                        .requestMatchers("/api/admin/next/content-nodes/**").hasAuthority(AccessPolicy.Capability.MANAGE_SITE.name())
                         .requestMatchers("/api/admin/next/posts/trash", "/api/admin/next/posts/*/trash", "/api/admin/next/posts/*/restore").hasAuthority(AccessPolicy.Capability.DELETE_PERMANENT.name())
                         .requestMatchers("/admin/posts/*/unpublish").hasAuthority(AccessPolicy.Capability.PUBLISH_POSTS.name())
                         .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/admin/next/posts/*/publish").hasAuthority(AccessPolicy.Capability.PUBLISH_POSTS.name())

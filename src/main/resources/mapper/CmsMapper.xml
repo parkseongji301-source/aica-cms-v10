@@ -131,6 +131,16 @@
  <!-- Structure membership (V15): separate from menu visibility; never the document revision. -->
  <update id="pageMembership">UPDATE site_pages SET in_structure=#{inStructure} WHERE id=#{id}</update>
  <select id="activeContentTypeName" resultType="string">SELECT name FROM content_types WHERE code=#{value} AND active=TRUE</select>
+ <!-- 콘텐츠 작업 하위 항목 (V16): admin navigation rows under a linked page; never the page document or revision. -->
+ <sql id="contentNodeColumns">id,page_id,name,topic_id,sort_order</sql>
+ <select id="contentNodes" resultType="egovframework.backoffice.mvp.cms.CmsModels$ContentNode">SELECT <include refid="contentNodeColumns"/> FROM content_work_nodes ORDER BY page_id,sort_order,id</select>
+ <select id="contentNodesOfPage" resultType="egovframework.backoffice.mvp.cms.CmsModels$ContentNode">SELECT <include refid="contentNodeColumns"/> FROM content_work_nodes WHERE page_id=#{value} ORDER BY sort_order,id</select>
+ <select id="contentNode" resultType="egovframework.backoffice.mvp.cms.CmsModels$ContentNode">SELECT <include refid="contentNodeColumns"/> FROM content_work_nodes WHERE id=#{value}</select>
+ <insert id="createContentNode" useGeneratedKeys="true" keyProperty="id">INSERT INTO content_work_nodes(page_id,name,topic_id,sort_order) VALUES(#{pageId},#{name},#{topicId,jdbcType=BIGINT},(SELECT COALESCE(MAX(sort_order)+1,0) FROM content_work_nodes WHERE page_id=#{pageId}))</insert>
+ <update id="editContentNode">UPDATE content_work_nodes SET name=#{name},topic_id=#{topicId,jdbcType=BIGINT},updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
+ <update id="contentNodeSortOrder">UPDATE content_work_nodes SET sort_order=#{sortOrder} WHERE id=#{id}</update>
+ <delete id="deleteContentNode">DELETE FROM content_work_nodes WHERE id=#{value}</delete>
+ <delete id="deleteContentNodesOfPage">DELETE FROM content_work_nodes WHERE page_id=#{value}</delete>
  <!-- Only the latest published structure protects the pages it refers to. -->
  <select id="publishedStructureReferences" resultType="long">SELECT COUNT(*) FROM site_structure_publication_pages WHERE page_id=#{value} AND publication_id=(SELECT MAX(id) FROM site_structure_publications)</select>
  <!-- Site structure publications (V14). The latest row is the published structure; none means site_menus are still used. -->

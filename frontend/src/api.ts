@@ -1,7 +1,7 @@
 import {restaurantPayload} from './restaurantFields';
 import {pageDraftForm} from './pageCreation';
 import type {CreatedPage} from './pageCreation';
-import type {Bootstrap, PageDocument, PageRow, PreviewDocument, ImageFile,PostDocument,PostPreview,ClassificationCatalog,PostPublication,ClassificationSelection,StructureStatus,MenuImportPlan} from './types';
+import type {Bootstrap, PageDocument, PageRow, PreviewDocument, ImageFile,PostDocument,PostPreview,ClassificationCatalog,PostPublication,ClassificationSelection,StructureStatus,MenuImportPlan,ContentNodeRow} from './types';
 import {classificationSelection} from './classification';
 import {loggedOut} from './logout';
 let csrf: Bootstrap['csrf']|null = null;
@@ -43,6 +43,12 @@ export const importMenus=(fingerprint:string)=>request<{plan:MenuImportPlan;page
 export const setStructureMembership=(id:number,inStructure:boolean)=>request<PageRow[]>(`${base}/pages/${id}/structure-membership`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({inStructure})});
 export const saveComposition=(id:number,value:{contentTypeCode:string|null;menuVisible:boolean;menuLabel:string|null;name:string|null})=>request<PageRow[]>(`${base}/pages/${id}/composition`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
 export const reorderPages=(parentId:number|null,pageIds:number[])=>request<PageRow[]>(`${base}/page-order`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({parentId,pageIds})});
+// 콘텐츠 작업 하위 항목 (V16, SUPER_ADMIN): operator-made sub-navigation under a linked page; every call returns that page's nodes.
+export const getContentNodes=(pageId:number)=>request<ContentNodeRow[]>(`${base}/pages/${pageId}/content-nodes`);
+export const addContentNode=(pageId:number,value:{name:string;topicId:number})=>request<ContentNodeRow[]>(`${base}/pages/${pageId}/content-nodes`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
+export const editContentNode=(id:number,value:{name:string;topicId:number})=>request<ContentNodeRow[]>(`${base}/content-nodes/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
+export const reorderContentNodes=(pageId:number,nodeIds:number[])=>request<ContentNodeRow[]>(`${base}/pages/${pageId}/content-node-order`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nodeIds})});
+export const deleteContentNode=(id:number)=>request<ContentNodeRow[]>(`${base}/content-nodes/${id}`,{method:'DELETE'});
 // Publishing keeps the page address; address changes stay a separate SUPER_ADMIN action.
 export const publishPage=(page:PageDocument)=>request<PageDocument>(`${base}/pages/${page.id}/publish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:page.title,revision:page.revision,sections:page.sections})});
 export const changePageAddress=(id:number,revision:number,slug:string)=>request<PageDocument>(`${base}/pages/${id}/address`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,slug})});

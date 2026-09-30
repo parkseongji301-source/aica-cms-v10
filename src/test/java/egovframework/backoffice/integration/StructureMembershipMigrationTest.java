@@ -43,7 +43,8 @@ class StructureMembershipMigrationTest {
   var receipt=V15PromotionTool.migrate(plan,"jar","plan","sa","");
   assertThat(receipt.path("status").asText()).isEqualTo("MIGRATED_V15");assertThat(receipt.path("after").path("history").size()).isEqualTo(15);
   assertThat(hash(original)).isEqualTo(originalHash);
-  requireCurrentSchema(copy,"sa","");
+  // V15 is the version this tool produces; the current runtime version (V16) is verified by its own tool.
+  requireSchema(copy,"sa","","15");
   assertThat(rows(copy,pages)).isEqualTo(before);
   assertThat(rows(copy,"SELECT id,in_structure FROM site_pages ORDER BY id")).containsExactly("1|true","65|true","80|true");
   assertThat(rows(copy,"SELECT id,CAST(snapshot_json AS VARCHAR),fingerprint,reason FROM site_structure_publications")).isEqualTo(publications);
@@ -56,7 +57,7 @@ class StructureMembershipMigrationTest {
   assertThatThrownBy(()->requireSchema(copy,"sa","","14")).isInstanceOf(IllegalStateException.class);
   Path v14Receipt=dir.resolve("v14-receipt.json");
   JSON.writeValue(v14Receipt.toFile(),Map.of("status","MIGRATED_V14","databasePath",copy.toRealPath().toString(),"jarSha256","same","workaround","AUTO_COMPACT_FILL_RATE=0"));
-  assertThatThrownBy(()->requireReceipt(copy,v14Receipt,"same",CURRENT_VERSION)).hasMessageContaining("V15");
+  assertThatThrownBy(()->requireReceipt(copy,v14Receipt,"same",CURRENT_VERSION)).hasMessageContaining("V"+CURRENT_VERSION);
  }
 
  @Test void planRefusesAChangedCopyAndANonV14Database()throws Exception {

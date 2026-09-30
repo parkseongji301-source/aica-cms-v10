@@ -1,18 +1,19 @@
 import type {ClassificationCatalog,ClassificationSelection,ContentArea} from './types';
 
 // 콘텐츠 작업 locations come from the site composition: a PAGE area linked to a content type is that
-// type's representative work area, and the type's allowed topics (dictionary order) are its sub-navigation.
-// Locations only filter posts; they never create pages or classification terms.
+// type's representative work area, and its sub-navigation is the nodes the operator saved for it (V16),
+// each one topic of that type, in saved order. Nothing is derived from the topic dictionary.
+// Locations only filter posts; they never create pages, nodes or classification terms.
 export type ContentNode={key:string;label:string;topicId:number|null};
-// relocate: the address points to a location that no longer exists (an old address, or an area removed from
-// the composition). The screen then offers 전체 콘텐츠 and the current composition instead of guessing.
+// relocate: the address points to a location that no longer exists (an old address, an area removed from
+// the composition, or a node that was removed). The screen then offers 전체 콘텐츠 and the current
+// composition instead of guessing.
 export type ContentContext={pageId:number;type:string;param:'area';key:string;label:string;areaLabel:string;groups:string[];topicId:number|null;error:string;relocate:boolean};
 
-/** 'all' is the area itself; the other nodes are the active topics allowed for its type. */
-export function contentNodes(area:ContentArea,catalog:ClassificationCatalog|null):ContentNode[] {
+/** 'all' is the area itself; the other nodes are the saved sub-navigation entries (key = node id). */
+export function contentNodes(area:ContentArea):ContentNode[] {
   const nodes:ContentNode[]=[{key:'all',label:area.label,topicId:null}];
-  if(catalog)for(const topic of catalog.topics)
-    if(topic.active&&catalog.allowedTopics.some(a=>a.typeCode===area.typeCode&&a.topicId===topic.id))nodes.push({key:topic.code,label:topic.name,topicId:topic.id});
+  for(const node of area.nodes??[])nodes.push({key:String(node.id),label:node.name,topicId:node.topicId});
   return nodes;
 }
 // Addresses from before V14 used a fixed section parameter per demo area (for example ?somethingSection=key).
@@ -20,7 +21,7 @@ export function contentNodes(area:ContentArea,catalog:ClassificationCatalog|null
 const oldLocation=(key:string)=>/^[a-z][A-Za-z0-9]*Section$/.test(key);
 const locationParams=(search:URLSearchParams)=>[...new Set([...search.keys()])].filter(key=>key==='area'||oldLocation(key));
 export const hasContentLocation=(search:URLSearchParams)=>locationParams(search).length>0;
-export const contentLocationLabel=(scope:ContentContext)=>scope.key==='all'?scope.areaLabel:`${scope.label} ${scope.areaLabel}`;
+export const contentLocationLabel=(scope:ContentContext)=>scope.key==='all'?scope.areaLabel:`${scope.areaLabel} · ${scope.label}`;
 export function rememberPostOrigin(origins:Record<string,string>,previous:{path:string;query:string},next:{path:string;query:string}) {
   return previous.path==='/posts'&&/^\/posts\/\d+\/edit$/.test(next.path)?{...origins,[next.path]:previous.path+previous.query}:origins;
 }
@@ -28,23 +29,27 @@ export const filterValues=(search:URLSearchParams,key:string)=>[...new Set(searc
 
 export function contentContext(search:URLSearchParams,catalog:ClassificationCatalog|null,areas:ContentArea[]):ContentContext|null {
   const params=locationParams(search);if(!params.length)return null;
-  const area=params.includes('area')?areas.find(a=>String(a.pageId)===search.get('area')):undefined,key=search.get('topic')||'all';
+  const area=params.includes('area')?areas.find(a=>String(a.pageId)===search.get('area')):undefined,key=search.get('node')||'all';
   const base={pageId:area?.pageId??0,type:area?.typeCode??'',param:'area' as const,key,label:area?.label??'',areaLabel:area?.label??'',groups:area?.groups??[],topicId:null,relocate:false};
   if(params.some(oldLocation))return {...base,relocate:true,error:'예전 콘텐츠 작업 주소입니다. 콘텐츠 작업 위치는 이제 사이트 구성에서 정합니다. 전체 콘텐츠에서 찾거나 현재 구성에서 위치를 다시 선택하세요.'};
   if(!area)return {...base,relocate:true,error:'이 콘텐츠 작업 위치를 찾을 수 없습니다. 사이트 구성에서 빠졌거나 연결이 바뀌었을 수 있습니다. 글은 그대로 있으니 전체 콘텐츠에서 찾거나 현재 구성에서 위치를 다시 선택하세요.'};
   if(!catalog)return {...base,error:'분류 사전을 불러오는 중입니다.'};
   if(!catalog.types.some(t=>t.code===area!.typeCode&&t.active))return {...base,error:`${area.label}에 연결된 유형을 사용할 수 없습니다.`};
   if(key==='all')return {...base,error:''};
-  const node=contentNodes(area,catalog).find(n=>n.key===key);
-  if(!node)return {...base,error:`이 주제가 ${area.label} 유형에 연결되지 않았습니다.`};
-  return {...base,label:node.label,topicId:node.topicId,error:''};
+  const node=(area.nodes??[]).find(n=>String(n.id)===key);
+  if(!node)return {...base,relocate:true,error:`이 하위 항목은 '${area.label}' 아래에 더 이상 없습니다. 글은 그대로 있으니 전체 콘텐츠에서 찾거나 현재 하위 항목을 다시 선택하세요.`};
+  // A node shows its topic's posts; a retired or disallowed topic is reported, never widened to all posts.
+  const topic=node.topicId===null?null:catalog.topics.find(t=>t.id===node.topicId);
+  if(node.topicId!==null&&(!topic||!topic.active||!catalog.allowedTopics.some(a=>a.typeCode===area.typeCode&&a.topicId===node.topicId)))
+    return {...base,label:node.name,error:`'${node.name}' 항목의 주제를 사용할 수 없습니다. 사이트 구성에서 이 항목의 주제를 바꾸세요.`};
+  return {...base,label:node.name,topicId:node.topicId,error:''};
 }
-/** The location part of an address: the area and, below it, one topic. */
+/** The location part of an address: the area and, below it, one saved node. */
 export function locationQuery(scope:ContentContext):Record<string,string> {
-  return scope.key==='all'?{area:String(scope.pageId)}:{area:String(scope.pageId),topic:scope.key};
+  return scope.key==='all'?{area:String(scope.pageId)}:{area:String(scope.pageId),node:scope.key};
 }
 export function sectionPath(area:ContentArea,key:string,catalog:ClassificationCatalog|null,areas:ContentArea[]=[area]):string|null {
-  const search=new URLSearchParams(key==='all'?{area:String(area.pageId)}:{area:String(area.pageId),topic:key});
+  const search=new URLSearchParams(key==='all'?{area:String(area.pageId)}:{area:String(area.pageId),node:key});
   const scope=contentContext(search,catalog,areas);if(!scope||scope.error)return null;
   search.set('typeCodes',scope.type);if(scope.topicId!==null)search.set('topicIds',String(scope.topicId));
   return '/posts?'+search;

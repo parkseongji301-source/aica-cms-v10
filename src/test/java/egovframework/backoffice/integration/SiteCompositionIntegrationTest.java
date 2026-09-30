@@ -163,7 +163,7 @@ class SiteCompositionIntegrationTest {
         send(admin,"PUT","/pages/72/composition",composition("FAQ",false,null,null),csrf);
         for(String role:List.of("SUPER_ADMIN","ADMIN","SUPPORTER")){
             var areas=json.readTree(login(role).get(API+"/bootstrap").body()).path("contentAreas");
-            assertThat(areas.toString()).as(role).isEqualTo("[{\"pageId\":72,\"typeCode\":\"FAQ\",\"label\":\"오시는 길\",\"groups\":[]},{\"pageId\":70,\"typeCode\":\"REVIEW\",\"label\":\"후기\",\"groups\":[\"선배들의 SSUL\"]}]");
+            assertThat(areas.toString()).as(role).isEqualTo("[{\"pageId\":72,\"typeCode\":\"FAQ\",\"label\":\"오시는 길\",\"groups\":[],\"nodes\":[]},{\"pageId\":70,\"typeCode\":\"REVIEW\",\"label\":\"후기\",\"groups\":[\"선배들의 SSUL\"],\"nodes\":[]}]");
         }
     }
 

@@ -23,7 +23,7 @@ public class DeletionImpactService {
   access.permanentDelete(actor);
   if(kind.equals("media")) {CmsModels.Media m=store.one("media",id);if(m==null)throw new BusinessException("파일을 찾을 수 없습니다.");return new Impact(kind,id,m.name(),0,usages.find(actor,kind,id),"파일 원본과 메타데이터를 영구 삭제합니다. 사용 중인 파일은 삭제할 수 없습니다. 복구 기능은 없습니다.",new egovframework.backoffice.mvp.version.VersionMediaReferences.Impact(0,List.of()));}
   if(kind.equals("pages")) {var p=pages.get(actor,id);return new Impact(kind,id,p.title(),p.revision(),usages.find(actor,kind,id),
-    "페이지 초안과 발행본을 영구 삭제합니다. 메뉴·첫 화면 연결이나 하위 페이지가 있거나 게시된 사이트 구성이 참조하면 삭제할 수 없습니다. 본문·버튼에 직접 입력한 URL과 외부 링크는 별도 확인이 필요합니다. 복구 기능은 없습니다.",versionMedia.impact(egovframework.backoffice.mvp.version.VersionKind.PAGE,id));}
+    "페이지 초안과 발행본을 영구 삭제합니다. 콘텐츠 작업 하위 항목도 함께 삭제됩니다(글과 주제는 유지). 메뉴·첫 화면 연결이나 하위 페이지가 있거나 게시된 사이트 구성이 참조하면 삭제할 수 없습니다. 본문·버튼에 직접 입력한 URL과 외부 링크는 별도 확인이 필요합니다. 복구 기능은 없습니다.",versionMedia.impact(egovframework.backoffice.mvp.version.VersionKind.PAGE,id));}
   if(!kind.equals("posts"))throw new BusinessException("삭제 대상을 확인하세요.");
   var p=posts.get(actor,id);var found=new ArrayList<UsageService.Usage>();
   for(Page page:pages.list(actor)) {

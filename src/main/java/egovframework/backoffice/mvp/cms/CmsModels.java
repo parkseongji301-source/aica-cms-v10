@@ -26,6 +26,8 @@ public final class CmsModels {
             throw new egovframework.backoffice.mvp.common.BusinessException("지원하지 않는 블록 필드입니다: "+name);
         }
     }
+    /** A 콘텐츠 작업 sub-navigation entry under a linked page (V16): a name, an order and one topic. */
+    public record ContentNode(long id, long pageId, String name, Long topicId, int sortOrder) {}
     public record PublishedPage(long pageId, String title, String slug, String sectionsJson, long revision,
                                 LocalDateTime publishedAt) {}
     public record Menu(long id, String label, String kind, Long targetId, String url, int sortOrder, boolean visible) {}

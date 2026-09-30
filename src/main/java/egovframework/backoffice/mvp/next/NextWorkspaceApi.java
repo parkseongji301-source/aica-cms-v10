@@ -27,10 +27,11 @@ public class NextWorkspaceApi {
     private final MediaService media;
     private final AccountService accounts;
     private final UsageService usages;
+    private final ContentNodeService nodes;
 
     public NextWorkspaceApi(CmsAccess access, AccessPolicy policy, PageService pages, PostService posts,
-                            SiteService site, MediaService media, AccountService accounts, UsageService usages,java.time.Clock clock) {
-        this.clock=clock;
+                            SiteService site, MediaService media, AccountService accounts, UsageService usages,java.time.Clock clock,ContentNodeService nodes) {
+        this.clock=clock;this.nodes=nodes;
         this.access=access; this.policy=policy; this.pages=pages; this.posts=posts;
         this.site=site; this.media=media; this.accounts=accounts; this.usages=usages;
     }
@@ -105,6 +106,26 @@ public class NextWorkspaceApi {
     public List<PageRow> pageOrder(@AuthenticationPrincipal AccountPrincipal actor,@RequestBody PageOrderInput input) {
         return rows(pages.reorder(actor,input.parentId(),input.pageIds()));
     }
+    // 콘텐츠 작업 하위 항목 (V16): operator-made sub-navigation under a linked page. SUPER_ADMIN structure actions;
+    // every response is that page's node list in its saved order. ContentNodeService holds the rules.
+    public record ContentNodeInput(String name, Long topicId) {}
+    public record ContentNodeOrderInput(List<Long> nodeIds) {}
+    @GetMapping("/pages/{id}/content-nodes")
+    public List<CmsModels.ContentNode> contentNodes(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {return nodes.ofPage(actor,id);}
+    @PostMapping("/pages/{id}/content-nodes")
+    public List<CmsModels.ContentNode> addContentNode(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody ContentNodeInput input) {
+        return nodes.add(actor,id,input.name(),input.topicId());
+    }
+    @PutMapping("/content-nodes/{id}")
+    public List<CmsModels.ContentNode> editContentNode(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody ContentNodeInput input) {
+        return nodes.edit(actor,id,input.name(),input.topicId());
+    }
+    @PutMapping("/pages/{id}/content-node-order")
+    public List<CmsModels.ContentNode> contentNodeOrder(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody ContentNodeOrderInput input) {
+        return nodes.reorder(actor,id,input.nodeIds());
+    }
+    @DeleteMapping("/content-nodes/{id}")
+    public List<CmsModels.ContentNode> removeContentNode(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {return nodes.remove(actor,id);}
 
     @GetMapping("/dashboard")
     public Map<String,Object> dashboard(@AuthenticationPrincipal AccountPrincipal actor) {

@@ -35,4 +35,36 @@ V14~V15의 콘텐츠 작업 사이드바는 글 종류를 연결한 페이지 �
 
 ## 3. 검증
 
-(아래 절은 사본 검증 뒤 채운다.)
+코드 commit `9c4c649`. JAR `target/backoffice-0.0.1-SNAPSHOT.jar` sha256 `0fee384ed76e92087d01625a1b59f8263c4b1e48548958f979ea8c29d9dedb89`(테스트 전체 통과 뒤 같은 소스로 `-DskipTests package`).
+
+- 서버 전체 테스트 233개 실행, 실패 0, 환경 조건 제외 6
+  - `ContentWorkNodesMigrationTest`(2): V15 파일 DB 사본 plan/migrate, 원본 불변, 기존 행·주제·허용 관계·게시본 표 불변, 새 표 비어 있음, FK(없는 페이지·주제 거부, 주제 삭제 거부, 페이지 삭제 연쇄), 바뀐 사본·V14 DB 거부, V15 receipt 거부
+  - `ContentWorkNodeIntegrationTest`(2): 연결만으로 항목 0(세 역할 동일) / 추가·순서·이름·주제 변경이 모든 역할의 bootstrap과 GET에 반영 / 규칙 거부(미연결 페이지·묶음·다른 종류 주제·사용 중지 주제·없는 주제·주제 없음·같은 이름·같은 주제·빈 이름·바뀐 목록·없는 항목 404) / 페이지 revision·버전 불변 / 항목 아래 쓴 글은 항목 제거 뒤에도 주제 유지, 사전 불변 / 활동 이력 5건 / ADMIN·SUPPORTER 쓰기 403, SUPPORTER GET 403 / 연결 해제·종류 변경 시 항목 제거와 이력 "하위 항목 2개 제거", 메뉴 설정만 바꾸면 유지 / 공개 `/menus`·`/structure`·페이지 응답 바이트 동일 / 삭제 영향 문구, 페이지 삭제 시 연쇄
+  - 기존 시험: Flyway 이력 기대값에 16 추가(3개), `ClassificationMigrationTest` 승인 migration 목록에 V16 추가, `StructureMembershipMigrationTest`는 V15 schema 기준으로 고정, `SiteCompositionIntegrationTest`의 contentAreas 기대값에 `nodes:[]`
+- 프런트 테스트 79개(`contentNavigation.test.ts` 재작성: 저장된 항목만·순서·없는 항목·사용 불가 주제·주소 `node=`), 타입 검사·빌드 통과
+
+### 사본 검증 (8095 멈추지 않음)
+
+원본: `.cache/category-rehearsal-20261001/v15/runtime`(카테고리 전환 리허설을 마친 V15 사본, 정상 정지 `stopped-1790783241711.json`과 DB 해시 일치 = 현재 8095와 같은 운영 데이터 상태). 결과: `.cache/v16-rehearsal-20261001/runtime`(8097, JAR `0fee384e…`).
+
+| 항목 | 결과 |
+|---|---|
+| `promote-v16-runtime.ps1` | 통과. `MIGRATED_V16`, 이력 16, JAR가 더한 migration은 V16 하나. 원본 V15 DB 불변 |
+| 임시 SUPER_ADMIN | 사본 DB에 직접 삽입 #39(v16-rehearsal-root@example.com). 비밀번호는 문서에 남기지 않는다. 사본 전용 |
+| 사전 | REVIEW 주제가 프로젝트 하나뿐이라 `REVIEW_LIFE` "생활"을 추가 API로 넣음(사본만) |
+| 연결 | 새 페이지 #98 "[V16 리허설] 후기 전체"(초안)에 후기 연결 → bootstrap contentAreas 1개, `nodes: []` |
+| 항목 | 추가 2개 → 순서 바꾸기 → 이름 변경, bootstrap 반영. 거부: 다른 종류 주제·같은 이름·같은 주제·주제 없음·미연결 페이지(#65) 모두 400 |
+| 목록·작성 | 항목(프로젝트) 목록 수 +1: 항목에서 쓴 글 #137이 항목 목록에 나타남 |
+| 제거 | 항목 제거 뒤 글 #137의 주제 유지, 주제 수 불변 |
+| 연결 해제 | 항목 모두 제거, contentAreas 비어 있음. 다시 연결 후 항목 추가 |
+| 화면(브라우저) | 전체 페이지 현황 행 메타 "콘텐츠 작업: 후기 · 관리자 하위 항목 1개", 구성 대화상자의 "관리자 콘텐츠 작업 하위 항목" 구역에서 "생활 이야기"(주제 생활) 추가 → 콘텐츠 작업 사이드바에 "후기 전체 › 프로젝트 후기 · 생활 이야기", 항목 클릭 시 목록이 주제로 좁혀지고 "＋ 새 생활 이야기 작성" |
+| 세 역할 | ADMIN #41·SUPPORTER #42(임시 발급, 확인 후 사용 중지): 사이드바 동일, 항목 추가·변경·순서·제거 403, SUPPORTER GET 403·ADMIN 200. (#40은 첫 시도에서 발급만 되고 실패해 사용 중지) |
+| 공개 API | `/menus`·`/structure`·`/pages/1`·`/pages/65`·`/posts`·`/posts?categoryId=1` 항목 작업 전후 동일 |
+| 정상 정지 → 재시작 | 항목 2개·글 #137 유지, 다시 정상 정지 |
+
+## 4. 8095 적용 (별도 승인 필요)
+
+1. 8095(V15 RC2, DB는 `V15-RC1-20260930/runtime/db`) 정상 종료(STOP.cmd) → 백업(`.cache/v12-release/backups/aica-local.before-V16-…`).
+2. 새 RC 폴더 `.cache/v16-release/V16-RC1-20261001/runtime`(JAR `0fee384e…`, `graceful-stop.jar`·assets 복사, `runtime.json`에 `database` 없음) → `promote-v16-runtime.ps1 -Source .cache/v15-release/V15-RC2-20261001/runtime -Target … -AuthorizeMigration`. 사본에만 적용되고 RC1 DB는 그대로.
+3. `select-v12-runtime.ps1 … -AuthorizeSelection` → START → 세 역할·공개 API 확인(적용 직후 항목은 0개, 공개 응답 동일).
+4. 되돌리기: V16 RC 폴더를 버리고 V15 RC2를 다시 선택(DB 불변). V16 이후 운영 변경은 잃는다.

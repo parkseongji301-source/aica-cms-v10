@@ -1,4 +1,4 @@
-# 현재 상태 인수인계 (2026-10-01)
+# 현재 상태 인수인계 (2026-10-01, V16 사본 검증 뒤)
 
 새 Claude Code 세션이 이 문서만 읽고 이어서 작업할 수 있도록, 과거 일지가 아니라 **지금 상태와 다음 행동**을 적는다. 자세한 근거는 각 절의 링크 문서에 있다.
 
@@ -14,7 +14,7 @@
 
 ## 2. Git
 
-- branch `main`, 이 문서를 쓰기 직전 HEAD = origin/main = `ea94fa9` (이 문서 커밋이 그 다음).
+- branch `main`. origin/main = `75c0a53`. 그 뒤 로컬 커밋(미push): `9c4c649` V16 하위 항목 구현 + 이 문서 갱신 커밋. push는 요청받을 때.
 - 기준점 태그: `v13-page-hierarchy-20260930`, `react-admin-step5-20260930`, `react-admin-step4-20260930`, `v12-stable-baseline-20260930`, `v11-operating-baseline-20260929`.
 
 ## 3. 8095 운영 런타임: V15 RC2
@@ -26,7 +26,7 @@
 | JAR | `.cache/v15-release/V15-RC2-20261001/runtime/server.jar`, sha256 `dc097b8f4b0098ee373d6e1eb3c41a347c2d4aa9b66400b26c6c43aa13b6542f` (commit `b86efa2` 빌드, 코드 기준 `4b77ce1`) |
 | DB | `.cache/v15-release/V15-RC1-20260930/runtime/db/aica-local.mv.db` (RC1·RC2가 함께 쓴다. RC2 `runtime.json`의 `database`) |
 | receipt | RC2 `migration-receipt.json`: `MIGRATED_V15`, 위 DB 경로·JAR 해시에 묶임. `AUTO_COMPACT_FILL_RATE=0` |
-| schema | Flyway V1~V15 (validate만, 웹 서버는 migration 불가) |
+| schema | Flyway V1~V15 (validate만, 웹 서버는 migration 불가). **V16(콘텐츠 작업 하위 항목)은 코드·사본 검증까지 끝났고 8095에는 아직 적용하지 않았다** — [V16_CONTENT_WORK_NODES.md](V16_CONTENT_WORK_NODES.md) 4절, 별도 승인 후 |
 | SUPER_ADMIN | `admin@example.com` (비밀번호는 사용자에게만 있음, 문서·메모리에 기록 금지) |
 
 ### 되돌리기 기준
@@ -86,6 +86,10 @@
 - **CATEGORY 메뉴 2개를 남긴 이유**: 구성 게시 전까지 공개 메뉴의 출처가 `site_menus`이고, 사용자가 첫 게시 전에는 보존하라고 했다. 첫 구성 게시 때 공개 메뉴에서 빠지고, 그 뒤 메뉴 관리에서 행을 삭제할 수 있다.
 - **GENERAL_NOTICE**: 주제 #11 "공지", GENERAL에 연결됨(운영 DB). 아직 글·블록·영역 어디에도 쓰이지 않는다. 공지사항 영역을 만들 때 POSTS 조건 `GENERAL + GENERAL_NOTICE`로 쓴다. 추가에 쓴 `POST /api/admin/next/classifications/topics`(추가만)는 과도기 수단 → 정식 기수·주제 관리 UI에 흡수할 후속 과제.
 
+## 6b. V16 콘텐츠 작업 하위 항목 (코드 완료, 8095 미적용)
+
+[V16_CONTENT_WORK_NODES.md](V16_CONTENT_WORK_NODES.md). 최종 검수 범위로 사용자가 정한 것: 유형 연결만으로 사이드바 하위 항목을 만들지 않고, 관리자가 구성 대화상자에서 하위 항목(이름·기존 주제·순서)을 직접 추가·제거한다. 항목에서 목록·새 글 작성, 항목 제거는 글·주제와 무관. 새 표 `content_work_nodes`, `V16PromotionTool`, `promote-v16-runtime.ps1`. 사본(`.cache/v16-rehearsal-20261001`, 8097, JAR `0fee384e…`) 검증 통과. **8095 적용은 승인 후**(4절 절차). 적용 뒤 5절의 콘텐츠 작업 사이드바 설명은 "연결된 페이지 + 저장된 하위 항목"으로 바뀐다(주제 자동 하위 항목 없음).
+
 ## 7. 아직 하지 않은 것
 
 - 실제 IA 입력(영역·묶음·상하위·콘텐츠 작업 연결·메뉴 노출). IA는 확정되지 않았다. 추측해서 만들지 않는다.
@@ -93,6 +97,7 @@
 - CATEGORY 메뉴·카테고리 행 정리.
 - 사이트 구성 화면 등의 UX·용어·디자인 정돈("콘텐츠 작업 연결" 같은 명칭 포함). 기능 완성 뒤 한 번에 한다. 그 전에는 화면 문구·배치를 손대지 않는다.
 - 기수·주제 관리 UI.
+- V16의 8095 적용(승인 대기).
 
 ## 8. 하면 안 되는 것 / 주의
 
@@ -105,6 +110,7 @@
 
 ## 9. 다음 작업 순서
 
+0. **V16 8095 적용**(승인 후): [V16_CONTENT_WORK_NODES.md](V16_CONTENT_WORK_NODES.md) 4절. 적용 뒤 사용자가 직접 페이지 연결 → 하위 항목 추가 → 사이드바 확인.
 1. **사이트 구조 입력**: 사용자에게 실제 IA를 받는다(없으면 사용자가 승인한 임시 구성). 전체 페이지 현황에서 영역·묶음 추가, 상하위·순서, 메뉴 노출·표시명. 운영 데이터 변경이므로 입력 전 백업·승인.
 2. **콘텐츠 작업 영역 연결**: 유형별 대표 작업 영역 지정(예: 후기·FAQ·맛집·일반). 해당 페이지에 그 유형의 POSTS 블록(공지사항은 `GENERAL + GENERAL_NOTICE`) 구성·게시. 사이드바에 영역·주제가 나타나는지 확인.
 3. **첫 구성 게시 전 확인**: 구성 게시 대화상자의 오류·경고, "지금 메뉴 ↔ 게시 후 메뉴", 빠지는 현재 메뉴(CATEGORY 2개 등)를 사용자와 확인. "현재 메뉴에서 가져오기" 필요 여부 판단.

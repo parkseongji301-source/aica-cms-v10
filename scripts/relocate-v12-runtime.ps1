@@ -36,6 +36,8 @@ function Get-TaskRealPath($path){
 $taskRuntime=(Resolve-Path -LiteralPath $Runtime).Path
 $taskConfigPath=Join-Path $taskRuntime 'runtime.json'
 $taskConfig=Get-TaskJson $taskConfigPath
+# A replacement-JAR runtime (scripts/swap-v12-jar.ps1) uses another runtime's database; relocate that runtime and re-issue the swap instead.
+if(($taskConfig.PSObject.Properties.Name -contains 'database') -and $taskConfig.database){throw 'This runtime uses another runtime''s database; relocate the database owner, then re-run scripts/swap-v12-jar.ps1.'}
 $taskJar=(Resolve-Path -LiteralPath (Join-Path $taskRuntime 'server.jar')).Path
 $taskAgent=(Resolve-Path -LiteralPath (Join-Path $taskRuntime 'graceful-stop.jar')).Path
 $taskReceiptPath=(Resolve-Path -LiteralPath (Join-Path $taskRuntime 'migration-receipt.json')).Path

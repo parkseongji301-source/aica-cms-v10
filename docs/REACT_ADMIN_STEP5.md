@@ -58,7 +58,14 @@ React 관리자 주소를 `/admin-next/**`에서 `/admin/**`으로 옮기고, �
 - **V1~V12 checksum 동일**: RC2 JAR의 migration 목록과 checksum이 RC1 receipt와 하나라도 다르면 중단한다.
 - **schema·데이터 호환성**: RC2 발급 전에 cold 상태의 DB를 읽기 전용으로 검사한다(Flyway history, 테이블·열 구성, 행 수·지문이 마지막 RC1 정상 종료 기록과 같음).
 
-순서: RC2 빌드(깨끗한 worktree) → DB 사본으로 8097 리허설(3개 역할 확인, 정상 종료·재시작, rollback) → 보고 → 8095 실제 적용. rollback은 RC2 정상 종료 → `current-ui.json`을 RC1로 → START이며, RC1 receipt도 같은 DB에 유효하므로 RC2에서 작성한 내용을 잃지 않는다. 적용 결과는 이 문서에 추가한다.
+도구와 절차는 [V12 JAR 교체](V12_JAR_SWAP.md)에 있다. rollback은 RC2 정상 종료 → RC1 선택 → START이며, RC1 receipt도 같은 DB에 유효하므로 RC2에서 작성한 내용을 잃지 않는다.
+
+| 항목 | 상태 |
+|---|---|
+| RC2 빌드 | 완료. `081a35e`를 깨끗한 worktree에서 Vite 빌드 후 `mvnw -o package`(테스트 192개, 실패 0, 제외 6). JAR `90718f0ab1783bdea964b70d5ecbb83c9ee7a35166c60b731260e95adfb848a6` |
+| RC2 실행본 폴더 | 준비 완료. `.cache/v12-release/V12-RC2-20260930/runtime`(JAR, RC1과 같은 정상 종료 도구와 로그인 스타일 오버레이 `e94da365…`, `database` = RC1 DB). receipt는 아직 없다 |
+| 리허설 | PASS(DB 사본, 8096/8097). 결과는 V12_JAR_SWAP.md |
+| 8095 실제 적용 | 대기. RC1 정상 종료가 필요해 사용자 확인 후 진행한다 |
 
 ## 남은 것
 

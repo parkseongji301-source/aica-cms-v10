@@ -3,7 +3,11 @@ $ErrorActionPreference='Stop'
 $taskRuntime=(Resolve-Path -LiteralPath $Runtime).Path
 $taskConfig=Get-Content -LiteralPath (Join-Path $taskRuntime 'runtime.json') -Raw -Encoding utf8 | ConvertFrom-Json
 $taskJar=(Resolve-Path -LiteralPath (Join-Path $taskRuntime 'server.jar')).Path
-$taskDb=(Resolve-Path -LiteralPath (Join-Path $taskRuntime 'db/aica-local.mv.db')).Path
+# A replacement JAR (for example RC2) may use the database of the runtime it replaced; its own receipt binds both.
+$taskDbSetting='db/aica-local.mv.db'
+if(($taskConfig.PSObject.Properties.Name -contains 'database') -and $taskConfig.database){$taskDbSetting=$taskConfig.database}
+if(-not [IO.Path]::IsPathRooted($taskDbSetting)){$taskDbSetting=Join-Path $taskRuntime $taskDbSetting}
+$taskDb=(Resolve-Path -LiteralPath $taskDbSetting).Path
 $taskAgent=(Resolve-Path -LiteralPath (Join-Path $taskRuntime 'graceful-stop.jar')).Path
 $taskReceipt=(Resolve-Path -LiteralPath (Join-Path $taskRuntime 'migration-receipt.json')).Path
 $taskActivePath=Join-Path $taskRuntime 'active.json'
@@ -29,6 +33,10 @@ if($Stop){
  $taskActive.status='STOPPED';Save-TaskJson $taskActive $taskActivePath;Write-Host 'V12 stopped normally and cold database verified.';exit 0
 }
 if(Get-NetTCPConnection -LocalPort $taskConfig.port -State Listen -ErrorAction SilentlyContinue){throw 'Port is in use. Stop the current runtime normally first.'}
+# Runtimes that share a database must never run together: refuse while any Java process names this database.
+$taskDbStem=$taskDb.Substring(0,$taskDb.Length-6).Replace('\','/')
+$taskUsers=@(Get-CimInstance Win32_Process -Filter "Name='java.exe'" | Where-Object { $_.CommandLine -and $_.CommandLine.Replace('\','/').IndexOf($taskDbStem,[StringComparison]::OrdinalIgnoreCase) -ge 0 })
+if($taskUsers.Count -gt 0){throw ('Another process is using this database (pid '+(($taskUsers|ForEach-Object{$_.ProcessId}) -join ',')+'). Stop that runtime normally first.')}
 $taskHandle=[IO.File]::Open($taskDb,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None);$taskHandle.Dispose()
 foreach($taskAsset in $taskConfig.assets.PSObject.Properties){
  $taskAssetPath=Join-Path (Join-Path $taskRuntime 'assets') $taskAsset.Name
@@ -44,7 +52,7 @@ $taskActive=[ordered]@{status='RUNNING';pid=$taskServer.Id;startedTicks=$taskSer
 Save-TaskJson $taskActive $taskActivePath
 for($taskAttempt=0;$taskAttempt -lt 100;$taskAttempt++){
  $taskServer.Refresh();if($taskServer.HasExited){throw ('Server failed; inspect '+$taskLog+'.stdout.log')}
- try{$taskResponse=Invoke-WebRequest -Uri ('http://127.0.0.1:'+$taskConfig.port+'/login') -UseBasicParsing -TimeoutSec 1;if($taskResponse.StatusCode -eq 200){Write-Host ('V12 ready: http://127.0.0.1:'+$taskConfig.port+'/admin-next/design/writing-templates');exit 0}}catch{}
+ try{$taskResponse=Invoke-WebRequest -Uri ('http://127.0.0.1:'+$taskConfig.port+'/login') -UseBasicParsing -TimeoutSec 1;if($taskResponse.StatusCode -eq 200){Write-Host ('V12 ready: http://127.0.0.1:'+$taskConfig.port+'/ ('+$taskConfig.kind+')');exit 0}}catch{}
  Start-Sleep -Milliseconds 500
 }
 throw 'Startup timed out. Inspect logs and use STOP.cmd before retrying.'

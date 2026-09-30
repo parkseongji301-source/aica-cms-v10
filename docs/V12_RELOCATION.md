@@ -36,7 +36,7 @@ receipt를 다시 쓰기 전에 모두 통과해야 한다.
 
 ## 검사 비교 수정 (2026-09-30)
 
-검사 파일의 표별 지문은 Java `Map.of`로 출력되어 JVM 실행마다 키 순서가 바뀐다. 이전 스크립트는 JSON 문자열을 그대로 비교해서, DB가 같아도 키 순서가 다르면 "Relocated database differs from the normal-stop inspection: fingerprints"로 거부할 수 있었다. 객체 키를 정렬한 뒤 비교하도록 고쳤다(배열 순서는 그대로 비교). V12 JAR 교체 리허설에서 발견했다.
+검사 파일의 표별 지문은 Java `Map.of`로 출력되어 JVM 실행마다 키 순서가 바뀐다. 이전 스크립트는 JSON 문자열을 그대로 비교해서, DB가 같아도 키 순서가 다르면 "Relocated database differs from the normal-stop inspection: fingerprints"로 거부할 수 있었다. 객체 키를 정렬한 뒤 비교하도록 고쳤다(배열 순서는 그대로 비교). [V12 JAR 교체](V12_JAR_SWAP.md) 리허설에서 발견했다. `runtime.json`에 `database`가 있는 실행본(다른 실행본의 DB를 쓰는 교체 실행본)은 이 스크립트로 옮기지 않는다.
 
 ## 검증 (2026-09-30)
 

@@ -37,8 +37,8 @@ export async function logout():Promise<boolean> {
 }
 export const bootstrap=async()=>{const data=await request<Bootstrap>(base+'/bootstrap');csrf=data.csrf;return data;};
 export const getPage=(id:number)=>request<PageDocument>(`${base}/pages/${id}`);
-export const createPage=(title:string,slug='')=>request<CreatedPage>('/admin/pages/save-json',{
-  method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:pageDraftForm(title,slug)
+export const createPage=(title:string,slug='',sections:unknown[]=[])=>request<CreatedPage>('/admin/pages/save-json',{
+  method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:pageDraftForm(title,slug,sections)
 });
 // Publishing keeps the page address; address changes stay a separate SUPER_ADMIN action.
 export const publishPage=(page:PageDocument)=>request<PageDocument>(`${base}/pages/${page.id}/publish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:page.title,revision:page.revision,sections:page.sections})});

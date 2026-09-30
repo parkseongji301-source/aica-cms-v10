@@ -71,3 +71,11 @@
   .phase-two .pages-editor-workspace .action-buttons { justify-content: flex-start; }
   .phase-two .page-overview-block-list>li { gap: 4px; }
 }
+.phase-two .page-create-form fieldset {border:0;padding:0;margin:16px 0 4px;display:grid;gap:10px;min-width:0;}
+.phase-two .page-create-form legend {font-size:14px;font-weight:600;margin-bottom:6px;}
+.phase-two .page-create-kind label {display:flex;gap:8px;align-items:baseline;font-size:14px;}
+.phase-two .page-create-kind label small {color:var(--ui-muted);}
+.phase-two .page-create-collection {grid-template-columns:repeat(2,minmax(0,1fr));}
+.phase-two .page-create-collection legend,.phase-two .page-create-collection .page-create-help,.phase-two .page-create-collection [role=status],.phase-two .page-create-collection [role=alert] {grid-column:1/-1;}
+.phase-two .page-create-collection label {display:grid;gap:6px;font-size:13px;font-weight:600;}
+@media (max-width:680px){.phase-two .page-create-collection {grid-template-columns:1fr;}}

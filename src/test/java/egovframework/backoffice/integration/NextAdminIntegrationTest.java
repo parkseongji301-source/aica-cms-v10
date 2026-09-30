@@ -75,6 +75,27 @@ class NextAdminIntegrationTest {
         assertThat(withdrawn.path("status").asText()).isEqualTo("PRIVATE");
         assertThat(new HttpBrowser(port).get("/api/public/v1/pages/65").statusCode()).isNotEqualTo(200);
     }
+    @Test void contentCollectionPresetCreatesAnOrdinaryDraftPageWithAPostsQueryBlock()throws Exception {
+        String preset="[{\"id\":\"block_"+java.util.UUID.randomUUID()+"\",\"schemaVersion\":2,\"type\":\"POSTS\",\"variation\":\"default\",\"heading\":\"후기 모음\",\"body\":\"\",\"bodyDoc\":null,\"imageId\":null,\"categoryId\":null,\"link\":\"\",\"label\":\"\",\"visible\":true,"
+            +"\"sourceMode\":\"query\",\"query\":{\"typeCode\":\"%s\",\"cohortIds\":[],\"topicIds\":[],\"sort\":\"LATEST\",\"limit\":6},\"manual\":null}]";
+        var root=login("SUPER_ADMIN");int pagesBefore=jdbc.queryForObject("SELECT COUNT(*) FROM site_pages",Integer.class);
+        var rejected=root.post("/admin/pages/save-json",Map.of("title","잘못된 모음","slug","","sectionsJson",preset.formatted("UNKNOWN"),"action","save","saveIntent","MANUAL_DRAFT"));
+        assertThat(rejected.statusCode()).isEqualTo(400);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages",Integer.class)).isEqualTo(pagesBefore);
+        var response=root.post("/admin/pages/save-json",Map.of("title","후기 모음","slug","","sectionsJson",preset.formatted("REVIEW"),"action","save","saveIntent","MANUAL_DRAFT"));
+        var created=ok(response);long id=created.path("id").asLong();
+        assertThat(created.path("status").asText()).isEqualTo("DRAFT");
+        var page=ok(root.get(API+"/pages/"+id));var block=page.path("sections").get(0);
+        assertThat(page.path("sections").size()).isEqualTo(1);assertThat(block.path("type").asText()).isEqualTo("POSTS");
+        assertThat(block.path("sourceMode").asText()).isEqualTo("query");assertThat(block.path("id").asText()).startsWith("block_");
+        assertThat(block.path("query").path("typeCode").asText()).isEqualTo("REVIEW");assertThat(block.path("query").path("limit").asInt()).isEqualTo(6);
+        assertThat(block.path("categoryId").isNull()).isTrue();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM page_publications WHERE page_id=?",Integer.class,id)).isZero();
+        String csrf=token(root);var published=ok(root.json("POST",API+"/pages/"+id+"/publish",json.writeValueAsString(Map.of("revision",page.path("revision").asLong(),"title","후기 모음","sections",page.path("sections"))),csrf));
+        assertThat(published.path("status").asText()).isEqualTo("PUBLISHED");
+        var anonymous=new HttpBrowser(port);
+        assertThat(anonymous.get("/api/public/v1/pages/"+id+"/blocks/"+block.path("id").asText()+"/posts").statusCode()).isEqualTo(200);
+    }
     @Test void reactPermanentPageDeleteUsesTheLegacyImpactAndUsageRules()throws Exception {
         long author=jdbc.queryForObject("SELECT id FROM users WHERE role='SUPER_ADMIN'",Long.class);
         jdbc.update("INSERT INTO site_pages(id,title,slug,sections_json,status,revision,author_id) VALUES(66,'정리할 페이지','cleanup','[]','DRAFT',1,?)",author);

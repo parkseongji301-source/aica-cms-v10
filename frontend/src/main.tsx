@@ -53,7 +53,7 @@ function PagePanel({id,active,data,onTitle,go,blockId,viewMode,onSelectBlock,onO
   },[id,active,document,retry]);
   const row=data.pages.find(p=>p.id===id),parent=row?.parentId==null?null:data.pages.find(p=>p.id===row.parentId)??null;
   const location={parent:parent?pageLocation(data.pages,parent.id):null,parentPublished:!parent||parent.status==='PUBLISHED',publishedChildren:publishedChildren(data.pages,id)};
-  if(row?.areaKind==='GROUP')return <><Heading title={row.title}/><Empty><p>묶음은 화면이 없는 구조 항목이라 편집할 내용이 없습니다. 이름·위치·메뉴 노출은 전체 페이지 현황에서 바꿉니다.</p><button type="button" className="secondary" onClick={()=>go('/pages')}>전체 페이지 현황으로</button></Empty></>;
+  if(row?.areaKind==='GROUP')return <><Heading title={row.title}/><Empty><p>묶음은 화면이 없는 구조 항목이라 편집할 내용이 없습니다. 이름·위치·메뉴는 사이트 구조에서 바꿉니다.</p><button type="button" className="secondary" onClick={()=>go('/pages')}>사이트 구조로</button></Empty></>;
   return document?<PageEditor location={location} canChangeAddress={!!data.permissions.structure} templateUse={data.permissions.templateUse} templateManage={data.permissions.templateManage} blockId={blockId} viewMode={viewMode} onSelectBlock={onSelectBlock} onOutline={onOutline} onGuard={onGuard} initial={document} definitions={definitions} active={active} categories={data.categories} images={data.images} onTitle={onTitle} onContent={category=>go(contentPath(category))}/>:<><Feedback error={error} loading={!error}/>{error&&<button onClick={()=>{setError('');setRetry(n=>n+1);}}>다시 시도</button>}</>;
 }
 
@@ -108,7 +108,7 @@ function Workspace({initial}:{initial:Bootstrap}) {
   const listForPost=(path:string,query:string)=>postOrigins[path]||returnSectionPath(new URLSearchParams(query),reviewCatalog.data,areas)||'/posts';
   const activeListSearch=new URLSearchParams(activePost?listForPost(route.path,route.query).split('?')[1]:route.query);
   const wholeContentSelected=(route.path==='/posts'||!!activePost)&&!navType&&!activeListSearch.has('categoryId');
-  const title=activePost?contentTargets[Number(activePost[1])]?.title||'콘텐츠 편집':activePageId!==null?data.pages.find(p=>p.id===activePageId)?.title||(activePage?'페이지 편집':'페이지 구조'):route.path==='/posts'&&contentLocation&&!contentLocation.error?(contentLocation.areaLabel+(contentLocation.key==='all'?'':' · '+contentLocation.label)):entries.find(e=>e.path===route.path)?.label||'화면을 찾을 수 없습니다';
+  const title=activePost?contentTargets[Number(activePost[1])]?.title||'콘텐츠 편집':activePageId!==null?data.pages.find(p=>p.id===activePageId)?.title||(activePage?'페이지 편집':'블록 보기'):route.path==='/posts'&&contentLocation&&!contentLocation.error?(contentLocation.areaLabel+(contentLocation.key==='all'?'':' · '+contentLocation.label)):entries.find(e=>e.path===route.path)?.label||'화면을 찾을 수 없습니다';
   const editPage=(id:number,block?:string)=>{navigate(pagePath(id,block),false,false,'manage');setSidebarOpen(false);};
   const switchMode=(next:ViewMode)=>{
     if(next===mode)return;

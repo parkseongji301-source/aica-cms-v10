@@ -3,7 +3,7 @@ import type {Bootstrap, Menu, ViewMode} from './types';
 export type MenuEntry = {label:string;path:string;access?:'site'|'operations'|'templateManage'|'structure'|'permanentDelete'};
 export const managementGroups:{label:string;items:MenuEntry[]}[] = [
   {label:'',items:[{label:'대시보드',path:'/dashboard'}]},
-  {label:'페이지·메뉴',items:[{label:'전체 페이지 현황',path:'/pages',access:'site'},{label:'메뉴 관리',path:'/menus',access:'structure'}]},
+  {label:'페이지·메뉴',items:[{label:'사이트 구조',path:'/pages',access:'site'},{label:'메뉴 관리',path:'/menus',access:'structure'}]},
   {label:'공통 구조 관리',items:[{label:'공통 영역·블록 안내',path:'/design/components',access:'structure'},{label:'페이지 템플릿',path:'/design/templates',access:'templateManage'},{label:'글쓰기 템플릿',path:'/design/writing-templates',access:'structure'}]},
   {label:'자료 관리',items:[{label:'휴지통',path:'/trash',access:'permanentDelete'},{label:'미디어 관리',path:'/media'}]},
   {label:'운영 관리',items:[{label:'운영 계정 관리',path:'/accounts',access:'operations'},{label:'역할·권한 안내',path:'/roles',access:'operations'},{label:'활동 이력',path:'/activity',access:'operations'}]},

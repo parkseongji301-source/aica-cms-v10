@@ -108,7 +108,7 @@ public class PageService {
   var existing=id==null?null:required(id);
   if(existing!=null && existing.group()) throw new BusinessException("묶음은 화면이 없는 구조 항목이라 내용을 저장하거나 게시할 수 없습니다. 이름은 사이트 구성에서 바꿉니다.");
   if(existing==null) access.structure(principal);
-  if(existing!=null && parentId!=null) throw new BusinessException("기존 페이지의 위치는 전체 페이지 현황의 위치 변경에서 바꿉니다.");
+  if(existing!=null && parentId!=null) throw new BusinessException("기존 페이지의 위치는 사이트 구조 화면에서 옮깁니다.");
   if(existing==null) PageHierarchy.requirePlacement(store.all("pages",null),homePageId(),null,parentId);
   if(existing!=null && revision==null) throw new BusinessException("저장 버전을 확인할 수 없습니다. 다시 열어 주세요.");
   if(existing!=null) CmsRules.revision(existing.revision(),revision);
@@ -188,7 +188,7 @@ public class PageService {
   long children=PageHierarchy.children(store.all("pages",null),id).size();
   if(children>0) throw new BusinessException("하위 페이지 "+children+"개가 있습니다. 하위 페이지를 먼저 다른 곳으로 옮기거나 삭제하세요.");
   if(store.<Long>one("pageUsage",id)>0) throw new BusinessException("메뉴나 홈페이지 첫 화면에서 사용 중입니다. 연결을 해제한 후 삭제하세요.");
-  if(store.<Long>one("publishedStructureReferences",id)>0) throw new BusinessException("현재 게시된 사이트 구성에 포함되어 있습니다(메뉴 숨김 포함). 전체 페이지 현황에서 구성에서 제거한 뒤 구성을 다시 게시하면 삭제할 수 있습니다.");
+  if(store.<Long>one("publishedStructureReferences",id)>0) throw new BusinessException("현재 게시된 사이트 구성에 포함되어 있습니다(메뉴 숨김 포함). 사이트 구조 화면에서 구조에서 뺀 뒤 홈페이지에 다시 반영하면 삭제할 수 있습니다.");
   store.change("deletePage",id);audit.record(actor,"페이지 삭제","페이지 #"+id,page.title());
  }
  /**

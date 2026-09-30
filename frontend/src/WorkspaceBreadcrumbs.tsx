@@ -17,7 +17,7 @@ export function WorkspaceBreadcrumbs({mode,path,query,title,catalog,areas=[],lis
   }else{
     const group=managementGroups.find(group=>group.items.some(item=>item.path===path||pageSelected&&item.path==='/pages'));
     if(group?.label)items.push({label:group.label});
-    if(pageSelected)items.push({label:'전체 페이지 현황',path:'/pages'});
+    if(pageSelected)items.push({label:'사이트 구조',path:'/pages'});
     items.push({label:title});
   }
   return <nav className="workspace-breadcrumbs" aria-label="현재 위치"><ol>{items.map((item,index)=><li key={index}>{index>0&&<span className="breadcrumb-separator" aria-hidden="true">/</span>}{item.path&&index<items.length-1?<button type="button" onClick={()=>go(item.path!)}>{item.label}</button>:<span aria-current={index===items.length-1?'page':undefined}>{item.label}</span>}</li>)}</ol></nav>;

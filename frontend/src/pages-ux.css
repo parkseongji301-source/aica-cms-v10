@@ -144,3 +144,9 @@
 .phase-two .page-create-parent {display:flex;gap:8px;align-items:baseline;margin:0 0 4px;font-size:13px;}
 .phase-two .page-create-parent span {color:var(--ui-muted);}
 .phase-two .page-create-template .template-contents {max-height:220px;overflow:auto;}
+/* Wording pass: the page settings dialog is split into homepage-menu and content-work sections. */
+.phase-two .composition-section {margin:12px 0 0;padding:10px 12px;border:1px solid var(--ui-line);border-radius:3px;}
+.phase-two .composition-section legend {padding:0 4px;font-size:13px;font-weight:600;}
+.phase-two .composition-section legend small {font-weight:400;color:var(--ui-muted);}
+.phase-two .composition-preview {margin:6px 0 0;padding:6px 10px;border-radius:3px;background:var(--ui-soft);font-size:13px;}
+.phase-two .page-location {margin:0 0 8px;font-size:13px;}

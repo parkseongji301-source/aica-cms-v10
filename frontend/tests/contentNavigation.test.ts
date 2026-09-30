@@ -42,7 +42,7 @@ test('node locations resolve the saved topic and refuse retired or disallowed to
 
 test('an unlinked, removed or duplicated location explains itself instead of listing everything',()=>{
   const removed=contentContext(new URLSearchParams('area=999'),catalog,areas)!;
-  assert.match(removed.error,/사이트 구성/);assert.equal(removed.relocate,true);
+  assert.match(removed.error,/사이트 구조/);assert.equal(removed.relocate,true);
   // A node that was removed keeps the area but asks for a new choice (posts are untouched).
   const gone=contentContext(new URLSearchParams('area=70&node=999'),catalog,areas)!;
   assert.equal(gone.relocate,true);assert.equal(gone.pageId,70);assert.match(gone.error,/더 이상 없습니다/);

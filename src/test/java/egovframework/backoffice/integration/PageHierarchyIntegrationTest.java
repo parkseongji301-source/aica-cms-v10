@@ -149,7 +149,7 @@ class PageHierarchyIntegrationTest {
         assertThat(third.statusCode()).as(third.body()).isEqualTo(200);
         assertThat(body(root.post("/admin/pages/save-json",Map.of("title","넷째 단계","sectionsJson","[]","parentId",body(third).path("id").asText()))).path("error").asText()).contains("최대 3단계");
         var revision=jdbc.queryForObject("SELECT revision FROM site_pages WHERE id=72",Long.class);
-        assertThat(body(root.post("/admin/pages/save-json",Map.of("id","72","revision",""+revision,"title","오시는 길","sectionsJson",sections(72),"parentId","65"))).path("error").asText()).contains("위치 변경");
+        assertThat(body(root.post("/admin/pages/save-json",Map.of("id","72","revision",""+revision,"title","오시는 길","sectionsJson",sections(72),"parentId","65"))).path("error").asText()).contains("사이트 구조 화면에서 옮깁니다");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages WHERE title IN ('홈 아래','넷째 단계')",Integer.class)).isZero();
     }
 

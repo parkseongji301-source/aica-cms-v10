@@ -31,8 +31,8 @@ export function contentContext(search:URLSearchParams,catalog:ClassificationCata
   const params=locationParams(search);if(!params.length)return null;
   const area=params.includes('area')?areas.find(a=>String(a.pageId)===search.get('area')):undefined,key=search.get('node')||'all';
   const base={pageId:area?.pageId??0,type:area?.typeCode??'',param:'area' as const,key,label:area?.label??'',areaLabel:area?.label??'',groups:area?.groups??[],topicId:null,relocate:false};
-  if(params.some(oldLocation))return {...base,relocate:true,error:'예전 콘텐츠 작업 주소입니다. 콘텐츠 작업 위치는 이제 사이트 구성에서 정합니다. 전체 콘텐츠에서 찾거나 현재 구성에서 위치를 다시 선택하세요.'};
-  if(!area)return {...base,relocate:true,error:'이 콘텐츠 작업 위치를 찾을 수 없습니다. 사이트 구성에서 빠졌거나 연결이 바뀌었을 수 있습니다. 글은 그대로 있으니 전체 콘텐츠에서 찾거나 현재 구성에서 위치를 다시 선택하세요.'};
+  if(params.some(oldLocation))return {...base,relocate:true,error:'예전 콘텐츠 작업 주소입니다. 콘텐츠 작업 위치는 이제 사이트 구조에서 정합니다. 전체 콘텐츠에서 찾거나 현재 구조에서 위치를 다시 선택하세요.'};
+  if(!area)return {...base,relocate:true,error:'이 콘텐츠 작업 위치를 찾을 수 없습니다. 사이트 구조에서 빠졌거나 글 종류 선택이 바뀌었을 수 있습니다. 글은 그대로 있으니 전체 콘텐츠에서 찾거나 현재 구조에서 위치를 다시 선택하세요.'};
   if(!catalog)return {...base,error:'분류 사전을 불러오는 중입니다.'};
   if(!catalog.types.some(t=>t.code===area!.typeCode&&t.active))return {...base,error:`${area.label}에 연결된 유형을 사용할 수 없습니다.`};
   if(key==='all')return {...base,error:''};
@@ -41,7 +41,7 @@ export function contentContext(search:URLSearchParams,catalog:ClassificationCata
   // A node shows its topic's posts; a retired or disallowed topic is reported, never widened to all posts.
   const topic=node.topicId===null?null:catalog.topics.find(t=>t.id===node.topicId);
   if(node.topicId!==null&&(!topic||!topic.active||!catalog.allowedTopics.some(a=>a.typeCode===area.typeCode&&a.topicId===node.topicId)))
-    return {...base,label:node.name,error:`'${node.name}' 항목의 주제를 사용할 수 없습니다. 사이트 구성에서 이 항목의 주제를 바꾸세요.`};
+    return {...base,label:node.name,error:`‘${node.name}’ 항목의 주제를 사용할 수 없습니다. 사이트 구조의 페이지 설정에서 이 항목의 주제를 바꾸세요.`};
   return {...base,label:node.name,topicId:node.topicId,error:''};
 }
 /** The location part of an address: the area and, below it, one saved node. */

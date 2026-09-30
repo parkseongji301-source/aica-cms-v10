@@ -22,7 +22,7 @@ export function PageOverview({page,menus,outline,loading,error,blockId,onSelectB
   const selected=blockId!==null?outline?.blocks.find(block=>block.blockId===blockId):undefined;
   const ready=!!outline&&!loading&&!error;
   return <section className="page-overview" aria-label="페이지 구조 요약">
-    <Heading title={page.title} note="페이지의 위치와 구성을 확인합니다." badge="구조 보기"/>
+    <Heading title={page.title} note="이 페이지의 위치와 블록 구성을 확인합니다." badge="블록 보기"/>
     <div className="page-overview-grid">
       <section className="card page-overview-summary" aria-labelledby="page-summary-heading">
         <header className="page-overview-card-heading"><h2 id="page-summary-heading"><NavigationIcon name="page"/>페이지 정보</h2><span>조회 전용</span></header>

@@ -164,7 +164,7 @@ class SiteStructurePublicationIntegrationTest {
         long firstId=latestId(first);
         // 72 is hidden from the menu but still in the published structure: hidden is not removed.
         assertThat(publicJson("/structure").findValuesAsText("id")).contains("72");
-        assertThat(failure(send(admin,"DELETE","/pages/72",Map.of("revision",2,"confirmed",true),csrf),400)).contains("게시된 사이트 구성","구성에서 제거");
+        assertThat(failure(send(admin,"DELETE","/pages/72",Map.of("revision",2,"confirmed",true),csrf),400)).contains("게시된 사이트 구성","구조에서 뺀");
         assertThat(body(admin.get(API+"/pages/72/delete-impact")).path("uses").toString()).contains("게시된 사이트 구성");
         // Removal rules: no children left in the structure, no content-work link.
         assertThat(failure(membership(admin,g,false,csrf),400)).contains("하위 영역이 1개");

@@ -100,6 +100,10 @@
 
 [SITE_STRUCTURE_UX.md](SITE_STRUCTURE_UX.md). 최상위는 고정 구획(홈 완전 고정), `+ 하위 페이지`(빈/모음/템플릿), 끌어서 순서·이동. 프런트만(commit `cad7cde`, JAR `db919f60…`). 최상위 생성·삭제 기능은 백엔드에 남기고 UI에서만 숨김 — 실제 IA가 확정되면 개발 단계에서 운영 데이터로 세팅한다. **현재 8095: V17 RC1**(`.cache/v17-release/V17-RC1-20261001/runtime`, JAR `442977c4…`, 자기 DB, Flyway V1~V17; 되돌리기 대상 V16 RC3 + V16 RC1 DB). [V17_CONTENT_WORK_VISIBILITY.md](V17_CONTENT_WORK_VISIBILITY.md): 페이지 설정의 "콘텐츠 작업에 보이기"를 켠 페이지만 콘텐츠 작업 사이드바에 보인다(글 종류 없어도 됨). 후기·FAQ만 켜져 있다. 최상위: 홈 #1 · 인사교 소개 #65 · 후기 #98(`reviews`, 게시, REVIEW 연결) · 지원 #99(`support`, 초안) · FAQ #100(`faq`, 초안). #97은 삭제됨. 되돌리기 대상 V16 RC1(같은 DB) / 데이터는 백업 `before-site-ux-20261001-…`.
 
+## 6d. 관리 화면 시각 정돈 (코드 완료, 8095 적용 대기)
+
+[ADMIN_VISUAL_REFINEMENT.md](ADMIN_VISUAL_REFINEMENT.md). `refined.css` 테마 층(종이색 캔버스·둥근 작업면·굵기 정리)과 메뉴 이름(홈페이지/템플릿·블록/자료/운영/설정), 글 라벨(전체 글·새 글 작성·글 편집·글 종류). 프런트만, commit `1b247fa`, JAR `40327cb2…`. 8095에는 아직 올리지 않았다(JAR 교체 승인 대기).
+
 ## 7. 아직 하지 않은 것
 
 - 실제 IA 입력(영역·묶음·상하위·콘텐츠 작업 연결·메뉴 노출). IA는 확정되지 않았다. 추측해서 만들지 않는다.

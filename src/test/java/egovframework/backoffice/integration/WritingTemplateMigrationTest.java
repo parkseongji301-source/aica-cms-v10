@@ -18,7 +18,7 @@ class WritingTemplateMigrationTest {
   assertThatThrownBy(()->V12PromotionTool.validatePlan(plan,"wrong","sa","")).hasMessageContaining("checksum");
   var receipt=V12PromotionTool.migrate(plan,"jar","plan","sa","");
   assertThat(receipt.path("status").asText()).isEqualTo("MIGRATED_V12");assertThat(hash(original)).isEqualTo(originalHash);
-  requireCurrentSchema(copy,"sa","");
+  requireSchema(copy,"sa","","12");
   try(var c=DriverManager.getConnection(writerUrl(copy),"sa","");var s=c.createStatement()){
    try(var r=s.executeQuery("SELECT content FROM writing_templates")){assertThat(r.next()).isTrue();assertThat(r.getString(1)).contains("해결 과정","다음 기수");assertThat(r.next()).isFalse();}
    s.executeUpdate("DELETE FROM writing_templates");

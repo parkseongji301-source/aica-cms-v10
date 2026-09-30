@@ -48,6 +48,7 @@ export function parentOptions(pages:PageRow[],pageId:number|null,homePageId:numb
     let reason:string|null=null;
     if(pageId!=null&&pageId===homePageId)reason='홈(첫 화면) 페이지는 최상위에 고정됩니다.';
     else if(candidate.id===homePageId)reason='홈(첫 화면) 페이지 아래에는 하위 페이지를 둘 수 없습니다.';
+    else if(candidate.inStructure===false)reason='구성에서 제거된 영역 아래로는 옮기거나 추가할 수 없습니다.';
     else if(pageId!=null&&isWithin(pages,candidate.id,pageId))reason='자기 하위 페이지 아래로는 옮길 수 없습니다.';
     else if(depthOf(pages,candidate.id)+levels>MAX_PAGE_DEPTH)reason=levels>1?`최대 ${MAX_PAGE_DEPTH}단계를 넘습니다(이 페이지와 그 하위 페이지).`:`최대 ${MAX_PAGE_DEPTH}단계라 그 아래에는 더 둘 수 없습니다.`;
     return {id:candidate.id,title:pageLocation(pages,candidate.id),reason};

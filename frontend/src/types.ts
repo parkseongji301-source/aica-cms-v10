@@ -10,7 +10,9 @@ export type StructureTarget = PageTarget|BlockTarget|{kind:'content-list';label:
 // parentId null = top level; rows arrive in sibling order (sortOrder, then id).
 // areaKind GROUP is a structure node without a screen; contentTypeCode marks the type's representative work area.
 export type PageRow = {id:number;title:string;slug:string;status:string;revision:number;pending:boolean;updatedAt:string;parentId:number|null;sortOrder:number;
-  areaKind:'PAGE'|'GROUP';contentTypeCode:string|null;menuVisible:boolean;menuLabel:string|null};
+  areaKind:'PAGE'|'GROUP';contentTypeCode:string|null;menuVisible:boolean;menuLabel:string|null;
+  // false = removed from the site structure (V15); menuVisible only matters inside the structure.
+  inStructure:boolean};
 // Sent to every role: the 콘텐츠 작업 sidebar follows the site composition. groups are the ancestor titles.
 export type ContentArea = {pageId:number;typeCode:string;label:string;groups:string[]};
 /** 구성 게시 (V14). key is unique per list; parentKey links an item to its parent (null at the top level). */

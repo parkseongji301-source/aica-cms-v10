@@ -116,3 +116,5 @@
 .phase-two .structure-menu-status p {margin:0 0 8px;}
 .phase-two .structure-menu-status details {margin-top:8px;}
 .phase-two .location-relocate {display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 12px;}
+.phase-two .structure-membership {margin:12px 0 0;padding:10px 12px;border:1px solid var(--ui-line);border-radius:3px;}
+.phase-two .structure-membership legend {padding:0 4px;font-size:13px;font-weight:600;}

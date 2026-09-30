@@ -5,7 +5,7 @@ import {pageDraftForm} from '../src/pageCreation.ts';
 import type {PageRow} from '../src/types.ts';
 
 const page=(id:number,title:string,parentId:number|null,sortOrder:number,status='PUBLISHED',areaKind:'PAGE'|'GROUP'='PAGE'):PageRow=>
-  ({id,title,slug:'p'+id,status,revision:1,pending:false,updatedAt:'2026-09-30T10:00:00',parentId,sortOrder,areaKind,contentTypeCode:null,menuVisible:false,menuLabel:null});
+  ({id,title,slug:'p'+id,status,revision:1,pending:false,updatedAt:'2026-09-30T10:00:00',parentId,sortOrder,areaKind,contentTypeCode:null,menuVisible:false,menuLabel:null,inStructure:true});
 // Server order: flat by (sortOrder, id), children mixed in with top-level pages.
 const pages=[page(1,'홈',null,0),page(70,'후기',65,0),page(65,'인사교 소개',null,1,'PRIVATE'),page(71,'FAQ',65,1),page(72,'오시는 길',null,2)];
 
@@ -63,6 +63,12 @@ test('the home setting offers published top-level pages without children, never 
   // A GROUP can hold areas like any parent.
   assert.equal(parentOptions([...pages,page(90,'묶음',null,3,'DRAFT','GROUP')],72,1).find(o=>o.id===90)?.reason,null);
   assert.deepEqual(homeCandidates(pages,'70').map(p=>p.id),[1,70,72]);
+});
+
+test('nothing goes under an area removed from the structure',()=>{
+  const removed={...page(90,'제거됨',null,3),inStructure:false};
+  assert.match(parentOptions([...pages,removed],72,1).find(o=>o.id===90)!.reason!,/구성에서 제거된 영역 아래/);
+  assert.match(parentOptions([...pages,removed],null,1).find(o=>o.id===90)!.reason!,/구성에서 제거된 영역 아래/);
 });
 
 test('new pages send a parent only when one is chosen',()=>{

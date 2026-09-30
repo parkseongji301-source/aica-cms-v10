@@ -4,7 +4,7 @@ import {CreatePageDraft} from './CreatePageDraft';
 import type {PageCreationState} from './CreatePageDraft';
 import {useBulkDelete} from './BulkDelete';
 import {BlockDialog} from './BlockDialog';
-import {createPageGroup,deletePage,getPage,getPageDeleteImpact,placePage,reorderPages,saveComposition} from './api';
+import {createPageGroup,deletePage,getPage,getPageDeleteImpact,placePage,reorderPages,saveComposition,setStructureMembership} from './api';
 import type {Bootstrap,ClassificationCatalog,Go,PageRow} from './types';
 import {pagePath} from './navigation';
 import {childrenAllSelected,deletionOrder,isGroup,movedSiblings,pageLocation,pageTree,parentOptions,parentWarning} from './pageHierarchy';
@@ -49,7 +49,7 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
       if(uses.length)throw new Error('사용 중: '+uses.map(use=>use.label).join(', ')+'. 연결을 해제한 뒤 삭제하세요.');
       return {id:page.id,label:page.title,revision:impact.revision,details:[impact.consequence,...(together?['선택한 하위 페이지를 먼저 삭제한 뒤 삭제합니다.']:[]),...(impact.history?['버전 이력 '+impact.history.versionCount+'개도 함께 삭제됩니다.']:[])]};},
     remove:target=>deletePage(target.id,target.revision!),onDone:()=>refresh(),
-    description:'선택한 페이지와 구성·발행본·버전 이력을 영구삭제합니다. 복구할 수 없습니다. 메뉴나 홈페이지 첫 화면에서 사용 중인 페이지와 선택하지 않은 하위 페이지가 있는 페이지는 삭제되지 않습니다. 미디어 파일은 유지됩니다.'});
+    description:'선택한 페이지와 구성·발행본·버전 이력을 영구삭제합니다. 복구할 수 없습니다. 메뉴나 홈페이지 첫 화면에서 사용 중인 페이지, 선택하지 않은 하위 페이지가 있는 페이지, 현재 게시된 사이트 구성에 포함된 페이지(메뉴 숨김 포함)는 삭제되지 않습니다. 게시된 구성의 페이지는 구성에서 제거하고 구성을 다시 게시한 뒤 삭제하세요. 미디어 파일은 유지됩니다.'});
   deleting.current=deletion.busy;
   async function move(page:PageRow,delta:-1|1){
     const ids=movedSiblings(data.pages,page.id,delta);if(!ids||moving.current)return;
@@ -65,12 +65,12 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
       {canDelete&&<td className="bulk-cell">{deletion.checkbox(page)}</td>}
       <td><div className={depth>1&&!filtered?'page-title-cell page-title-child':'page-title-cell'}>{depth>1&&!filtered&&<span className="page-child-mark" aria-hidden="true">↳</span>}<div>
         <button className="text-link" data-page-id={page.id} onClick={()=>isGroup(page)?structure&&setComposing(page):go(pagePath(page.id))}>{page.title}</button>
-        <small className="row-meta">{isGroup(page)?'묶음 · 화면 없음':'/'+page.slug}{page.id===home&&' · 홈(첫 화면)'}{filtered&&parent&&` · 상위: ${parent.title}`}{depth>1&&!filtered&&' · 하위 페이지'}{children>0&&` · 하위 ${children}개`}</small>
+        <small className="row-meta">{isGroup(page)?'묶음 · 화면 없음':'/'+page.slug}{page.id===home&&' · 홈(첫 화면)'}{!page.inStructure&&' · 구성에서 제거됨'}{filtered&&parent&&` · 상위: ${parent.title}`}{depth>1&&!filtered&&' · 하위 페이지'}{children>0&&` · 하위 ${children}개`}</small>
         {(page.contentTypeCode||page.menuVisible)&&<small className="page-composition-meta">{page.contentTypeCode&&<span>콘텐츠 작업: {typeName(page.contentTypeCode)}</span>}{page.menuVisible&&<span>메뉴 노출{page.menuLabel?` · ${page.menuLabel}`:''}</span>}</small>}
         {warning&&<small className="page-hierarchy-warning" title="게시된 하위 페이지는 상위 페이지 상태와 관계없이 자기 주소로 공개됩니다.">{warning}</small>}
       </div></div></td>
       <td>{isGroup(page)?<span className="status-tag state-group">묶음</span>:<Status value={page.status} pending={page.pending} pageWording/>}</td>
-      <td>{published?(page.menuVisible?<span className="page-menu-label">{page.menuLabel||page.title}<small> · 구성</small></span>:<span className="muted">메뉴 숨김</span>)
+      <td>{!page.inStructure?<span className="muted">구성 제외</span>:published?(page.menuVisible?<span className="page-menu-label">{page.menuLabel||page.title}<small> · 구성</small></span>:<span className="muted">메뉴 숨김</span>)
         :links.length?links.map(m=><span className="page-menu-label" key={m.id}>{m.label}{!m.visible&&<small> · 메뉴 숨김</small>}</span>):<span className="muted">메뉴 미연결</span>}</td>
       <td>{date(page.updatedAt)}</td>
       <td><div className="page-row-actions">
@@ -174,12 +174,25 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
     finally{pending.current=false;setBusy(false);onBusy(false);}
   }
   const missingBlock=!group&&!!type&&blockTypes!==null&&!blockTypes.includes(type);
+  // 구성에서 제거 / 다시 포함 (V15): separate from menu visibility; the homepage follows at the next structure publication.
+  const childrenInStructure=pages.filter(p=>p.parentId===page.id&&p.inStructure).length;
+  const parentRemoved=page.parentId!=null&&pages.some(p=>p.id===page.parentId&&!p.inStructure);
+  const membershipBlock=page.inStructure?(childrenInStructure?`구성에 남은 하위 영역 ${childrenInStructure}개를 먼저 옮기거나 제거하세요.`:page.contentTypeCode?'콘텐츠 작업 연결을 먼저 해제하세요(저장 후). 글은 그대로 남습니다.':null)
+    :parentRemoved?'상위 영역이 구성에서 제거되어 있습니다. 상위 영역을 먼저 다시 포함하세요.':null;
+  async function membership(){
+    if(pending.current||membershipBlock)return;
+    pending.current=true;setBusy(true);onBusy(true);setError('');
+    try{await setStructureMembership(page.id,!page.inStructure);onDone();}
+    catch(e){setError(messageOf(e));onStale();}
+    finally{pending.current=false;setBusy(false);onBusy(false);}
+  }
   return <BlockDialog active={active} title="사이트 구성" onClose={()=>{if(!pending.current)onClose();}}>
     <form className="page-create-form" onSubmit={e=>{e.preventDefault();void save();}}>
       <p><strong>{pageLocation(pages,page.id)}</strong>{group&&<small className="muted"> · 묶음</small>}</p>
       {group&&<label htmlFor="composition-name"><span>묶음 이름</span><input id="composition-name" required maxLength={200} value={name} disabled={busy} onChange={e=>setName(e.target.value)}/></label>}
+      {!page.inStructure&&<p className="page-hierarchy-warning" role="note">구성에서 제거된 영역입니다. 구성 게시 뒤 홈페이지 구조와 메뉴에서 빠지며, 페이지와 내용은 그대로 남습니다.</p>}
       {!group&&<label htmlFor="composition-type"><span>콘텐츠 작업 연결 <small>선택</small></span>
-        <select id="composition-type" value={type} disabled={busy||!catalog} onChange={e=>setType(e.target.value)}>
+        <select id="composition-type" value={type} disabled={busy||!catalog||!page.inStructure&&!page.contentTypeCode} onChange={e=>setType(e.target.value)}>
           <option value="">연결 안 함 (내용 편집만)</option>
           {types.map(t=>{const other=representedBy(t.code);return <option key={t.code} value={t.code} disabled={!!other}>{t.name}{other?` — 대표 작업 영역: ${other.title}`:''}</option>;})}
         </select></label>}
@@ -188,6 +201,11 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
       <label className="checkbox-row"><input type="checkbox" checked={visible} disabled={busy} onChange={e=>setVisible(e.target.checked)}/> 홈페이지 메뉴에 노출</label>
       <label htmlFor="composition-label"><span>메뉴 표시명 <small>선택</small></span><input id="composition-label" maxLength={80} value={label} placeholder={page.title} disabled={busy} onChange={e=>setLabel(e.target.value)}/></label>
       <p className="page-create-help">메뉴 노출과 표시명은 구성 게시 뒤 홈페이지에 반영됩니다. 비워 두면 {group?'묶음 이름':'게시된 페이지 제목'}을 씁니다. 메뉴에서 숨겨도 게시된 페이지는 주소로 계속 열립니다.</p>
+      <fieldset className="structure-membership"><legend>구성 포함</legend>
+        <p className="page-create-help">메뉴 숨김은 구성에 남겨 두고 메뉴에서만 빼는 것이고, 구성에서 제거는 홈페이지 구조 자체에서 빼는 것입니다(구성 게시 뒤 반영). 게시된 구성에 포함된 페이지는 구성에서 제거하고 구성을 다시 게시해야 영구 삭제할 수 있습니다.</p>
+        {membershipBlock&&<p className="page-hierarchy-warning" role="note">{membershipBlock}</p>}
+        <button type="button" disabled={busy||!!membershipBlock} onClick={()=>void membership()}>{page.inStructure?'구성에서 제거':'구성에 다시 포함'}</button>
+      </fieldset>
       {error&&<p className="error-box" role="alert">{error}</p>}
       <div className="dialog-actions"><button type="button" disabled={busy} onClick={onClose}>취소</button><button type="submit" className="primary" disabled={busy||unchanged||group&&!name.trim()}>{busy?'저장 중…':'구성 저장'}</button></div>
     </form>

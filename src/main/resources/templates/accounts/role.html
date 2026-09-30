@@ -10,6 +10,6 @@
     <label for="role">변경할 역할</label><select id="role" name="role" required>
       <option th:each="role : ${roles}" th:value="${role}" th:text="${role.label}" th:selected="${role == account.role}"></option>
     </select>
-    <div class="actions"><button type="submit">역할 변경 적용</button><a th:href="@{/admin/accounts}">취소</a></div>
+    <div class="actions"><button type="submit">역할 변경 적용</button><a th:href="@{/admin/legacy/accounts}">취소</a></div>
   </form>
 </main></body></html>

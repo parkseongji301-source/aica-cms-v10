@@ -84,7 +84,7 @@ class PostTrashIntegrationTest {
         assertThatThrownBy(()->media.delete(actor("SUPER_ADMIN"),file)).hasMessageContaining("사용 중");
         assertThatThrownBy(()->site.deleteCategory(actor("SUPER_ADMIN"),11)).isInstanceOf(RuntimeException.class);
         assertThat(usages.find(actor("SUPER_ADMIN"),"media",file)).anyMatch(u->u.label().contains("휴지통")&&u.label().contains("과거 버전"));
-        assertThat(usages.find(actor("ADMIN"),"media",file)).noneMatch(u->"/admin-next/trash".equals(u.href()));
+        assertThat(usages.find(actor("ADMIN"),"media",file)).noneMatch(u->"/admin/trash".equals(u.href()));
     }
 
     @Test void restorationKeepsLatestDraftAndHistoryAndRequiresExplicitRepublication()throws Exception {
@@ -121,7 +121,7 @@ class PostTrashIntegrationTest {
         var b=login("SUPER_ADMIN");String token=csrf(b);
         assertThat(ok(b.get(API+"/trash")).path("total").asLong()).isZero();
         for(String method:List.of("POST","DELETE"))error(change(b,method,oldDeleted,method.equals("POST")?"restore":"trash",0L,true,token),404,"NOT_FOUND");
-        assertThat(b.get("/admin/posts/"+id+"/delete-confirm").body()).contains("휴지통 이동 확인","개 버전 이력을 유지합니다.").doesNotContain("함께 삭제할 버전 이력");
+        assertThat(b.get("/admin/legacy/posts/"+id+"/delete-confirm").body()).contains("휴지통 이동 확인","개 버전 이력을 유지합니다.").doesNotContain("함께 삭제할 버전 이력");
         long history=count("post_versions");var moved=b.post("/admin/posts/"+id+"/delete",Map.of("revision",String.valueOf(liveRevision()),"confirmed","true"));
         assertThat(moved.statusCode()).isEqualTo(302);assertThat(count("post_trash")).isEqualTo(1);assertThat(count("post_versions")).isEqualTo(history);
     }
@@ -129,7 +129,7 @@ class PostTrashIntegrationTest {
     @Test void rolesSessionCsrfConfirmationAndRevisionAreEnforcedWithoutSideEffects()throws Exception {
         var root=login("SUPER_ADMIN");String token=csrf(root);long revision=liveRevision();
         for(String role:List.of("ADMIN","SUPPORTER")){
-            var b=login(role);String other=csrf(b);error(b.get(API+"/trash"),403,"FORBIDDEN_OR_CSRF");assertThat(b.get("/admin-next/trash").statusCode()).isEqualTo(403);
+            var b=login(role);String other=csrf(b);error(b.get(API+"/trash"),403,"FORBIDDEN_OR_CSRF");assertThat(b.get("/admin/trash").statusCode()).isEqualTo(200);
             for(String action:List.of("trash","restore"))error(change(b,"POST",id,action,revision,true,other),403,"FORBIDDEN_OR_CSRF");
             error(change(b,"DELETE",id,"trash",revision,true,other),403,"FORBIDDEN_OR_CSRF");
         }

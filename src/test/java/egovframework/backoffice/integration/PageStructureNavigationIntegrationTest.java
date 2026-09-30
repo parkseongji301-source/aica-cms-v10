@@ -42,7 +42,7 @@ class PageStructureNavigationIntegrationTest {
   for(int i=0;i<2;i++){var block=tree.path("blocks").get(i);assertThat(block.path("blockId")).isEqualTo(editor.path("sections").get(i).path("id"));assertThat(block.path("pageId").asLong()).isEqualTo(page);assertThat(block.path("kind").asText()).isEqualTo("block");}
   assertThat(tree.path("blocks").get(1).path("visible").asBoolean()).isFalse();assertThat(tree.toString()).doesNotContain("원문은").doesNotContain("categoryId");
   assertThat(pages.get(actor(),page)).isEqualTo(before);assertThat(pages.publication(actor(),page)).isEqualTo(publication);
-  for(String view:List.of("manage","structure"))assertThat(b.get("/admin-next/pages/"+page+"/edit?view="+view+"&block="+tree.path("blocks").get(1).path("blockId").asText()).statusCode()).isEqualTo(200);
+  for(String view:List.of("manage","structure"))assertThat(b.get("/admin/pages/"+page+"/edit?view="+view+"&block="+tree.path("blocks").get(1).path("blockId").asText()).statusCode()).isEqualTo(200);
  }
  @Test void navigationTracksDraftChangesAndNeverSubstitutesRetiredOrDuplicatedIds()throws Exception {
   var b=login("admin");var original=pages.get(actor(),page);var blocks=pages.sections(original.sectionsJson());var first=blocks.get(0);var hidden=blocks.get(1);var copy=PageBlockService.duplicate(first);

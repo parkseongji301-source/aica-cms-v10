@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 public class DeletionController {
  private final DeletionImpactService impacts;
  public DeletionController(DeletionImpactService impacts){this.impacts=impacts;}
- @GetMapping("/admin/{kind:posts|pages|media}/{id}/delete-confirm")
+ @GetMapping("/admin/legacy/{kind:posts|pages|media}/{id}/delete-confirm")
  public String confirm(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable String kind,@PathVariable long id,Model model){
   model.addAttribute("impact",impacts.get(actor,kind,id));return "cms/delete-confirm";
  }

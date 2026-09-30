@@ -48,7 +48,7 @@ class RestaurantWorkflowIntegrationTest {
         var value=new LinkedHashMap<String,String>();for(String key:List.of("revision","title","content","categoryId"))value.put(key,post.path(key).asText());if(!post.path("richContent").isNull())value.put("richContent",post.path("richContent").asText());value.put("action",action);
         return b.post("/admin/posts/"+post.path("id").asLong()+"/edit",value);
     }
-    void publish(HttpBrowser b,JsonNode post)throws Exception {HttpBrowser.redirect(legacy(b,post,"publish"),"/admin/posts/"+post.path("id").asLong());}
+    void publish(HttpBrowser b,JsonNode post)throws Exception {HttpBrowser.redirect(legacy(b,post,"publish"),"/admin/legacy/posts/"+post.path("id").asLong());}
     @Test void addressOnlySaveRevisesCommonPostAndPreviewAndMediaShareTheSameId()throws Exception {
         var b=login("ADMIN");var p=create(b,"  검증 주소 A  ");long id=p.path("id").asLong();assertThat(p.path("restaurant").path("address").asText()).isEqualTo("검증 주소 A");
         var updated=save(b,p,Map.of("restaurant",Map.of("address","검증 주소 B")));
@@ -60,17 +60,17 @@ class RestaurantWorkflowIntegrationTest {
         long image=media.upload(new AccountPrincipal(accounts.findByEmail("admin@restaurant.test")),new MockMultipartFile("file","restaurant.png","image/png",bytes.toByteArray()),"검증 이미지");
         String rich=json.writeValueAsString(Map.of("ops",List.of(Map.of("insert","식당 소개\n"),Map.of("insert",Map.of("aicaImage",Map.of("id",image,"width","100","align","center","alt","검증","caption",""))),Map.of("insert","\n"))));
         updated=save(b,updated,Map.of("richContent",rich));assertThat(updated.path("attachments").size()).isEqualTo(1);assertThat(updated.path("restaurant").path("address").asText()).isEqualTo("검증 주소 B");
-        for(String view:List.of("manage","structure")){assertThat(b.get("/admin-next/posts/"+id+"/edit?view="+view+"&restaurantSection=all").statusCode()).isEqualTo(200);assertThat(get(b,API+"/"+id+"?view="+view)).isEqualTo(updated);}
+        for(String view:List.of("manage","structure")){assertThat(b.get("/admin/posts/"+id+"/edit?view="+view+"&restaurantSection=all").statusCode()).isEqualTo(200);assertThat(get(b,API+"/"+id+"?view="+view)).isEqualTo(updated);}
         var list=get(b,API+"?typeCodes=RESTAURANT");assertThat(list.path("total").asInt()).isEqualTo(1);assertThat(list.path("items").size()).isEqualTo(1);
     }
     @Test void draftAddressAndLegacySavePublishPreserveIndependentSnapshot()throws Exception {
         var b=login("ADMIN");var p=create(b,"주소 A");long id=p.path("id").asLong();publish(b,p);p=get(b,API+"/"+id);var published=get(b,API+"/"+id+"/publication");
         p=save(b,p,Map.of("restaurant",Map.of("address","주소 B")));assertThat(get(b,API+"/"+id+"/publication")).isEqualTo(published);
-        assertThat(b.get("/admin/posts/"+id+"/edit").body()).contains("주소 B","주소 편집");
-        HttpBrowser.redirect(legacy(b,p,"save"),"/admin/posts/"+id);p=get(b,API+"/"+id);assertThat(p.path("restaurant").path("address").asText()).isEqualTo("주소 B");
+        assertThat(b.get("/admin/legacy/posts/"+id+"/edit").body()).contains("주소 B","주소 편집");
+        HttpBrowser.redirect(legacy(b,p,"save"),"/admin/legacy/posts/"+id);p=get(b,API+"/"+id);assertThat(p.path("restaurant").path("address").asText()).isEqualTo("주소 B");
         var form=new LinkedHashMap<String,String>();form.put("id",String.valueOf(id));form.put("revision",p.path("revision").asText());form.put("title",p.path("title").asText());form.put("content",p.path("content").asText());form.put("categoryId","11");
         assertThat(b.post("/admin/posts/save-json",form).statusCode()).isEqualTo(200);p=get(b,API+"/"+id);assertThat(p.path("restaurant").path("address").asText()).isEqualTo("주소 B");assertThat(get(b,API+"/"+id+"/publication")).isEqualTo(published);
-        publish(b,p);assertThat(get(b,API+"/"+id+"/publication").path("restaurant").path("address").asText()).isEqualTo("주소 B");assertThat(b.get("/admin/posts/"+id+"/publication").body()).contains("주소 B");
+        publish(b,p);assertThat(get(b,API+"/"+id+"/publication").path("restaurant").path("address").asText()).isEqualTo("주소 B");assertThat(b.get("/admin/legacy/posts/"+id+"/publication").body()).contains("주소 B");
         assertThat(get(b,API+"/"+id).path("categoryId").asLong()).isEqualTo(11);assertThat(jdbc.queryForObject("SELECT target_id FROM site_menus",Long.class)).isEqualTo(11);
     }
     @Test void leavingRestaurantRequiresExplicitAddressClearButOldPublicationKeepsAddress()throws Exception {

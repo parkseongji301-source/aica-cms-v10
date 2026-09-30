@@ -63,7 +63,7 @@ class ReviewWorkflowIntegrationTest {
         assertThat(response.statusCode()).as(response.body()).isEqualTo(200);return json.readTree(response.body());
     }
     void publish(HttpBrowser b,JsonNode p)throws Exception {
-        HttpBrowser.redirect(b.post("/admin/posts/"+p.path("id").asLong()+"/edit",Map.of("revision",p.path("revision").asText(),"title",p.path("title").asText(),"content",p.path("content").asText(),"categoryId","11","action","publish")),"/admin/posts/"+p.path("id").asLong());
+        HttpBrowser.redirect(b.post("/admin/posts/"+p.path("id").asLong()+"/edit",Map.of("revision",p.path("revision").asText(),"title",p.path("title").asText(),"content",p.path("content").asText(),"categoryId","11","action","publish")),"/admin/legacy/posts/"+p.path("id").asLong());
     }
 
     @Test void candidateDictionaryIsSeparateIdempotentAndDoesNotCreateIaOrContent()throws Exception {
@@ -92,7 +92,7 @@ class ReviewWorkflowIntegrationTest {
         }
         long contentId=comparison.path("id").asLong();
         for(String mode:List.of("manage","structure")) {
-            assertThat(b.get("/admin-next/posts/"+contentId+"/edit?view="+mode+"&reviewSection=class").statusCode()).isEqualTo(200);
+            assertThat(b.get("/admin/posts/"+contentId+"/edit?view="+mode+"&reviewSection=class").statusCode()).isEqualTo(200);
             assertThat(get(b,API+"/"+contentId+"?view="+mode)).isEqualTo(comparison);
         }
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM posts",Integer.class)).isEqualTo(5);

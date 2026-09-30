@@ -17,7 +17,7 @@ public class DashboardController {
         this.posts = posts; this.traffic = traffic; this.policy = policy;
     }
 
-    @GetMapping("/admin")
+    @GetMapping("/admin/legacy")
     public String dashboard(@AuthenticationPrincipal AccountPrincipal principal, Model model) {
         model.addAttribute("overview", posts.dashboard(principal));
         if (policy.canManageAllPosts(principal.getRole())) model.addAttribute("traffic", traffic.overview(7));

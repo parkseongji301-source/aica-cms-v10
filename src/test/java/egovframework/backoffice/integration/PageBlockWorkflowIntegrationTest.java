@@ -47,10 +47,10 @@ class PageBlockWorkflowIntegrationTest {
         var input=input(original);var old=(ArrayNode)input.path("sections");var reorder=json.createArrayNode().add(old.get(0)).add(old.get(2)).add(old.get(1));((ObjectNode)reorder.get(0)).put("body","수정된 A");((ObjectNode)reorder.get(1)).put("visible",false);input.set("sections",reorder);
         var saved=save(b,input);assertThat(ids(saved.path("sections"))).containsExactly(ids(original.path("sections")).get(0),ids(original.path("sections")).get(2),ids(original.path("sections")).get(1));assertThat(get(b,API+page)).isEqualTo(saved);assertThat(get(b,API+page+"/publication")).isEqualTo(published);
         var preview=get(b,API+page+"/preview");assertThat(ids(preview.path("sections"))).containsExactly(ids(original.path("sections")).get(0),ids(original.path("sections")).get(1));
-        assertThat(b.get("/admin/pages/"+page+"/edit").body()).contains(ids(original.path("sections")).get(0));assertThat(legacy(b,saved,"save").statusCode()).isEqualTo(200);
+        assertThat(b.get("/admin/legacy/pages/"+page+"/edit").body()).contains(ids(original.path("sections")).get(0));assertThat(legacy(b,saved,"save").statusCode()).isEqualTo(200);
         saved=get(b,API+page);assertThat(saved.path("sections")).isEqualTo(reorder);assertThat(get(b,API+page+"/publication")).isEqualTo(published);
         assertThat(legacy(b,saved,"publish").statusCode()).isEqualTo(200);assertThat(get(b,API+page+"/publication").path("sections")).isEqualTo(reorder);
-        for(String view:List.of("manage","structure")){assertThat(b.get("/admin-next/pages/"+page+"/edit?view="+view).statusCode()).isEqualTo(200);assertThat(get(b,API+page+"?view="+view).path("sections")).isEqualTo(reorder);}
+        for(String view:List.of("manage","structure")){assertThat(b.get("/admin/pages/"+page+"/edit?view="+view).statusCode()).isEqualTo(200);assertThat(get(b,API+page+"?view="+view).path("sections")).isEqualTo(reorder);}
     }
     @Test void newAndServerDuplicateBlocksReceiveUniqueIdentitiesWithoutCopyingTheOriginalId()throws Exception {
         var b=login("admin");var original=get(b,API+page);var block=pages.sections(pages.get(actor(),page).sectionsJson()).get(0);var copy=PageBlockService.duplicate(block);
@@ -117,7 +117,7 @@ class PageBlockWorkflowIntegrationTest {
         assertThat(ids(saved.path("sections"))).containsExactly(copy.id(),source.id(),initial.path("sections").get(2).path("id").asText());
         assertThat(get(b,API+page)).isEqualTo(saved);assertThat(get(b,API+page+"/publication")).isEqualTo(originalPublication);
         var preview=get(b,API+page+"/preview");assertThat(preview.path("sections")).hasSize(2);assertThat(preview.path("sections").get(0).path("variation").asText()).isEqualTo("centered");
-        assertThat(b.get("/admin/pages/"+page+"/preview").body()).contains("type-hero variation-centered",copy.id());
+        assertThat(b.get("/admin/legacy/pages/"+page+"/preview").body()).contains("type-hero variation-centered",copy.id());
         assertThat(legacy(b,saved,"save").statusCode()).isEqualTo(200);saved=get(b,API+page);assertThat(saved.path("sections")).isEqualTo(swapped);assertThat(get(b,API+page+"/publication")).isEqualTo(originalPublication);
         assertThat(legacy(b,saved,"publish").statusCode()).isEqualTo(200);saved=get(b,API+page);assertThat(get(b,API+page+"/publication").path("sections")).isEqualTo(swapped);
         input=input(saved);((ArrayNode)input.path("sections")).add(removed);assertThat(b.json("PUT",API+page,input.toString(),token(b)).statusCode()).isEqualTo(400);assertThat(get(b,API+page)).isEqualTo(saved);

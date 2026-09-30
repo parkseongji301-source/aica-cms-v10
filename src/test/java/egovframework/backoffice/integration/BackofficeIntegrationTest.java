@@ -47,12 +47,12 @@ class BackofficeIntegrationTest {
     private AccountPrincipal principal(String email) { return new AccountPrincipal(accountMapper.findByEmail(email)); }
     private HttpBrowser member(HttpBrowser root, String email, Role role) throws Exception {
         redirect(root.post("/admin/accounts", Map.of("email", email, "displayName", email, "role", role.name())),
-                "/admin/accounts/issued");
+                "/admin/legacy/accounts/issued");
         String temporary = root.issued();
-        redirect(root.get("/admin/accounts/issued"), "/admin/accounts");
+        redirect(root.get("/admin/legacy/accounts/issued"), "/admin/legacy/accounts");
         var browser = new HttpBrowser(port);
         browser.login(email, temporary, "/account/password");
-        redirect(browser.get("/admin/posts"), "/account/password");
+        redirect(browser.get("/admin/legacy/posts"), "/account/password");
         browser.password(temporary, PASSWORD);
         browser.login(email, PASSWORD, "/admin");
         return browser;
@@ -65,14 +65,14 @@ class BackofficeIntegrationTest {
 
     @Test void completeFlowConnectsLoginAccountsRbacPostsPasswordAndLogout() throws Exception {
         var anonymous = new HttpBrowser(port);
-        redirect(anonymous.get("/admin/posts"), "/login");
+        redirect(anonymous.get("/admin/legacy/posts"), "/login");
         anonymous.login(ROOT, "wrong-password", "/login?error");
         var root = root();
         var admin = member(root, "admin@example.test", Role.ADMIN);
         var supporter = member(root, "support@example.test", Role.SUPPORTER);
-        assertThat(root.get("/admin/accounts").body()).contains("admin@example.test", "support@example.test");
+        assertThat(root.get("/admin/legacy/accounts").body()).contains("admin@example.test", "support@example.test");
         for (var denied : List.of(admin, supporter)) {
-            assertThat(denied.get("/admin/accounts").statusCode()).isEqualTo(403);
+            assertThat(denied.get("/admin/legacy/accounts").statusCode()).isEqualTo(403);
             assertThat(denied.post("/admin/accounts", Map.of("email", "forged@example.test",
                     "displayName", "위조", "role", "ADMIN")).statusCode()).isEqualTo(403);
         }
@@ -80,37 +80,37 @@ class BackofficeIntegrationTest {
         long supportPost = createPost(supporter, "서포터 게시물");
         assertThat(jdbc.queryForObject("SELECT author_id FROM posts WHERE id = ?", Long.class, supportPost))
                 .isEqualTo(accountMapper.findByEmail("support@example.test").id());
-        assertThat(admin.get("/admin/posts").body()).contains("관리자 게시물", "서포터 게시물");
-        assertThat(supporter.get("/admin/posts").body()).contains("서포터 게시물").doesNotContain("관리자 게시물");
-        assertThat(supporter.get("/admin/posts/" + adminPost).statusCode()).isEqualTo(403);
-        assertThat(supporter.get("/admin/posts/" + adminPost + "/edit").statusCode()).isEqualTo(403);
+        assertThat(admin.get("/admin/legacy/posts").body()).contains("관리자 게시물", "서포터 게시물");
+        assertThat(supporter.get("/admin/legacy/posts").body()).contains("서포터 게시물").doesNotContain("관리자 게시물");
+        assertThat(supporter.get("/admin/legacy/posts/" + adminPost).statusCode()).isEqualTo(403);
+        assertThat(supporter.get("/admin/legacy/posts/" + adminPost + "/edit").statusCode()).isEqualTo(403);
         assertThat(supporter.post("/admin/posts/" + adminPost + "/edit",
                 Map.of("title", "침범", "content", "침범")).statusCode()).isEqualTo(403);
         assertThat(supporter.post("/admin/posts/" + adminPost + "/delete", Map.of()).statusCode()).isEqualTo(403);
         redirect(supporter.post("/admin/posts/" + supportPost + "/edit",
-                Map.of("revision","0","title", "본인 수정", "content", "수정 본문")), "/admin/posts/" + supportPost);
+                Map.of("revision","0","title", "본인 수정", "content", "수정 본문")), "/admin/legacy/posts/" + supportPost);
         // ADMIN's access to another author's post is the current proposal.
         redirect(admin.post("/admin/posts/" + supportPost + "/edit",
-                Map.of("revision","1","title", "관리자 전체 수정", "content", "관리자가 수정")), "/admin/posts/" + supportPost);
-        assertThat(supporter.get("/admin/posts/" + supportPost).body()).contains("관리자 전체 수정");
+                Map.of("revision","1","title", "관리자 전체 수정", "content", "관리자가 수정")), "/admin/legacy/posts/" + supportPost);
+        assertThat(supporter.get("/admin/legacy/posts/" + supportPost).body()).contains("관리자 전체 수정");
         assertThat(supporter.post("/admin/posts/" + supportPost + "/delete", Map.of()).statusCode()).isEqualTo(403);
-        redirect(root.post("/admin/posts/" + supportPost + "/delete", Map.of("revision","2","confirmed","true")), "/admin/posts");
-        assertThat(admin.get("/admin/posts/" + supportPost).statusCode()).isEqualTo(404);
+        redirect(root.post("/admin/posts/" + supportPost + "/delete", Map.of("revision","2","confirmed","true")), "/admin/legacy/posts");
+        assertThat(admin.get("/admin/legacy/posts/" + supportPost).statusCode()).isEqualTo(404);
         redirect(admin.post("/admin/posts/" + adminPost + "/edit",
-                Map.of("revision","0","title", "관리자 수정", "content", "수정")), "/admin/posts/" + adminPost);
+                Map.of("revision","0","title", "관리자 수정", "content", "수정")), "/admin/legacy/posts/" + adminPost);
         assertThat(admin.post("/admin/posts/" + adminPost + "/delete", Map.of()).statusCode()).isEqualTo(403);
-        redirect(root.post("/admin/posts/" + adminPost + "/delete", Map.of("revision","1","confirmed","true")), "/admin/posts");
+        redirect(root.post("/admin/posts/" + adminPost + "/delete", Map.of("revision","1","confirmed","true")), "/admin/legacy/posts");
         long extra = createPost(supporter, "전체 삭제 검증");
         assertThat(admin.post("/admin/posts/" + extra + "/delete", Map.of()).statusCode()).isEqualTo(403);
-        redirect(root.post("/admin/posts/" + extra + "/delete", Map.of("revision","0","confirmed","true")), "/admin/posts");
+        redirect(root.post("/admin/posts/" + extra + "/delete", Map.of("revision","0","confirmed","true")), "/admin/legacy/posts");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM posts WHERE deleted_at IS NOT NULL", Integer.class)).isEqualTo(3);
         String next = "Test-Next-Password42";
         admin.password(PASSWORD, next);
-        redirect(admin.get("/admin/posts"), "/login");
+        redirect(admin.get("/admin/legacy/posts"), "/login");
         admin.login("admin@example.test", PASSWORD, "/login?error");
         admin.login("admin@example.test", next, "/admin");
         redirect(admin.post("/logout", Map.of()), "/login?logout");
-        redirect(admin.get("/admin/posts"), "/login");
+        redirect(admin.get("/admin/legacy/posts"), "/login");
         var stored = accountMapper.findByEmail("admin@example.test");
         assertThat(stored.passwordHash()).startsWith("$2");
         assertThat(encoder.matches(next, stored.passwordHash())).isTrue();
@@ -118,7 +118,7 @@ class BackofficeIntegrationTest {
 
     @Test void creationAndTemporaryPasswordCannotBypassRestrictions() throws Exception {
         var root = root();
-        assertThat(root.get("/admin/accounts/new").body()).contains("value=\"ADMIN\"", "value=\"SUPPORTER\"")
+        assertThat(root.get("/admin/legacy/accounts/new").body()).contains("value=\"ADMIN\"", "value=\"SUPPORTER\"")
                 .doesNotContain("value=\"SUPER_ADMIN\"");
         assertThat(root.post("/admin/accounts", Map.of("email", "illegal@example.test",
                 "displayName", "불가", "role", "SUPER_ADMIN")).statusCode()).isEqualTo(400);
@@ -143,26 +143,26 @@ class BackofficeIntegrationTest {
         var root = root();
         var member = member(root, "change@example.test", Role.ADMIN);
         long id = accountMapper.findByEmail("change@example.test").id();
-        assertThat(root.get("/admin/accounts/" + id + "/role").body()).contains("SUPER_ADMIN");
-        redirect(root.post("/admin/accounts/" + id + "/role", Map.of("role", "SUPPORTER")), "/admin/accounts");
-        redirect(member.get("/admin/posts"), "/login?expired");
+        assertThat(root.get("/admin/legacy/accounts/" + id + "/role").body()).contains("SUPER_ADMIN");
+        redirect(root.post("/admin/accounts/" + id + "/role", Map.of("role", "SUPPORTER")), "/admin/legacy/accounts");
+        redirect(member.get("/admin/legacy/posts"), "/login?expired");
         member.login("change@example.test", PASSWORD, "/admin");
-        assertThat(member.get("/admin/posts").body()).contains("본인이 작성한");
-        redirect(root.post("/admin/accounts/" + id + "/role", Map.of("role", "SUPER_ADMIN")), "/admin/accounts");
-        redirect(member.get("/admin/accounts"), "/login?expired");
+        assertThat(member.get("/admin/legacy/posts").body()).contains("본인이 작성한");
+        redirect(root.post("/admin/accounts/" + id + "/role", Map.of("role", "SUPER_ADMIN")), "/admin/legacy/accounts");
+        redirect(member.get("/admin/legacy/accounts"), "/login?expired");
         member.login("change@example.test", PASSWORD, "/admin");
-        assertThat(member.get("/admin/accounts").statusCode()).isEqualTo(200);
+        assertThat(member.get("/admin/legacy/accounts").statusCode()).isEqualTo(200);
         assertThat(member.post("/admin/accounts/" + id + "/role", Map.of("role", "ADMIN")).statusCode()).isEqualTo(400);
         assertThat(member.post("/admin/accounts/" + id + "/deactivate", Map.of()).statusCode()).isEqualTo(400);
-        redirect(root.post("/admin/accounts/" + id + "/reset-password", Map.of()), "/admin/accounts/issued");
+        redirect(root.post("/admin/accounts/" + id + "/reset-password", Map.of()), "/admin/legacy/accounts/issued");
         String reset = root.issued();
-        redirect(member.get("/admin/posts"), "/login?expired");
+        redirect(member.get("/admin/legacy/posts"), "/login?expired");
         member.login("change@example.test", PASSWORD, "/login?error");
         member.login("change@example.test", reset, "/account/password");
         member.password(reset, "Test-Reset-Password42");
         member.login("change@example.test", "Test-Reset-Password42", "/admin");
-        redirect(root.post("/admin/accounts/" + id + "/deactivate", Map.of()), "/admin/accounts");
-        redirect(member.get("/admin/posts"), "/login?expired");
+        redirect(root.post("/admin/accounts/" + id + "/deactivate", Map.of()), "/admin/legacy/accounts");
+        redirect(member.get("/admin/legacy/posts"), "/login?expired");
         member.login("change@example.test", "Test-Reset-Password42", "/login?error");
     }
 
@@ -170,19 +170,22 @@ class BackofficeIntegrationTest {
         var root = root();
         assertThat(root.rawPost("/admin/posts", Map.of("title", "CSRF", "content", "blocked")).statusCode()).isEqualTo(403);
         assertThat(root.rawPost("/logout", Map.of()).statusCode()).isEqualTo(403);
-        assertThat(root.get("/admin/posts").statusCode()).isEqualTo(200);
+        assertThat(root.get("/admin/legacy/posts").statusCode()).isEqualTo(200);
         assertThat(root.post("/admin/posts", Map.of("title", "x".repeat(201), "content", "body")).statusCode()).isEqualTo(400);
-        assertThat(root.get("/admin/posts?page=-1").statusCode()).isEqualTo(400);
+        assertThat(root.get("/admin/legacy/posts?page=-1").statusCode()).isEqualTo(400);
         var created = root.post("/admin/posts", Map.of("title", "<script>title</script>", "content", "<script>alert(1)</script>"));
+        // Saving returns to the legacy screen; the form actions keep their original /admin/posts paths.
         String path = java.net.URI.create(location(created)).getRawPath();
+        String action = path.replaceFirst("^/admin/legacy/", "/admin/");
+        assertThat(path).startsWith("/admin/legacy/posts/");
         var html = root.get(path);
         assertThat(html.statusCode()).isEqualTo(200);
         assertThat(html.body()).contains("&lt;script&gt;").doesNotContain("<script>");
-        assertThat(root.get(path + "/delete").statusCode()).isEqualTo(405);
+        assertThat(root.get(action + "/delete").statusCode()).isEqualTo(405);
         assertThat(root.get(path).statusCode()).isEqualTo(200);
-        redirect(root.post(path + "/delete", Map.of("revision","0","confirmed","true")), "/admin/posts");
+        redirect(root.post(action + "/delete", Map.of("revision","0","confirmed","true")), "/admin/legacy/posts");
         assertThat(root.get(path).statusCode()).isEqualTo(404);
-        assertThat(root.post(path + "/edit", Map.of("title", "복구 시도", "content", "불가")).statusCode()).isEqualTo(404);
+        assertThat(root.post(action + "/edit", Map.of("title", "복구 시도", "content", "불가")).statusCode()).isEqualTo(404);
         assertThat(root.get("/__stage0/status").statusCode()).isEqualTo(403);
     }
 
@@ -197,7 +200,7 @@ class BackofficeIntegrationTest {
         assertThat(page0.total()).isEqualTo(12);
         assertThat(page0.items()).hasSize(10);
         assertThat(page1.items()).hasSize(2);
-        assertThat(supporter.get("/admin/posts?page=1").body()).contains("총 12건").doesNotContain("other-");
+        assertThat(supporter.get("/admin/legacy/posts?page=1").body()).contains("총 12건").doesNotContain("other-");
         assertThatThrownBy(() -> accounts.list(supportPrincipal))
                 .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         assertThatThrownBy(() -> accounts.create(supportPrincipal, "escape@example.test", "불가", Role.ADMIN))
@@ -238,26 +241,26 @@ class BackofficeIntegrationTest {
         assertThat(overview.total()).isEqualTo(1);
         assertThat(overview.weekCount()).isEqualTo(1);
         assertThat(overview.recentPosts()).hasSize(1);
-        var dashboard = supporter.get("/admin");
+        var dashboard = supporter.get("/admin/legacy");
         assertThat(dashboard.statusCode()).isEqualTo(200);
         assertThat(dashboard.body()).contains("own-100%_literal").doesNotContain("hidden-admin-title", "deleted-title", "오늘 방문자");
-        var rootDashboard = root.get("/admin");
+        var rootDashboard = root.get("/admin/legacy");
         assertThat(rootDashboard.statusCode()).isEqualTo(200);
         assertThat(rootDashboard.body()).contains("방문 통계", "예시 데이터", "방문자 추이", "hidden-admin-title")
                 .doesNotContain("/admin/analytics");
         assertThat(root.get("/admin/analytics").statusCode()).isEqualTo(403);
         assertThat(supporter.get("/admin/analytics").statusCode()).isEqualTo(403);
-        assertThat(supporter.get("/admin/roles").statusCode()).isEqualTo(403);
-        assertThat(root.get("/admin/roles").body()).contains("역할 / 권한 관리", "최상위 관리자");
+        assertThat(supporter.get("/admin/legacy/roles").statusCode()).isEqualTo(403);
+        assertThat(root.get("/admin/legacy/roles").body()).contains("역할 / 권한 관리", "최상위 관리자");
         assertThat(posts.list(supportPrincipal, 0, "%_").total()).isEqualTo(1);
         assertThat(posts.list(supportPrincipal, 0, "hidden-admin-title").total()).isZero();
         assertThat(posts.list(supportPrincipal, 0, "본문 검색").total()).isEqualTo(1);
-        var search = supporter.get("/admin/posts?q=100%25_");
+        var search = supporter.get("/admin/legacy/posts?q=100%25_");
         assertThat(search.statusCode()).isEqualTo(200);
         assertThat(search.body()).contains("총 1건", "own-100%_literal").doesNotContain("hidden-admin-title");
-        assertThat(root.get("/admin/posts?q=" + "x".repeat(101)).statusCode()).isEqualTo(400);
+        assertThat(root.get("/admin/legacy/posts?q=" + "x".repeat(101)).statusCode()).isEqualTo(400);
         assertThat(new HttpBrowser(port).get("/js/app.js").statusCode()).isEqualTo(200);
-        redirect(new HttpBrowser(port).get("/admin"), "/login");
+        redirect(new HttpBrowser(port).get("/admin/legacy"), "/login");
     }
 
     private boolean attemptDemotion(CountDownLatch start, AccountPrincipal actor, long target) throws InterruptedException {
@@ -281,23 +284,23 @@ class BackofficeIntegrationTest {
         var browser=root();var actor=principal(ROOT);var anonymous=new HttpBrowser(port);
         long imageId=image(actor,"첫 이미지.png");
         long id=posts.save(actor,null,null,"첫 발행 제목","공개 본문 <script>alert(1)</script>",null,List.of(imageId),"save");
-        assertThat(browser.get("/admin/posts/"+id+"/publication").statusCode()).isEqualTo(404);
+        assertThat(browser.get("/admin/legacy/posts/"+id+"/publication").statusCode()).isEqualTo(404);
         assertThat(anonymous.get("/admin/media/"+imageId+"/file").statusCode()).isEqualTo(302);
         assertThat(browser.post("/admin/posts/preview",Map.of("id",String.valueOf(id),"title","미리보기 제목","content","저장 안 한 내용","mediaIds",String.valueOf(imageId))).body()).contains("저장 안 한 내용","백오피스 내부 확인");
         assertThat(posts.get(actor,id).title()).isEqualTo("첫 발행 제목");
         posts.save(actor,id,0L,"첫 발행 제목","공개 본문 <script>alert(1)</script>",null,List.of(imageId),"publish");
-        var view=browser.get("/admin/posts/"+id+"/publication");
+        var view=browser.get("/admin/legacy/posts/"+id+"/publication");
         assertThat(view.statusCode()).isEqualTo(200);
         assertThat(view.body()).contains("첫 발행 제목","&lt;script&gt;").doesNotContain("<script>alert");
         long secondImage=image(actor,"새 초안 전용.png");
         posts.save(actor,id,1L,"아직 미발행 제목","수정 초안",null,List.of(secondImage),"save");
-        assertThat(browser.get("/admin/posts/"+id+"/publication").body()).contains("첫 발행 제목").doesNotContain("아직 미발행 제목");
+        assertThat(browser.get("/admin/legacy/posts/"+id+"/publication").body()).contains("첫 발행 제목").doesNotContain("아직 미발행 제목");
         assertThat(posts.pending(actor,id)).isTrue();
         assertThatThrownBy(()->posts.save(actor,id,1L,"오래된 수정","충돌",null,List.of(),"publish")).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
         posts.save(actor,id,2L,"새 발행 제목","변경된 공개 본문",null,List.of(secondImage),"publish");
-        assertThat(browser.get("/admin/posts/"+id+"/publication").body()).contains("새 발행 제목").doesNotContain("첫 발행 제목");
+        assertThat(browser.get("/admin/legacy/posts/"+id+"/publication").body()).contains("새 발행 제목").doesNotContain("첫 발행 제목");
         posts.unpublish(actor,id,3L);
-        assertThat(browser.get("/admin/posts/"+id+"/publication").statusCode()).isEqualTo(404);
+        assertThat(browser.get("/admin/legacy/posts/"+id+"/publication").statusCode()).isEqualTo(404);
         for(String path:List.of("/site","/site/posts/"+id,"/site/media/"+imageId))assertThat(anonymous.get(path).statusCode()).isNotEqualTo(200);
         assertThat(site.activities(actor,0,"").stream().map(egovframework.backoffice.mvp.cms.CmsModels.Activity::action)).contains("콘텐츠 발행","콘텐츠 비공개");
     }
@@ -308,7 +311,7 @@ class BackofficeIntegrationTest {
         long page=pages.save(actor,null,null,"소개","about",sections,"save");
         sections=pages.get(actor,page).sectionsJson();
         site.menu(actor,null,"사관학교 소개","PAGE",page,"",true);
-        assertThat(browser.get("/admin/pages/"+page+"/preview").body()).contains("첫 발행 소개","홈페이지는 아직 연결되지");
+        assertThat(browser.get("/admin/legacy/pages/"+page+"/preview").body()).contains("첫 발행 소개","홈페이지는 아직 연결되지");
         pages.save(actor,page,0L,"소개","about",sections,"publish");
         site.saveSettings(actor,"basic",Map.of("siteName","테스트 사관학교","description","소개문","contactEmail","contact@example.test","homePageId",String.valueOf(page)));
         site.saveSettings(actor,"style",Map.of("primaryColor","#123456","headerColor","#102030","radius","20"));
@@ -329,7 +332,7 @@ class BackofficeIntegrationTest {
     }
     @Test void newAdminScreensRenderAndSupporterCannotChangeSharedSite() throws Exception {
         var root=root();var actor=principal(ROOT);
-        for(String path:List.of("/admin/pages","/admin/pages/new","/admin/media","/admin/categories","/admin/menus","/admin/design/style","/admin/design/components","/admin/settings/basic","/admin/settings/links","/admin/settings/system","/admin/activity","/admin/posts/new")) {
+        for(String path:List.of("/admin/legacy/pages","/admin/legacy/pages/new","/admin/legacy/media","/admin/legacy/categories","/admin/legacy/menus","/admin/legacy/design/style","/admin/legacy/design/components","/admin/legacy/settings/basic","/admin/legacy/settings/links","/admin/legacy/settings/system","/admin/legacy/activity","/admin/legacy/posts/new")) {
             var response=root.get(path);
             assertThat(response.statusCode()).as(path).isEqualTo(200);
             assertThat(response.body()).doesNotContain("nav-pending");
@@ -339,7 +342,7 @@ class BackofficeIntegrationTest {
         long adminImage=image(actor,"관리자 이미지.png");
         assertThat(supporter.get("/admin/media/"+adminImage+"/file").statusCode()).isEqualTo(403);
         assertThatThrownBy(()->posts.save(supporterActor,null,null,"침범","본문",null,List.of(adminImage),"publish")).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
-        for(String path:List.of("/admin/pages","/admin/categories","/admin/menus","/admin/design/style","/admin/settings/basic","/admin/activity"))
+        for(String path:List.of("/admin/legacy/pages","/admin/legacy/categories","/admin/legacy/menus","/admin/legacy/design/style","/admin/legacy/settings/basic","/admin/legacy/activity"))
             assertThat(supporter.get(path).statusCode()).as(path).isEqualTo(403);
         assertThat(supporter.post("/admin/settings/save/basic",Map.of("siteName","위조")).statusCode()).isEqualTo(403);
         assertThat(root.rawPost("/admin/categories",Map.of("name","CSRF 없음")).statusCode()).isEqualTo(403);
@@ -378,10 +381,10 @@ class BackofficeIntegrationTest {
         var created=browser.post("/admin/posts",Map.of("title","HTTP 첨부 발행","content","본문","categoryId","","mediaIds",String.valueOf(imageId),"action","publish"));
         assertThat(created.statusCode()).isEqualTo(302);
         long postId=Long.parseLong(location(created).substring(location(created).lastIndexOf('/')+1));
-        assertThat(browser.get("/admin/posts/"+postId+"/publication").body()).contains("HTTP 첨부 발행","/admin/media/"+imageId+"/file");
-        assertThat(browser.get("/admin/media").body()).contains("upload.png");
-        redirect(browser.post("/admin/media/"+imageId+"/edit",Map.of("name","수정한 이미지.png","alt","실제 설명")),"/admin/media");
-        assertThat(browser.get("/admin/posts/"+postId+"/publication").body()).contains("실제 설명");
+        assertThat(browser.get("/admin/legacy/posts/"+postId+"/publication").body()).contains("HTTP 첨부 발행","/admin/media/"+imageId+"/file");
+        assertThat(browser.get("/admin/legacy/media").body()).contains("upload.png");
+        redirect(browser.post("/admin/media/"+imageId+"/edit",Map.of("name","수정한 이미지.png","alt","실제 설명")),"/admin/legacy/media");
+        assertThat(browser.get("/admin/legacy/posts/"+postId+"/publication").body()).contains("실제 설명");
     }
     @Autowired egovframework.backoffice.mvp.cms.RichTextService rich;
     @Test void richEditorAutosaveRetainsInlineOrderFormattingAndIndependentPublication() throws Exception {
@@ -398,7 +401,7 @@ class BackofficeIntegrationTest {
         var created=browser.post("/admin/posts/save-json",Map.of("title","서식 있는 글","richContent",document,"action","publish"));
         assertThat(created.statusCode()).isEqualTo(200);long id=json.readTree(created.body()).get("id").asLong();
         assertThat(posts.get(actor,id).richContent()).isEqualTo(document);
-        var view=browser.get("/admin/posts/"+id+"/publication").body();
+        var view=browser.get("/admin/legacy/posts/"+id+"/publication").body();
         assertThat(view).contains("rt-color-blue","<strong>앞 문단 &lt;script&gt;</strong>","rt-width-50","rt-font-serif","rt-size-large","수업 자료 다운로드","<table>","AI &lt;img onerror=x&gt;");
         assertThat(view.indexOf("앞 문단")).isLessThan(view.indexOf("rt-width-50"));
         assertThat(view.indexOf("rt-width-50")).isLessThan(view.indexOf("중간 문단"));
@@ -410,12 +413,12 @@ class BackofficeIntegrationTest {
         assertThat(downloaded.headers().firstValue("X-Content-Type-Options").orElse("")).isEqualTo("nosniff");
         var changed=browser.post("/admin/posts/save-json",Map.of("id",String.valueOf(id),"revision","0","title","자동 저장된 수정","richContent",document.replace("마지막 문단","수정 문단")));
         assertThat(changed.statusCode()).isEqualTo(200);assertThat(json.readTree(changed.body()).get("revision").asLong()).isEqualTo(1);
-        assertThat(browser.get("/admin/posts/"+id+"/publication").body()).contains("마지막 문단").doesNotContain("수정 문단");
+        assertThat(browser.get("/admin/legacy/posts/"+id+"/publication").body()).contains("마지막 문단").doesNotContain("수정 문단");
         var stale=browser.post("/admin/posts/save-json",Map.of("id",String.valueOf(id),"revision","0","title","오래된 창","richContent",document));
         assertThat(stale.statusCode()).isEqualTo(400);assertThat(stale.body()).contains("다른 작업");
         assertThat(posts.get(actor,id).title()).isEqualTo("자동 저장된 수정");
         assertThat(browser.rawPost("/admin/posts/save-json",Map.of("title","CSRF 생략","richContent",document)).statusCode()).isEqualTo(403);
-        assertThat(browser.get("/admin/posts/"+id+"/edit").body()).contains("실시간 미리보기","글자 크기","명조","aicaImage","수정 문단");
+        assertThat(browser.get("/admin/legacy/posts/"+id+"/edit").body()).contains("실시간 미리보기","글자 크기","명조","aicaImage","수정 문단");
     }
     @Test void richDocumentsRejectUnsafeAttributesAndForeignMediaAndWorkInPageSections() throws Exception {
         var browser=root();var actor=principal(ROOT);var json=new com.fasterxml.jackson.databind.ObjectMapper();
@@ -433,12 +436,12 @@ class BackofficeIntegrationTest {
         var created=browser.post("/admin/pages/save-json",Map.of("title","서식 페이지","slug","rich-page","sectionsJson",sections,"action","publish"));
         assertThat(created.statusCode()).isEqualTo(200);long page=json.readTree(created.body()).get("id").asLong();
         assertThat(pages.get(actor,page).sectionsJson()).contains("bodyDoc","aicaImage");
-        assertThat(browser.get("/admin/pages/"+page+"/preview").body()).contains("<strong>서식 본문</strong>","/admin/media/"+img+"/file");
+        assertThat(browser.get("/admin/legacy/pages/"+page+"/preview").body()).contains("<strong>서식 본문</strong>","/admin/media/"+img+"/file");
         assertThatThrownBy(()->media.delete(actor,img)).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
         assertThat(browser.post("/admin/pages/save-json",Map.of("id",String.valueOf(page),"revision","99","title","충돌","slug","rich-page","sectionsJson",sections)).statusCode()).isEqualTo(400);
         var invalidPdf=new org.springframework.mock.web.MockMultipartFile("file","fake.pdf","application/pdf","<script>bad</script>".getBytes());
         assertThatThrownBy(()->media.upload(actor,invalidPdf,"")).isInstanceOf(egovframework.backoffice.mvp.common.BusinessException.class);
-        assertThat(new HttpBrowser(port).get("/admin/pages/"+page+"/preview").statusCode()).isEqualTo(302);
+        assertThat(new HttpBrowser(port).get("/admin/legacy/pages/"+page+"/preview").statusCode()).isEqualTo(302);
     }
 
     @Test void linkedMenuNamesFollowRenamesWithoutChangingDestinations() throws Exception {
@@ -461,7 +464,7 @@ class BackofficeIntegrationTest {
         assertThat(site.menus(actor).get(1).label()).isEqualTo(title);
         site.menu(actor,null,"교육 신청","LINK",null,"https://example.test/apply",true);
         assertThat(site.menus(actor).get(2).label()).isEqualTo("교육 신청");
-        assertThat(browser.get("/admin/menus?edit="+menu).body()).contains("학교 소식","CATEGORY:"+category);
+        assertThat(browser.get("/admin/legacy/menus?edit="+menu).body()).contains("학교 소식","CATEGORY:"+category);
     }
     @Test void structureErrorsKeepInputsAndShowActualReferences() throws Exception {
         var browser=root();var actor=principal(ROOT);
@@ -473,13 +476,13 @@ class BackofficeIntegrationTest {
         var invalid=browser.post("/admin/menus",Map.of("destination","LINK","label","입력 유지","url","javascript:alert(1)","visible","true"));
         assertThat(invalid.statusCode()).isEqualTo(400);assertThat(invalid.body()).contains("value=\"입력 유지\"");assertThat(site.menus(actor)).isEmpty();
         long post=posts.save(actor,null,null,"연결된 글","본문",category,List.of(),"publish");
-        redirect(browser.post("/admin/categories/"+category+"/delete",Map.of()),"/admin/categories");
-        assertThat(browser.get("/admin/categories").body()).contains("사용 중인 곳","연결된 글","/admin/posts/"+post+"/edit");
+        redirect(browser.post("/admin/categories/"+category+"/delete",Map.of()),"/admin/legacy/categories");
+        assertThat(browser.get("/admin/legacy/categories").body()).contains("사용 중인 곳","연결된 글","/admin/posts/"+post+"/edit");
         assertThat(site.categories()).hasSize(1);
         long imageId=image(actor,"사용 중 이미지.png");
         posts.save(actor,post,0L,"연결된 글","본문",category,List.of(imageId),"save");
-        redirect(browser.post("/admin/media/"+imageId+"/delete",Map.of("confirmed","true")),"/admin/media");
-        assertThat(browser.get("/admin/media").body()).contains("사용 중인 곳","연결된 글");
+        redirect(browser.post("/admin/media/"+imageId+"/delete",Map.of("confirmed","true")),"/admin/legacy/media");
+        assertThat(browser.get("/admin/legacy/media").body()).contains("사용 중인 곳","연결된 글");
     }
     @Test void pageAddressesAreGeneratedOnceAndSavingReturnsPublicationState() throws Exception {
         var browser=root();var actor=principal(ROOT);var json=new com.fasterxml.jackson.databind.ObjectMapper();
@@ -498,23 +501,23 @@ class BackofficeIntegrationTest {
     }
     @Test void listContextAndSelectedCategorySurviveEditingWithoutExternalRedirects() throws Exception {
         var browser=root();var actor=principal(ROOT);site.category(actor,null,"선택 분류");long category=site.categories().get(0).id();
-        String from="/admin/posts?categoryId="+category+"&status=DRAFT&q=keyword&page=2";
+        String from="/admin/legacy/posts?categoryId="+category+"&status=DRAFT&q=keyword&page=2";
         String encoded=java.net.URLEncoder.encode(from,java.nio.charset.StandardCharsets.UTF_8);
-        var page=browser.get("/admin/posts/new?categoryId="+category+"&from="+encoded);
+        var page=browser.get("/admin/legacy/posts/new?categoryId="+category+"&from="+encoded);
         assertThat(page.statusCode()).isEqualTo(200);
         assertThat(page.body()).contains("value=\""+category+"\" selected=\"selected\"", "name=\"from\"", "keyword");
-        var empty=browser.get("/admin/posts?categoryId="+category);
+        var empty=browser.get("/admin/legacy/posts?categoryId="+category);
         assertThat(empty.body()).contains("조건에 맞는 글이 없습니다","필터 해제");
         long id=posts.save(actor,null,null,"keyword","본문",category,List.of(),"save");
-        assertThat(browser.get("/admin/posts?q=keyword").body()).contains("/admin/posts/"+id+"/edit?from=");
-        redirect(browser.post("/admin/posts/"+id+"/delete",Map.of("from","https://example.test/evil","revision",""+posts.get(actor,id).revision(),"confirmed","true")),"/admin/posts");
+        assertThat(browser.get("/admin/legacy/posts?q=keyword").body()).contains("/admin/legacy/posts/"+id+"/edit?from=");
+        redirect(browser.post("/admin/posts/"+id+"/delete",Map.of("from","https://example.test/evil","revision",""+posts.get(actor,id).revision(),"confirmed","true")),"/admin/legacy/posts");
         assertThat(egovframework.backoffice.mvp.common.ListLocation.posts(from)).isEqualTo(from);
-        assertThat(egovframework.backoffice.mvp.common.ListLocation.posts("//example.test")).isEqualTo("/admin/posts");
+        assertThat(egovframework.backoffice.mvp.common.ListLocation.posts("//example.test")).isEqualTo("/admin/legacy/posts");
     }
     @Test void combinedSettingsValidateBeforeWritingAndActivityFiltersOnlyItsView() throws Exception {
         var browser=root();var actor=principal(ROOT);long logo=image(actor,"로고.png");
         var design=new HashMap<>(Map.of("primaryColor","#123abc","headerColor","#102030","radius","8","logoId",String.valueOf(logo),"headerNote","상단","footerText","하단"));
-        redirect(browser.post("/admin/settings/save/design",design),"/admin/design/style");
+        redirect(browser.post("/admin/settings/save/design",design),"/admin/legacy/design/style");
         assertThat(site.settings()).containsEntry("logoId",String.valueOf(logo)).containsEntry("primaryColor","#123abc");
         design.put("primaryColor","#abcdef");design.put("logoId","invalid");
         var rejected=browser.post("/admin/settings/save/design",design);
@@ -524,7 +527,7 @@ class BackofficeIntegrationTest {
         assertThat(site.activities(actor,0,"기록 필터 확인",true)).hasSize(1);
         assertThat(site.activities(actor,0,"기록 필터 확인",false)).isEmpty();
         assertThat(site.activityCount(actor,"기록 필터 확인",true)).isEqualTo(1);
-        assertThat(browser.get("/admin/activity").body()).contains("강조색","상단 문구").doesNotContain("primaryColor, headerColor");
+        assertThat(browser.get("/admin/legacy/activity").body()).contains("강조색","상단 문구").doesNotContain("primaryColor, headerColor");
     }
 
     @Test void incompletePageSectionsRemainSaveableWhilePublicationChecksRequirements() throws Exception {

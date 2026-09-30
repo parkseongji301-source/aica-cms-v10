@@ -2,11 +2,11 @@
 <body class="admin-layout"><div th:replace="~{fragments :: header}"></div><main class="workspace"><h1 th:text="${impact.kind == 'posts'} ? '휴지통 이동 확인' : '영구 삭제 확인'">삭제 확인</h1><div th:replace="~{fragments :: messages}"></div>
 <section class="panel"><h2 th:text="${impact.title}"></h2><p th:text="${impact.consequence}"></p><p>일시적으로 공개에서 내리려면 편집 화면의 ‘공개 중단’을 사용하세요.</p>
 <section th:if="${impact.kind == 'pages'}"><h3>함께 삭제할 버전 이력</h3><p><strong th:text="${impact.history.versionCount}"></strong>개 버전을 영구 삭제합니다. 도입 기준점과 발행 이력도 포함하며 복구할 수 없습니다.</p><p>아래 파일의 과거 버전 참조가 해제됩니다. 다른 사용처가 있으면 계속 보호되며 파일 자체는 삭제하지 않습니다.</p><ul><li th:each="file : ${impact.history.files}" th:text="|${file.name} (#${file.id})|"></li></ul></section>
-<p th:if="${impact.kind == 'posts'}"><strong th:text="${impact.history.versionCount}"></strong>개 버전 이력을 유지합니다. <a href="/admin-next/trash?view=manage">휴지통 열기</a></p>
+<p th:if="${impact.kind == 'posts'}"><strong th:text="${impact.history.versionCount}"></strong>개 버전 이력을 유지합니다. <a href="/admin/trash?view=manage">휴지통 열기</a></p>
 <h3>현재 참조 위치와 영향</h3><p th:if="${#lists.isEmpty(impact.uses)}">현재 관리 데이터에서 확인한 참조가 없습니다. 직접 입력한 URL과 외부 링크는 자동 검사에 포함되지 않습니다.</p>
 <ul><li th:each="use : ${impact.uses}"><a th:href="${use.href}" th:text="${use.label}"></a></li></ul>
 <form th:action="@{/admin/{kind}/{id}/delete(kind=${impact.kind},id=${impact.id})}" method="post">
 <input type="hidden" name="revision" th:value="${impact.revision}">
 <label><input type="checkbox" name="confirmed" value="true" required> <span th:text="${impact.kind == 'posts'} ? '공개에서 제외되고 휴지통으로 이동함을 확인했습니다.' : '삭제 영향과 복구할 수 없음을 확인했습니다.'"></span></label>
-<div class="form-actions"><a class="button secondary" th:href="${impact.kind == 'media'} ? @{/admin/media} : @{/admin/{kind}/{id}/edit(kind=${impact.kind},id=${impact.id})}">취소</a><button class="danger" th:text="${impact.kind == 'posts'} ? '휴지통으로 이동' : '영구 삭제'">삭제</button></div>
+<div class="form-actions"><a class="button secondary" th:href="${impact.kind == 'media'} ? @{/admin/legacy/media} : @{/admin/legacy/{kind}/{id}/edit(kind=${impact.kind},id=${impact.id})}">취소</a><button class="danger" th:text="${impact.kind == 'posts'} ? '휴지통으로 이동' : '영구 삭제'">삭제</button></div>
 </form></section></main></body></html>

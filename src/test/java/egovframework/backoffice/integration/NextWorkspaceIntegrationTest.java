@@ -114,7 +114,7 @@ class NextWorkspaceIntegrationTest {
         var root=login("SUPER_ADMIN");var boot=ok(root.get(API+"/bootstrap"));
         assertThat(boot.path("pages").size()).isEqualTo(2);assertThat(boot.path("menus").size()).isEqualTo(3);
         for(String path:List.of("dashboard","posts","media","pages","menus","design/style","design/components","accounts","roles","activity","settings/basic","settings/links","settings/system","pages/1/edit","pages/65/edit")) {
-            var response=root.get("/admin-next/"+path);assertThat(response.statusCode()).as(path).isEqualTo(200);assertThat(response.body()).contains("id=\"root\"","/next-app/assets/");
+            var response=root.get("/admin/"+path);assertThat(response.statusCode()).as(path).isEqualTo(200);assertThat(response.body()).contains("id=\"root\"","/next-app/assets/");
         }
         for(String path:List.of("dashboard","posts","media","pages","menus","links","accounts","roles","activity","settings/basic","settings/style","settings/components","settings/system"))ok(root.get(API+"/"+path));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages",Integer.class)).isEqualTo(2);
@@ -134,7 +134,7 @@ class NextWorkspaceIntegrationTest {
             assertThat(saved.path("id").asLong()).isEqualTo(id);
             assertThat(saved.path("revision").asLong()).isEqualTo(5);
             assertThat(pages.get(principal("ADMIN"),id).title()).isEqualTo("공통 편집 "+id);
-            assertThat(admin.get("/admin/pages/"+id+"/edit").body()).contains("공통 편집 "+id);
+            assertThat(admin.get("/admin/legacy/pages/"+id+"/edit").body()).contains("공통 편집 "+id);
             assertThat(ok(admin.get(API+"/pages/"+id+"/preview")).path("title").asText()).isEqualTo("공통 편집 "+id);
             assertThat(jdbc.queryForObject("SELECT revision FROM page_publications WHERE page_id=?",Long.class,id)).isEqualTo(4);
         }
@@ -150,7 +150,7 @@ class NextWorkspaceIntegrationTest {
         var own=ok(supporter.get(API+"/posts"));assertThat(own.path("total").asLong()).isEqualTo(1);assertThat(own.path("items").get(0).path("id").asLong()).isEqualTo(102);
         assertThat(ok(supporter.get(API+"/posts?categoryId=11")).path("total").asLong()).isZero();
         assertThat(ok(admin.get(API+"/posts?q=missing")).path("total").asLong()).isZero();
-        assertThat(admin.get("/admin/posts/101/edit").body()).contains("공지 원본");
+        assertThat(admin.get("/admin/legacy/posts/101/edit").body()).contains("공지 원본");
         var dash=ok(supporter.get(API+"/dashboard"));assertThat(dash.path("total").asLong()).isEqualTo(1);assertThat(dash.path("trafficStatus").asText()).isEqualTo("NOT_CONNECTED");
     }
 
@@ -186,7 +186,7 @@ class NextWorkspaceIntegrationTest {
         write(admin,"PUT","/settings/system",Map.of("postsPerPage","24"),csrf);
         write(admin,"PUT","/settings/basic",Map.of("siteName","관리 검증","description","소개","contactEmail","","homePageId","1"),csrf);
         assertThat(site.settings().get("postsPerPage")).isEqualTo("24");
-        assertThat(admin.get("/admin/settings/basic").body()).contains("관리 검증");
+        assertThat(admin.get("/admin/legacy/settings/basic").body()).contains("관리 검증");
         denied(admin.json("PUT",API+"/settings/system","{\"postsPerPage\":\"999\"}",csrf),400);
         assertThat(site.settings().get("postsPerPage")).isEqualTo("24");
         var links=write(admin,"POST","/links",Map.of("label","AICA","url","https://example.com/aica"),csrf);long link=links.get(0).path("id").asLong();
@@ -202,7 +202,7 @@ class NextWorkspaceIntegrationTest {
         var bytes=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(3,2,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",bytes);
         long media=ok(admin.upload(API+"/media",bytes.toByteArray())).path("id").asLong();
         write(admin,"PUT","/media/"+media,Map.of("name","공통 이미지.png","alt","설명"),csrf);
-        assertThat(admin.get("/admin/media").body()).contains("공통 이미지.png");
+        assertThat(admin.get("/admin/legacy/media").body()).contains("공통 이미지.png");
         assertThat(ok(supporter.get(API+"/media")).size()).isZero();
         denied(supporter.json("PUT",API+"/media/"+media,"{\"name\":\"침범\",\"alt\":\"\"}",supportToken),403);
         denied(supporter.json("DELETE",API+"/media/"+media,"{}",supportToken),403);
@@ -217,10 +217,10 @@ class NextWorkspaceIntegrationTest {
         var anonymous=new HttpBrowser(port);denied(anonymous.get(API+"/dashboard"),401);
         var root=login("SUPER_ADMIN");var admin=login("ADMIN");var supporter=login("SUPPORTER");String csrf=token(supporter);
         assertThat(ok(supporter.get(API+"/bootstrap")).path("pages").size()).isZero();
-        assertThat(supporter.get("/admin-next/posts").statusCode()).isEqualTo(200);
+        assertThat(supporter.get("/admin/posts").statusCode()).isEqualTo(200);
         for(String path:List.of("pages","menus","links","settings/basic","settings/style","settings/components","settings/system","accounts","roles","activity"))denied(supporter.get(API+"/"+path),403);
         for(String path:List.of("menus","links","settings/basic","settings/style","settings/components","settings/system"))denied(supporter.json("PUT",API+"/"+path,"{}",csrf),403);
-        for(String path:List.of("accounts","roles","activity")){denied(admin.get(API+"/"+path),403);assertThat(admin.get("/admin-next/"+path).statusCode()).isEqualTo(403);}
+        for(String path:List.of("accounts","roles","activity")){denied(admin.get(API+"/"+path),403);assertThat(admin.get("/admin/"+path).statusCode()).isEqualTo(200);}
         denied(admin.json("PUT",API+"/settings/system","{\"postsPerPage\":\"6\"}",null),403);
         var response=root.get(API+"/accounts");assertThat(response.body()).doesNotContain("passwordHash","authVersion","$2a$","$2b$");assertThat(ok(response).size()).isEqualTo(3);
         assertThat(ok(root.get(API+"/roles")).size()).isEqualTo(3);

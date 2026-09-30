@@ -140,7 +140,7 @@ class NextAdminIntegrationTest {
         var admin=login("ADMIN");var boot=boot(admin);String csrf=boot.path("csrf").path("token").asText();
         assertThat(boot.path("pages").get(0).path("id").asLong()).isEqualTo(65);
         assertThat(boot.path("menus").get(0).path("targetId").asLong()).isEqualTo(65);
-        for(String path:List.of("/admin-next?view=manage","/admin-next/pages/65/edit?view=structure")) {
+        for(String path:List.of("/admin?view=manage","/admin/pages/65/edit?view=structure")) {
             var response=admin.get(path);assertThat(response.statusCode()).isEqualTo(200);
             assertThat(response.body()).contains("id=\"root\"","/next-app/assets/");
         }
@@ -151,8 +151,8 @@ class NextAdminIntegrationTest {
         assertThat(saved.path("slug").asText()).isEqualTo("about");
         assertThat(saved.path("pending").asBoolean()).isTrue();
         assertThat(ok(admin.get(API+"/pages/65"))).isEqualTo(saved);
-        assertThat(admin.get("/admin/pages/65/edit").body()).contains("React에서 수정");
-        redirect(admin.post("/admin/pages/save",Map.of("id","65","revision","5","title","기존 편집기 수정","slug","about","sectionsJson",saved.path("sections").toString(),"action","save")),"/admin/pages/65/edit");
+        assertThat(admin.get("/admin/legacy/pages/65/edit").body()).contains("React에서 수정");
+        redirect(admin.post("/admin/pages/save",Map.of("id","65","revision","5","title","기존 편집기 수정","slug","about","sectionsJson",saved.path("sections").toString(),"action","save")),"/admin/legacy/pages/65/edit");
         assertThat(ok(admin.get(API+"/pages/65")).path("title").asText()).isEqualTo("기존 편집기 수정");
         assertThat(jdbc.queryForObject("SELECT title FROM page_publications WHERE page_id=65",String.class)).isEqualTo("인사교 소개");
         assertThat(jdbc.queryForObject("SELECT revision FROM page_publications WHERE page_id=65",Long.class)).isEqualTo(4);
@@ -198,7 +198,8 @@ class NextAdminIntegrationTest {
     @Test void unchangedRoleAndSessionRestrictionsApplyToBothModesAndAllApis()throws Exception {
         var anonymous=new HttpBrowser(port);error(anonymous.get(API+"/bootstrap"),401);
         var supporter=login("SUPPORTER");String csrf=extract(supporter.get("/login").body(),"name=\"_csrf\"[^>]*value=\"([^\"]+)\"");
-        for(String path:List.of("/admin-next/pages/65/edit?view=manage","/admin-next/pages/65/edit?view=structure","/admin/pages/65/edit"))assertThat(supporter.get(path).statusCode()).isEqualTo(403);
+        for(String path:List.of("/admin/pages/65/edit?view=manage","/admin/pages/65/edit?view=structure"))assertThat(supporter.get(path).statusCode()).isEqualTo(200);
+        assertThat(supporter.get("/admin/legacy/pages/65/edit").statusCode()).isEqualTo(403);
         assertThat(boot(supporter).path("permissions").path("site").asBoolean()).isFalse();
         for(String path:List.of("/pages/65","/pages/65/preview"))error(supporter.get(API+path),403);
         error(supporter.json("PUT",API+"/pages/65",edit("침범",4).toString(),csrf),403);

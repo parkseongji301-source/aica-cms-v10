@@ -47,7 +47,7 @@ public class UsageService {
             if(type.equals("media") && setting.settingKey().equals("logoId")) uses.add(new Usage("사이트 로고","/admin/design/style"));
         }
         if(access.actor(actor).role()!=egovframework.backoffice.mvp.account.Role.SUPER_ADMIN)
-            return uses.stream().map(use->"/admin-next/trash".equals(use.href())?new Usage("휴지통의 콘텐츠에서 사용 중",null):use).distinct().toList();
+            return uses.stream().map(use->"/admin/trash".equals(use.href())?new Usage("휴지통의 콘텐츠에서 사용 중",null):use).distinct().toList();
         return List.copyOf(uses);
     }
     private boolean hasCategory(String document,long id) {

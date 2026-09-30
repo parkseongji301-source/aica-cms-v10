@@ -7,10 +7,10 @@
 <p><strong>초안 분류</strong> · <span th:text="${classification.typeName}"></span>
  · 기수: <span th:if="${#lists.isEmpty(classification.cohorts)}">없음</span><span th:each="term,item : ${classification.cohorts}" th:text="${term.name + (item.last ? '' : ', ')}"></span>
  · 주제: <span th:if="${#lists.isEmpty(classification.topics)}">없음</span><span th:each="term,item : ${classification.topics}" th:text="${term.name + (item.last ? '' : ', ')}"></span>
- · <a th:href="@{/admin-next/posts/{id}/edit(id=${postId},view='manage')}" target="_blank" rel="noopener noreferrer">유형·기수·주제 편집 ↗</a></p>
+ · <a th:href="@{/admin/posts/{id}/edit(id=${postId},view='manage')}" target="_blank" rel="noopener noreferrer">유형·기수·주제 편집 ↗</a></p>
 </section>
-<section class="notice" th:if="${restaurant != null}" aria-label="현재 초안 주소"><p><strong>맛집 주소</strong> · <span th:text="${#strings.isEmpty(restaurant.address) ? '입력 없음' : restaurant.address}"></span> · <a th:href="@{/admin-next/posts/{id}/edit(id=${postId},view='manage')}" target="_blank" rel="noopener noreferrer">주소 편집 ↗</a></p></section>
-<p class="muted" th:if="${postId != null}"><a th:href="@{/admin-next/posts/{id}/edit(id=${postId},view='manage',history='all')}" target="_blank" rel="noopener noreferrer">React에서 버전 이력 확인 ↗</a></p>
+<section class="notice" th:if="${restaurant != null}" aria-label="현재 초안 주소"><p><strong>맛집 주소</strong> · <span th:text="${#strings.isEmpty(restaurant.address) ? '입력 없음' : restaurant.address}"></span> · <a th:href="@{/admin/posts/{id}/edit(id=${postId},view='manage')}" target="_blank" rel="noopener noreferrer">주소 편집 ↗</a></p></section>
+<p class="muted" th:if="${postId != null}"><a th:href="@{/admin/posts/{id}/edit(id=${postId},view='manage',history='all')}" target="_blank" rel="noopener noreferrer">React에서 버전 이력 확인 ↗</a></p>
 <form class="writing-form" th:action="${editing} ? @{/admin/posts/{id}/edit(id=${postId})} : @{/admin/posts}" method="post" data-writing-form data-kind="posts">
 <input type="hidden" name="from" th:value="${returnTo}"><input type="hidden" name="id" th:value="${postId}"><input type="hidden" name="saveIntent" value="MANUAL_DRAFT">
 <input type="hidden" name="revision" th:value="${revision}">

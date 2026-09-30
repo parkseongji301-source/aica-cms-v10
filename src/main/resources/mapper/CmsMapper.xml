@@ -166,12 +166,12 @@
  <select id="anyPagePublication" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublishedPage">SELECT * FROM page_publications WHERE page_id=#{value}</select>
  <select id="categoryPostUses" resultType="egovframework.backoffice.mvp.cms.UsageService$Usage">
  SELECT DISTINCT CASE WHEN p.deleted_at IS NULL THEN '글 · ' ELSE '휴지통 · ' END || p.title AS label,
- CASE WHEN p.deleted_at IS NULL THEN '/admin/posts/' || p.id || '/edit' ELSE '/admin-next/trash' END AS href FROM posts p LEFT JOIN post_publications pp ON pp.post_id=p.id
+ CASE WHEN p.deleted_at IS NULL THEN '/admin/posts/' || p.id || '/edit' ELSE '/admin/trash' END AS href FROM posts p LEFT JOIN post_publications pp ON pp.post_id=p.id
  WHERE (p.deleted_at IS NULL OR EXISTS(SELECT 1 FROM post_trash WHERE post_id=p.id)) AND (p.category_id=#{id} OR pp.category_id=#{id})
  </select>
  <select id="mediaPostUses" resultType="egovframework.backoffice.mvp.cms.UsageService$Usage">
  SELECT DISTINCT CASE WHEN p.deleted_at IS NULL THEN '글 · ' ELSE '휴지통 · ' END || p.title AS label,
- CASE WHEN p.deleted_at IS NULL THEN '/admin/posts/' || p.id || '/edit' ELSE '/admin-next/trash' END AS href FROM posts p
+ CASE WHEN p.deleted_at IS NULL THEN '/admin/posts/' || p.id || '/edit' ELSE '/admin/trash' END AS href FROM posts p
  WHERE (p.deleted_at IS NULL OR EXISTS(SELECT 1 FROM post_trash WHERE post_id=p.id)) <if test="owner != null">AND p.author_id=#{owner}</if> AND (p.id IN (SELECT post_id FROM post_media WHERE media_id=#{id}) OR p.id IN (SELECT post_id FROM post_publication_media WHERE media_id=#{id}))
  </select>
  <select id="mediaPageUses" resultType="egovframework.backoffice.mvp.cms.UsageService$Usage">

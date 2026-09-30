@@ -51,7 +51,7 @@ class OperatingPolicyIntegrationTest {
   assertThat(b.post("/admin/posts/"+id+"/edit",postFields(id,"publish")).statusCode()).isEqualTo(403);
   assertThat(b.post("/admin/posts/"+id+"/unpublish",Map.of("revision",""+posts.get(actor("SUPPORTER"),id).revision())).statusCode()).isEqualTo(403);
   assertThat(b.post("/admin/posts/"+id+"/delete",Map.of("confirmed","true","revision","0")).statusCode()).isEqualTo(403);
-  assertThat(b.get("/admin/posts/"+id+"/edit").body()).doesNotContain("value=\"publish\"","data-document-action=\"unpublish\"","영구 삭제 검토");
+  assertThat(b.get("/admin/legacy/posts/"+id+"/edit").body()).doesNotContain("value=\"publish\"","data-document-action=\"unpublish\"","영구 삭제 검토");
   assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publications WHERE post_id=?",Integer.class,id)).isZero();
  }
  @Test void adminCanOperateExistingDocumentsButCannotChangeStructure()throws Exception{
@@ -63,7 +63,7 @@ class OperatingPolicyIntegrationTest {
   assertThat(b.post("/admin/pages/save-json",pageFields("policy-page")).statusCode()).isEqualTo(200);
   assertThat(b.post("/admin/pages/save-json",pageFields("changed-url")).statusCode()).isEqualTo(403);
   assertThat(b.post("/admin/pages/save-json",Map.of("title","새 페이지","sectionsJson","[]")).statusCode()).isEqualTo(403);
-  assertThat(b.get("/admin/pages/new").statusCode()).isEqualTo(403);
+  assertThat(b.get("/admin/legacy/pages/new").statusCode()).isEqualTo(403);
   assertThat(b.post("/admin/pages/"+page+"/delete",Map.of("confirmed","true","revision","0")).statusCode()).isEqualTo(403);
   assertThat(b.post("/admin/posts/"+post+"/delete",Map.of("confirmed","true","revision",""+posts.get(actor("ADMIN"),post).revision())).statusCode()).isEqualTo(403);
   var boot=read(b.get(API+"/bootstrap"));assertThat(boot.path("permissions").path("site").asBoolean()).isTrue();assertThat(boot.path("permissions").path("structure").asBoolean()).isFalse();
@@ -72,8 +72,8 @@ class OperatingPolicyIntegrationTest {
    assertThat(b.json("PUT",API+path,"{}",csrf(b)).statusCode()).as(path).isEqualTo(403);
   }
   read(b.get(API+"/page-structure"));read(b.get(API+"/page-components"));
-  String html=b.get("/admin/pages/"+page+"/edit").body();assertThat(html).doesNotContain("페이지 주소 설정","영구 삭제 검토").contains("value=\"publish\"");
-  assertThat(b.get("/admin/pages").body()).doesNotContain("href=\"/admin/pages/new\"");
+  String html=b.get("/admin/legacy/pages/"+page+"/edit").body();assertThat(html).doesNotContain("페이지 주소 설정","영구 삭제 검토").contains("value=\"publish\"");
+  assertThat(b.get("/admin/legacy/pages").body()).doesNotContain("href=\"/admin/legacy/pages/new\"");
   assertThatThrownBy(()->site.menu(actor("ADMIN"),null,"링크","LINK",null,"https://example.test",true)).isInstanceOf(AccessDeniedException.class);
  }
  @Test void missingAndStaleRevisionsNeverOverwriteAndWithdrawalAdvancesVersion()throws Exception{
@@ -102,7 +102,7 @@ class OperatingPolicyIntegrationTest {
   long linked=pages.save(root,null,null,"참조 페이지","linked-page",blocks,"publish");
   var template=templates.save(root,null,null,"참조 템플릿","",false,pages.sections(pages.get(root,linked).sectionsJson()));
   var impact=impacts.get(root,"posts",post);assertThat(impact.uses()).hasSize(3);
-  String html=b.get("/admin/posts/"+post+"/delete-confirm").body();assertThat(html).contains("참조 페이지","참조 템플릿","name=\"confirmed\"","휴지통");
+  String html=b.get("/admin/legacy/posts/"+post+"/delete-confirm").body();assertThat(html).contains("참조 페이지","참조 템플릿","name=\"confirmed\"","휴지통");
   assertThat(b.post("/admin/posts/"+post+"/delete",Map.of("revision",""+impact.revision())).statusCode()).isEqualTo(400);
   assertThat(b.post("/admin/posts/"+post+"/delete",Map.of("revision",""+impact.revision(),"confirmed","true")).statusCode()).isEqualTo(302);
   assertThat(templates.get(root,template.info().id()).references().get(0).status()).isEqualTo("DELETED");

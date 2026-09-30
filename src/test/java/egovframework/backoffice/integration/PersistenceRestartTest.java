@@ -58,7 +58,7 @@ class PersistenceRestartTest {
             hash = mapper.findByEmail(email).passwordHash();
             var browser = new HttpBrowser(port(first));
             browser.login(email, changed, "/admin");
-            assertThat(browser.get("/admin/posts/" + postId).body()).contains("파일 DB 본문");
+            assertThat(browser.get("/admin/legacy/posts/" + postId).body()).contains("파일 DB 본문");
         }
         // A new application context and a new embedded Tomcat process lifecycle, using the same DB file.
         try (var second = start(url, true, email, initial)) {
@@ -71,23 +71,23 @@ class PersistenceRestartTest {
             assertThat(classifications.draft(postId).topicIds()).containsExactly(902L);
             assertThat(classifications.published(postId)).isEqualTo(classifications.draft(postId));
             var browser = new HttpBrowser(port(second));
-            redirect(browser.get("/admin/posts"), "/login");
+            redirect(browser.get("/admin/legacy/posts"), "/login");
             browser.login(email, initial, "/login?error");
             browser.login(email, changed, "/admin");
             var trashService=second.getBean(PostService.class);var trashActor=new AccountPrincipal(mapper.findByEmail(email));
             assertThat(trashService.trash(trashActor,0,"").items()).extracting(Post::id).containsExactly(trashedId);
             var recovered=trashService.restoreTrash(trashActor,trashedId,trashService.trashed(trashActor,trashedId).revision());
             assertThat(recovered.status()).isEqualTo("DRAFT");assertThat(recovered.content()).isEqualTo("휴지통 본문");
-            assertThat(browser.get("/admin/posts/" + postId).body()).contains("재시작 후 유지", "파일 DB 본문");
-            assertThat(browser.get("/admin/accounts").body()).contains("persist-admin@example.test", "persist-support@example.test");
+            assertThat(browser.get("/admin/legacy/posts/" + postId).body()).contains("재시작 후 유지", "파일 DB 본문");
+            assertThat(browser.get("/admin/legacy/accounts").body()).contains("persist-admin@example.test", "persist-support@example.test");
             var anonymous = new HttpBrowser(port(second));
-            assertThat(browser.get("/admin/posts/"+postId+"/publication").body()).contains("<strong>파일 DB 본문</strong>","rt-width-50","재시작 이미지");
-            assertThat(browser.get("/admin/pages/"+pageId+"/preview").body()).contains("유지되는 섹션");
-            assertThat(browser.get("/admin/menus").body()).contains("영속 페이지");
-            assertThat(browser.get("/admin/design/components").body()).contains("유지되는 헤더","유지되는 푸터");
+            assertThat(browser.get("/admin/legacy/posts/"+postId+"/publication").body()).contains("<strong>파일 DB 본문</strong>","rt-width-50","재시작 이미지");
+            assertThat(browser.get("/admin/legacy/pages/"+pageId+"/preview").body()).contains("유지되는 섹션");
+            assertThat(browser.get("/admin/legacy/menus").body()).contains("영속 페이지");
+            assertThat(browser.get("/admin/legacy/design/components").body()).contains("유지되는 헤더","유지되는 푸터");
             assertThat(browser.get("/admin/media/"+imageId+"/file").statusCode()).isEqualTo(200);
             assertThat(anonymous.get("/site").statusCode()).isNotEqualTo(200);
-            assertThat(browser.get("/admin/activity").body()).contains("글 발행","페이지 발행","사이트 설정 변경");
+            assertThat(browser.get("/admin/legacy/activity").body()).contains("글 발행","페이지 발행","사이트 설정 변경");
         }
     }
     private ConfigurableApplicationContext start(String url, boolean bootstrap, String email, String password) {

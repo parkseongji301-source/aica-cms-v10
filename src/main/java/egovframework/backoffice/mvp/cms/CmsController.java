@@ -19,7 +19,7 @@ public class CmsController {
  public CmsController(CmsStore store,CmsAccess access,SiteService site,PageService pages,MediaService media,UsageService usages) {
   this.store=store;this.access=access;this.site=site;this.pages=pages;this.media=media;this.usages=usages;
  }
- @GetMapping("/admin/media")
+ @GetMapping("/admin/legacy/media")
  public String media(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam(defaultValue="") String q,Model model) {
   model.addAttribute("mediaItems",media.list(actor,q));model.addAttribute("query",q);return "cms/media";
  }
@@ -33,7 +33,7 @@ public class CmsController {
  public String upload(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam MultipartFile file,@RequestParam(defaultValue="") String alt,RedirectAttributes redirect) {
   try {media.upload(actor,file,alt);redirect.addFlashAttribute("notice","파일을 업로드했습니다.");}
   catch(BusinessException error) {redirect.addFlashAttribute("formError",error.getMessage());}
-  return "redirect:/admin/media";
+  return "redirect:/admin/legacy/media";
  }
  @PostMapping("/admin/media/upload") @ResponseBody
  public ResponseEntity<?> quickUpload(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam MultipartFile file,@RequestParam(defaultValue="false") boolean imageOnly) {
@@ -42,7 +42,7 @@ public class CmsController {
  }
  @PostMapping("/admin/media/{id}/edit")
  public String editMedia(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestParam String name,@RequestParam(defaultValue="") String alt,Model model,HttpServletResponse response,RedirectAttributes redirect) {
-  try {media.edit(actor,id,name,alt);redirect.addFlashAttribute("notice","파일 정보를 저장했습니다.");return "redirect:/admin/media";}
+  try {media.edit(actor,id,name,alt);redirect.addFlashAttribute("notice","파일 정보를 저장했습니다.");return "redirect:/admin/legacy/media";}
   catch(BusinessException error){failure(model,response,error);model.addAttribute("failedMediaId",id);model.addAttribute("failedName",name);model.addAttribute("failedAlt",alt);return media(actor,"",model);}
  }
  @PostMapping("/admin/media/{id}/delete")
@@ -50,7 +50,7 @@ public class CmsController {
   if(!confirmed)throw new BusinessException("영구 삭제 영향을 확인하세요.");
   try {media.delete(actor,id);redirect.addFlashAttribute("notice","파일을 삭제했습니다.");}
   catch(BusinessException error){redirect.addFlashAttribute("formError",error.getMessage());redirect.addFlashAttribute("usages",usages.find(actor,"media",id));}
-  return "redirect:/admin/media";
+  return "redirect:/admin/legacy/media";
  }
  private String structure(AccountPrincipal actor,String type,Long edit,Map<String,String> input,Model model) {
   access.manager(actor);var fields=new HashMap<String,String>();fields.put("visible","true");fields.put("destination","");
@@ -69,15 +69,15 @@ public class CmsController {
   model.addAttribute("editId",edit);model.addAttribute("formValues",fields);model.addAttribute("structure",type);model.addAttribute("base",base);
   model.addAttribute("pages",pages.list(actor));model.addAttribute("categories",site.categories());return "cms/structure";
  }
- @GetMapping("/admin/categories")
+ @GetMapping("/admin/legacy/categories")
  public String categories(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam(required=false) Long edit,Model model) {return structure(actor,"categories",edit,null,model);}
- @GetMapping("/admin/menus")
+ @GetMapping("/admin/legacy/menus")
  public String menus(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam(required=false) Long edit,Model model) {return structure(actor,"menus",edit,null,model);}
- @GetMapping("/admin/settings/links")
+ @GetMapping("/admin/legacy/settings/links")
  public String links(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam(required=false) Long edit,Model model) {return structure(actor,"links",edit,null,model);}
  @PostMapping("/admin/categories")
  public String category(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam(required=false) Long id,@RequestParam Map<String,String> fields,Model model,HttpServletResponse response,RedirectAttributes redirect) {
-  try{site.category(actor,id,fields.get("name"));redirect.addFlashAttribute("notice","저장했습니다.");return "redirect:/admin/categories";}
+  try{site.category(actor,id,fields.get("name"));redirect.addFlashAttribute("notice","저장했습니다.");return "redirect:/admin/legacy/categories";}
   catch(BusinessException|DuplicateKeyException error){failure(model,response,error);return structure(actor,"categories",id,fields,model);}
  }
  @PostMapping("/admin/menus")
@@ -87,34 +87,34 @@ public class CmsController {
    if(destination!=null){String[] parts=destination.split(":",-1);kind=parts[0];target=parts.length==2?positiveId(parts[1]):null;}
    else {kind=fields.getOrDefault("kind","");target=positiveId(fields.get(kind.equals("PAGE")?"pageId":"categoryId"));}
    site.menu(actor,id,fields.get("label"),kind,target,fields.get("url"),"true".equals(fields.get("visible")));
-   redirect.addFlashAttribute("notice","저장했습니다.");return "redirect:/admin/menus";
+   redirect.addFlashAttribute("notice","저장했습니다.");return "redirect:/admin/legacy/menus";
   }catch(BusinessException error){failure(model,response,error);return structure(actor,"menus",id,fields,model);}
  }
  @PostMapping("/admin/settings/links")
  public String link(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam(required=false) Long id,@RequestParam Map<String,String> fields,Model model,HttpServletResponse response,RedirectAttributes redirect) {
-  try{site.link(actor,id,fields.get("label"),fields.get("url"));redirect.addFlashAttribute("notice","저장했습니다.");return "redirect:/admin/settings/links";}
+  try{site.link(actor,id,fields.get("label"),fields.get("url"));redirect.addFlashAttribute("notice","저장했습니다.");return "redirect:/admin/legacy/settings/links";}
   catch(BusinessException error){failure(model,response,error);return structure(actor,"links",id,fields,model);}
  }
  @PostMapping("/admin/categories/{id}/delete")
  public String deleteCategory(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,RedirectAttributes redirect) {
   try{site.deleteCategory(actor,id);redirect.addFlashAttribute("notice","삭제했습니다.");}
   catch(BusinessException error){redirect.addFlashAttribute("formError",error.getMessage());redirect.addFlashAttribute("usages",usages.find(actor,"categories",id));}
-  return "redirect:/admin/categories";
+  return "redirect:/admin/legacy/categories";
  }
  @PostMapping("/admin/menus/{id}/delete")
  public String deleteMenu(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestParam(required=false) Long parentId,RedirectAttributes redirect) {
   try{site.deleteItem(actor,"menus",id);redirect.addFlashAttribute("notice","삭제했습니다.");}catch(BusinessException error){redirect.addFlashAttribute("formError",error.getMessage());}
-  return "redirect:/admin/menus"+(parentId==null?"":"?parent="+parentId);
+  return "redirect:/admin/legacy/menus"+(parentId==null?"":"?parent="+parentId);
  }
  @PostMapping("/admin/settings/links/{id}/delete")
- public String deleteLink(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,RedirectAttributes redirect) {site.deleteItem(actor,"links",id);redirect.addFlashAttribute("notice","삭제했습니다.");return "redirect:/admin/settings/links";}
+ public String deleteLink(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,RedirectAttributes redirect) {site.deleteItem(actor,"links",id);redirect.addFlashAttribute("notice","삭제했습니다.");return "redirect:/admin/legacy/settings/links";}
  @PostMapping("/admin/structure/{type}/order")
  public String reorder(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable String type,@RequestParam(required=false) List<Long> ids,RedirectAttributes redirect) {
   if(!Set.of("categories","menus","links").contains(type))throw new BusinessException("목록을 확인하세요.");
   try{site.reorder(actor,type,ids);redirect.addFlashAttribute("notice","순서를 저장했습니다.");}catch(BusinessException error){redirect.addFlashAttribute("formError",error.getMessage());}
-  return "redirect:"+(type.equals("links")?"/admin/settings/links":"/admin/"+type);
+  return "redirect:"+(type.equals("links")?"/admin/legacy/settings/links":"/admin/legacy/"+type);
  }
- @GetMapping({"/admin/settings/basic","/admin/settings/system","/admin/design/style","/admin/design/components"})
+ @GetMapping({"/admin/legacy/settings/basic","/admin/legacy/settings/system","/admin/legacy/design/style","/admin/legacy/design/components"})
  public String settings(@AuthenticationPrincipal AccountPrincipal actor,jakarta.servlet.http.HttpServletRequest request,Model model) {return settingsForm(actor,request.getServletPath().contains("/design/")?"design":"basic",null,model);}
  private String settingsForm(AccountPrincipal actor,String group,Map<String,String> input,Model model) {
   access.manager(actor);var values=new LinkedHashMap<>(site.settings());if(input!=null)values.putAll(input);
@@ -123,10 +123,10 @@ public class CmsController {
  @PostMapping("/admin/settings/save/{group}")
  public String settings(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable String group,@RequestParam Map<String,String> fields,Model model,HttpServletResponse response,RedirectAttributes redirect) {
   String display=Set.of("design","style","components").contains(group)?"design":"basic";
-  try{site.saveSettings(actor,group,fields);redirect.addFlashAttribute("notice","저장했습니다.");return "redirect:"+(display.equals("design")?"/admin/design/style":"/admin/settings/basic");}
+  try{site.saveSettings(actor,group,fields);redirect.addFlashAttribute("notice","저장했습니다.");return "redirect:"+(display.equals("design")?"/admin/legacy/design/style":"/admin/legacy/settings/basic");}
   catch(BusinessException error){failure(model,response,error);return settingsForm(actor,display,fields,model);}
  }
- @GetMapping("/admin/activity")
+ @GetMapping("/admin/legacy/activity")
  public String activity(@AuthenticationPrincipal AccountPrincipal actor,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="") String q,@RequestParam(defaultValue="false") boolean drafts,Model model) {
   model.addAttribute("activities",site.activities(actor,page,q,drafts));model.addAttribute("total",site.activityCount(actor,q,drafts));model.addAttribute("drafts",drafts);
   model.addAttribute("page",page);model.addAttribute("query",q);return "cms/activity";

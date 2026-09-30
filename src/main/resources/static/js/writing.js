@@ -38,13 +38,13 @@
         form.querySelector('[name="id"]').value=result.id;form.querySelector('[name="revision"]').value=result.revision;
         document.querySelectorAll('[data-document-actions] [name="revision"]').forEach(input=>input.value=result.revision);
         const back=form.querySelector('[name="from"]')?.value;
-        history.replaceState(null,'','/admin/'+kind+'/'+result.id+'/edit'+(back?'?from='+encodeURIComponent(back):''));
+        history.replaceState(null,'','/admin/legacy/'+kind+'/'+result.id+'/edit'+(back?'?from='+encodeURIComponent(back):''));
         if(result.slug)form.querySelector('[name="slug"]').value=result.slug;
         form.querySelector('[data-publication-state]').textContent=result.status==='PUBLISHED'?(result.pending?'발행본 있음 · 미반영 수정':'발행본 있음'):result.status==='PRIVATE'?'비공개':'임시저장';
         const actions=document.querySelector('[data-document-actions]');actions.hidden=false;
         actions.querySelectorAll('[data-document-action]').forEach(f=>{f.action='/admin/'+kind+'/'+result.id+'/'+f.dataset.documentAction;if(f.dataset.documentAction==='unpublish')f.hidden=result.status!=='PUBLISHED';});
-        const review=actions.querySelector('[data-delete-review]');if(review)review.href='/admin/'+kind+'/'+result.id+'/delete-confirm';
-        const link=actions.querySelector('[data-publication-link]');if(link){link.href='/admin/posts/'+result.id+'/publication';link.hidden=result.status!=='PUBLISHED';}
+        const review=actions.querySelector('[data-delete-review]');if(review)review.href='/admin/legacy/'+kind+'/'+result.id+'/delete-confirm';
+        const link=actions.querySelector('[data-publication-link]');if(link){link.href='/admin/legacy/posts/'+result.id+'/publication';link.hidden=result.status!=='PUBLISHED';}
         if(version===submitted)dirty=false;
         const time=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:document.querySelector('meta[name="operating-time-zone"]').content});
         say((action==='publish'?'발행본 저장 완료':'임시저장 완료')+' · '+time+(dirty?' · 새 변경사항 있음':''));

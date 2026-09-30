@@ -17,12 +17,12 @@ public class VersionMediaReferences {
   for(var kind:VersionKind.values())for(var use:versions.uses(kind,media)){
    if(kind==VersionKind.POST&&posts.findTrashed(use.targetId())!=null){
     if(access.actor(actor).role()!=egovframework.backoffice.mvp.account.Role.SUPER_ADMIN){restricted=true;continue;}
-    result.add(new UsageService.Usage("휴지통 · 콘텐츠 #"+use.targetId()+" · 과거 버전 #"+use.versionId(),"/admin-next/trash"));continue;
+    result.add(new UsageService.Usage("휴지통 · 콘텐츠 #"+use.targetId()+" · 과거 버전 #"+use.versionId(),"/admin/trash"));continue;
    }
    try{history.authorize(actor,kind,use.targetId(),false);}
    catch(AccessDeniedException e){restricted=true;continue;}
    String label=(kind==VersionKind.POST?"콘텐츠":kind==VersionKind.PAGE?"페이지":"공용 템플릿")+" #"+use.targetId()+" · 과거 버전 #"+use.versionId()+" · "+use.reason();
-   String href=kind==VersionKind.TEMPLATE?"/admin-next/design/templates?template="+use.targetId()+"&history="+use.versionId():"/admin-next/"+kind.route+"/"+use.targetId()+"/edit?history="+use.versionId();
+   String href=kind==VersionKind.TEMPLATE?"/admin/design/templates?template="+use.targetId()+"&history="+use.versionId():"/admin/"+kind.route+"/"+use.targetId()+"/edit?history="+use.versionId();
    result.add(new UsageService.Usage(label,href));
   }
   if(restricted)result.add(new UsageService.Usage("접근 권한이 없는 대상의 과거 버전에서 사용 중",null));

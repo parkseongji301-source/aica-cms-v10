@@ -16,6 +16,7 @@ import {canOpen,contentPath,entries,managementGroups,pagePath,pageOverviewPath,p
 import {Empty,Feedback,Heading,messageOf,useRemote,setOperatingZone} from './ui';
 import {ReviewTree} from './ReviewTree';
 import {useWorkspaceRoutes} from './useWorkspaceRoutes';
+import {routePath} from './adminBase';
 import {PageOverview} from './PageOverview';
 import {BlockDialog} from './BlockDialog';
 import {ContentTree} from './ContentTree';
@@ -38,7 +39,7 @@ function initialMode(userId:number):ViewMode {
   const value=new URLSearchParams(location.search).get('view');
   let requested:ViewMode=value==='structure'?'structure':'manage';
   if(value!=='manage'&&value!=='structure')try{requested=sessionStorage.getItem('aica-next-view-'+userId)==='structure'?'structure':'manage';}catch{}
-  const path=location.pathname.replace(/^\/admin-next/,'').replace(/\/$/,'');
+  const path=routePath(location.pathname);
   return path?workspaceView(path,requested):requested;
 }
 function PagePanel({id,active,data,onTitle,go,blockId,viewMode,onSelectBlock,onOutline,registerGuard}:{id:number;active:boolean;data:Bootstrap;onTitle:(title:string)=>void;go:Go;blockId:string|null;viewMode:ViewMode;onSelectBlock:(id:string|null,replace?:boolean)=>void;onOutline:(outline:PageTarget)=>void;registerGuard:(path:string,guard:EditorGuard|null)=>void}) {
@@ -154,7 +155,8 @@ function Workspace({initial}:{initial:Bootstrap}) {
         const inspectedId=mode==='structure'&&key==='/pages'?pageOverviewId(new URLSearchParams(savedRoute.query)):null;
         const props={active,version,data,go,refresh,registerGuard,search:new URLSearchParams(savedRoute.query)};
         let panel;
-        if(!canOpen(key,data))panel=<><Heading title={entries.some(e=>e.path===key)||match?'접근 권한이 없습니다.':'화면을 찾을 수 없습니다.'}/><Empty>사이트 관리에서 사용할 수 있는 메뉴를 선택하세요.</Empty></>;
+        // Every signed-in account receives the shell; screens its role cannot use explain why, and their APIs still answer 403.
+        if(!canOpen(key,data)){const known=entries.some(e=>e.path===key)||!!match;panel=<><Heading title={known?'접근 권한이 없습니다.':'화면을 찾을 수 없습니다.'}/><Empty><p>{known?'현재 계정의 역할로는 이 화면을 사용할 수 없습니다. 필요하면 최상위 관리자에게 권한을 요청하세요.':'주소를 확인하거나 메뉴에서 사용할 화면을 선택하세요.'}</p><button type="button" className="secondary" onClick={()=>go(workspaceHome(mode))}>{mode==='manage'?'사이트 관리':'콘텐츠 작업'} 홈으로</button></Empty></>;}
         else if(match)panel=<PagePanel blockId={new URLSearchParams(savedRoute.query).get('block')} viewMode={mode} onSelectBlock={(block,replace)=>navigate(pagePath(Number(match[1]),block),replace)} onOutline={updatedOutline} registerGuard={registerGuard} id={Number(match[1])} active={active} data={data} go={go} onTitle={name=>savedPage(Number(match[1]),name)}/>;
         else if(postMatch)panel=<ContentPanel key={postEpochs[Number(postMatch[1])]||0} registerGuard={registerGuard} canPublish={!!data.permissions.publish} canDelete={!!data.permissions.permanentDelete} onTrashed={trashed} id={Number(postMatch[1])} active={active} categories={data.categories} onLoaded={loadedContent} onSaved={post=>{loadedContent(post);refresh();}} onList={()=>go(listForPost(key,savedRoute.query))} onMediaChange={refresh}/>;
         else if(inspectedId!==null)panel=<PageOverview page={data.pages.find(p=>p.id===inspectedId)} menus={data.menus} outline={structure.data?.find(p=>p.pageId===inspectedId)} loading={structure.loading} error={structure.error} blockId={new URLSearchParams(savedRoute.query).get('block')} onSelectBlock={block=>go(pageOverviewPath(inspectedId,block))} onEdit={block=>editPage(inspectedId,block)} onRetry={structure.reload}/>;

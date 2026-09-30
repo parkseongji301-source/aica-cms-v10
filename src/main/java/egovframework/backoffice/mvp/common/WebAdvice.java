@@ -19,7 +19,12 @@ public class WebAdvice {
 
     @ModelAttribute
     public void common(Model model, HttpServletRequest request) {
-        String path = request.getServletPath();
+        // Legacy screens live under /admin/legacy; highlight their navigation as before.
+        boolean legacyScreen = request.getServletPath().matches("/admin/legacy(/.*)?");
+        // The shared header links legacy screens to each other; the password and error pages link to React.
+        model.addAttribute("legacyScreen", legacyScreen);
+        model.addAttribute("adminBase", legacyScreen ? "/admin/legacy" : "/admin");
+        String path = request.getServletPath().replaceFirst("^/admin/legacy(?=/|$)","/admin");
         String active = path.startsWith("/admin/posts") ? "posts"
                 : path.startsWith("/admin/media") ? "media" : path.startsWith("/admin/pages") ? "pages"
                 : path.startsWith("/admin/categories") ? "categories" : path.startsWith("/admin/menus") ? "menus"

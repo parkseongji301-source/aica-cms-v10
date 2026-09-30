@@ -27,11 +27,11 @@ public class DeletionImpactService {
   if(!kind.equals("posts"))throw new BusinessException("삭제 대상을 확인하세요.");
   var p=posts.get(actor,id);var found=new ArrayList<UsageService.Usage>();
   for(Page page:pages.list(actor)) {
-   collect(found,pages.sections(page.sectionsJson()),id,"페이지 초안 · "+page.title(),"/admin-next/pages/"+page.id()+"/edit");
+   collect(found,pages.sections(page.sectionsJson()),id,"페이지 초안 · "+page.title(),"/admin/pages/"+page.id()+"/edit");
    PublishedPage pub=store.one("anyPagePublication",page.id());
-   if(pub!=null)collect(found,pages.sections(pub.sectionsJson()),id,"페이지 발행본 · "+pub.title(),"/admin-next/pages/"+page.id()+"/edit");
+   if(pub!=null)collect(found,pages.sections(pub.sectionsJson()),id,"페이지 발행본 · "+pub.title(),"/admin/pages/"+page.id()+"/edit");
   }
-  for(var t:templates.list())collect(found,pages.sections(t.blocksJson()),id,"템플릿 · "+t.name()+(t.active()?" · 활성":" · 비활성"),"/admin-next/design/templates");
+  for(var t:templates.list())collect(found,pages.sections(t.blocksJson()),id,"템플릿 · "+t.name()+(t.active()?" · 활성":" · 비활성"),"/admin/design/templates");
   return new Impact(kind,id,p.title(),p.revision(),List.copyOf(found),
     "콘텐츠를 휴지통으로 이동하고 공개 목록에서 제외합니다. 본문·분류·첨부·맛집 상세·버전 이력을 보관하며, 휴지통에서 임시보관으로 복원할 수 있습니다. 직접 선택 ID는 남아 사용 불가로 표시됩니다. 영구삭제는 휴지통에서 별도로 실행합니다.",versionMedia.impact(egovframework.backoffice.mvp.version.VersionKind.POST,id));
  }

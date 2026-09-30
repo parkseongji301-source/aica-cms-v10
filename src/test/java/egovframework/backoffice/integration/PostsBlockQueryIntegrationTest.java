@@ -88,7 +88,7 @@ class PostsBlockQueryIntegrationTest {
   assertThat(ids(get(b,API+page+"/preview").path("sections").get(0))).contains(life,both);
   legacy(b,saved,"save");saved=get(b,API+page);assertThat(saved.path("sections")).isEqualTo(json.readTree(draft.path("sections").toString()));assertThat(get(b,API+page+"/publication")).isEqualTo(published);
   legacy(b,saved,"publish");assertThat(get(b,API+page+"/publication").path("sections")).isEqualTo(json.readTree(draft.path("sections").toString()));assertThat(ids(get(b,API+page+"/publication/preview").path("sections").get(0))).contains(life,both);
-  assertThat(b.get("/admin/pages/"+page+"/preview").body()).contains("발행 콘텐츠","생활 후기");
+  assertThat(b.get("/admin/legacy/pages/"+page+"/preview").body()).contains("발행 콘텐츠","생활 후기");
  }
  @Test void queryFollowsBlockIdentityAcrossIndependentDuplicationAndReordering()throws Exception {
   var b=login("admin");var saved=save(b,configure(input(b),"REVIEW",List.of(101L,102L),List.of(201L,202L),6));var source=pages.sections(pages.get(actor(),page).sectionsJson()).get(0);var clone=PageBlockService.duplicate(source);assertThat(clone.id()).isNotEqualTo(source.id());assertThat(clone.query()).isEqualTo(source.query());

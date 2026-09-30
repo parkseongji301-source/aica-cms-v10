@@ -52,6 +52,7 @@ h2{font-size:17px;font-weight:700;letter-spacing:-.45px} h3{font-size:16px}
 .topbar-left strong{font-weight:600}.topbar-identity{font-size:12px;color:#6b768b}
 .topbar form{margin:0}.logout-button{display:flex;align-items:center;gap:7px;border:0;border-left:1px solid var(--line);border-radius:0;background:transparent;padding:2px 0 2px 18px;color:#6c788d;font-size:11px}
 .logout-button .icon{width:16px;height:16px}.logout-button:hover{color:var(--blue);background:transparent}
+.legacy-label{color:#8a4b00;background:#fff4e0;border:1px solid #f0c98a;padding:4px 8px;font-size:11px;border-radius:4px;text-decoration:none;white-space:nowrap}.legacy-label:hover{background:#ffe9c2}
 .preview-label{color:#6578a0;background:#f1f4fa;padding:4px 8px;font-size:10px;border-radius:4px}
 .icon-button{display:grid;place-items:center;border:1px solid var(--line);padding:7px;background:#fff;color:var(--ink);border-radius:6px}
 .menu-toggle{display:none}.nav-backdrop{display:none}

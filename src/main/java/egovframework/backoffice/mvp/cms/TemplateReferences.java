@@ -24,7 +24,7 @@ public class TemplateReferences {
        if(op.path("insert").path(kind).path("id").asLong(-1)==mediaId)found=true;
      }
     }
-    if(found)result.add(new UsageService.Usage("공용 템플릿 · "+template.name()+(template.active()?" · 활성":" · 비활성"),"/admin-next/design/templates"));
+    if(found)result.add(new UsageService.Usage("공용 템플릿 · "+template.name()+(template.active()?" · 활성":" · 비활성"),"/admin/design/templates"));
    } catch(Exception error){throw new BusinessException("템플릿 참조를 확인할 수 없어 파일 삭제를 중단합니다. 템플릿 #"+template.id());}
   }
   return List.copyOf(result);

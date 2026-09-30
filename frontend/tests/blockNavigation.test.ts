@@ -7,8 +7,8 @@ import type {Bootstrap,PageDocument,Section} from '../src/types.ts';
 
 test('structure overview uses the existing pages route and preserves exact page and block identity',()=>{
  const block=newSection('HERO');
- const url=new URL('/admin-next'+pageOverviewPath(65,block.id),'http://localhost');
- assert.equal(url.pathname,'/admin-next/pages');
+ const url=new URL('/admin'+pageOverviewPath(65,block.id),'http://localhost');
+ assert.equal(url.pathname,'/admin/pages');
  assert.equal(pageOverviewId(url.searchParams),65);
  assert.equal(url.searchParams.get('block'),block.id);
  assert.equal(pagePath(65,url.searchParams.get('block')),pagePath(65,block.id));
@@ -23,8 +23,8 @@ test('invalid overview identifiers cannot select another page and existing page 
 test('block URLs identify the same page and exact ID in both views',()=>{
  const a=newSection('HERO');
  for(const view of ['manage','structure']){
-  const url=new URL('/admin-next'+pagePath(65,a.id),'http://localhost');url.searchParams.set('view',view);
-  assert.equal(url.pathname,'/admin-next/pages/65/edit');assert.equal(url.searchParams.get('block'),a.id);
+  const url=new URL('/admin'+pagePath(65,a.id),'http://localhost');url.searchParams.set('view',view);
+  assert.equal(url.pathname,'/admin/pages/65/edit');assert.equal(url.searchParams.get('block'),a.id);
   assert.equal(selectedBlockId([a],url.searchParams.get('block')),a.id);
  }
  assert.equal(pagePath(65),'/pages/65/edit');

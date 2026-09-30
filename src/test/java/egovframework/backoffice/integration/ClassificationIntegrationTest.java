@@ -79,7 +79,7 @@ class ClassificationIntegrationTest {
     void publishLegacy(HttpBrowser b)throws Exception {
         var p=read(b);
         HttpBrowser.redirect(b.post("/admin/posts/"+id+"/edit",Map.of("revision",p.path("revision").asText(),
-            "title",p.path("title").asText(),"content",p.path("content").asText(),"categoryId",p.path("categoryId").asText(),"action","publish")),"/admin/posts/"+id);
+            "title",p.path("title").asText(),"content",p.path("content").asText(),"categoryId",p.path("categoryId").asText(),"action","publish")),"/admin/legacy/posts/"+id);
     }
     List<CmsModels.PublicPost> published(List<Long> cohorts,List<Long> topics){
         return cms.all("publicPosts",values("categoryId",11L,"typeCode","REVIEW","cohortIds",cohorts,"topicIds",topics,"limit",20,"offset",0));
@@ -88,18 +88,18 @@ class ClassificationIntegrationTest {
     @Test void existingCategoryMenusPageBlocksAndBothEditorRoutesKeepOriginalIds()throws Exception {
         var b=login("ADMIN");var before=read(b);
         for(String mode:List.of("manage","structure")) {
-            assertThat(b.get("/admin-next/posts/"+id+"/edit?view="+mode).statusCode()).isEqualTo(200);
+            assertThat(b.get("/admin/posts/"+id+"/edit?view="+mode).statusCode()).isEqualTo(200);
             assertThat(ok(b.get(API+id+"?view="+mode))).isEqualTo(before);
         }
         save(b,"FAQ",List.of(),List.of(204L));
         assertThat(read(b).path("categoryId").asLong()).isEqualTo(11);
         assertThat(jdbc.queryForObject("SELECT category_id FROM post_publications WHERE post_id=?",Long.class,id)).isEqualTo(11);
-        assertThat(login("SUPER_ADMIN").get("/admin/menus").body()).contains("공지사항");
-        assertThat(login("SUPER_ADMIN").get("/admin/categories").body()).contains("공지사항","기존 생활");
-        assertThat(b.get("/admin/pages/"+pageId+"/edit").body()).contains("기존 분류 페이지");
+        assertThat(login("SUPER_ADMIN").get("/admin/legacy/menus").body()).contains("공지사항");
+        assertThat(login("SUPER_ADMIN").get("/admin/legacy/categories").body()).contains("공지사항","기존 생활");
+        assertThat(b.get("/admin/legacy/pages/"+pageId+"/edit").body()).contains("기존 분류 페이지");
         assertThat(jdbc.queryForObject("SELECT sections_json FROM site_pages WHERE id=?",String.class,pageId)).contains("\"categoryId\":11");
         assertThat(jdbc.queryForObject("SELECT target_id FROM site_menus WHERE kind='CATEGORY'",Long.class)).isEqualTo(11);
-        assertThat(b.get("/admin/posts?categoryId=11").body()).contains("기존 발행 글");
+        assertThat(b.get("/admin/legacy/posts?categoryId=11").body()).contains("기존 발행 글");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM posts",Long.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages",Long.class)).isEqualTo(1);
         assertThat(published(List.of(),List.of(201L))).extracting(CmsModels.PublicPost::id).containsExactly(id);
@@ -152,13 +152,13 @@ class ClassificationIntegrationTest {
 
     @Test void legacyHtmlJsonAndPhase3ARequestsPreserveNewClassification()throws Exception {
         var b=login("ADMIN");save(b,"REVIEW",List.of(101L,102L),List.of(201L,202L));
-        assertThat(b.get("/admin/posts/"+id+"/edit").body()).contains("현재 초안 분류","6기","7기","생활","프로젝트","/admin-next/posts/"+id+"/edit")
+        assertThat(b.get("/admin/legacy/posts/"+id+"/edit").body()).contains("현재 초안 분류","6기","7기","생활","프로젝트","/admin/posts/"+id+"/edit")
             .doesNotContain("name=\"typeCode\"","name=\"cohortIds\"","name=\"topicIds\"");
         var taxonomy=read(b).path("classification");
         var body=fields(read(b));body.put("title","구 React 저장");ok(put(b,body));
         assertThat(read(b).path("classification")).isEqualTo(taxonomy);
         var p=read(b);
-        HttpBrowser.redirect(b.post("/admin/posts/"+id+"/edit",Map.of("revision",p.path("revision").asText(),"title","구 폼 저장","content","본문","categoryId","11","action","save")),"/admin/posts/"+id);
+        HttpBrowser.redirect(b.post("/admin/posts/"+id+"/edit",Map.of("revision",p.path("revision").asText(),"title","구 폼 저장","content","본문","categoryId","11","action","save")),"/admin/legacy/posts/"+id);
         assertThat(read(b).path("classification")).isEqualTo(taxonomy);
         p=read(b);
         ok(b.post("/admin/posts/save-json",Map.of("id",String.valueOf(id),"revision",p.path("revision").asText(),"title","구 자동저장","content","본문","categoryId","11","action","save")));

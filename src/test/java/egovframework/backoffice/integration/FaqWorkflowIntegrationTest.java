@@ -48,7 +48,7 @@ class FaqWorkflowIntegrationTest {
     }
     void legacy(HttpBrowser b,JsonNode p,String action)throws Exception {
         var r=b.post("/admin/posts/"+p.path("id").asLong()+"/edit",Map.of("revision",p.path("revision").asText(),"title",p.path("title").asText(),"content",p.path("content").asText(),"categoryId","11","action",action));
-        HttpBrowser.redirect(r,"/admin/posts/"+p.path("id").asLong());
+        HttpBrowser.redirect(r,"/admin/legacy/posts/"+p.path("id").asLong());
     }
     @Test void candidateDictionaryIsIdempotentAndKeepsSameNamedTopicsSeparate()throws Exception {
         var before=jdbc.queryForList("SELECT * FROM topics ORDER BY id");seed("faq");
@@ -72,7 +72,7 @@ class FaqWorkflowIntegrationTest {
         assertThat(get(b,API+"?typeCodes=REVIEW&topicIds="+life).path("total").asInt()).isZero();
         assertThat(get(b,API+"?typeCodes=REVIEW&topicIds="+reviewLife).path("total").asInt()).isEqualTo(1);
         for(String mode:List.of("manage","structure")) {
-            assertThat(b.get("/admin-next/posts/"+parking.path("id").asLong()+"/edit?view="+mode+"&faqSection=life").statusCode()).isEqualTo(200);
+            assertThat(b.get("/admin/posts/"+parking.path("id").asLong()+"/edit?view="+mode+"&faqSection=life").statusCode()).isEqualTo(200);
             assertThat(get(b,API+"/"+parking.path("id").asLong()+"?view="+mode)).isEqualTo(parking);
         }
         var updated=save(b,parking,parking.path("title").asText(),"복수 주제 답변",List.of(life,project));

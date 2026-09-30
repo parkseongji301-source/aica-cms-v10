@@ -9,7 +9,7 @@ public class RolesController {
     private final AccessPolicy policy;
     public RolesController(AccessPolicy policy) { this.policy = policy; }
     public record RoleCard(String code, String label, boolean manageAccounts, boolean allPosts,boolean publish,boolean structure,boolean permanentDelete) {}
-    @GetMapping("/admin/roles")
+    @GetMapping("/admin/legacy/roles")
     public String roles(Model model) {
         model.addAttribute("roleCards", Arrays.stream(Role.values()).map(role -> new RoleCard(role.name(),
             switch (role) { case SUPER_ADMIN -> "최상위 관리자"; case ADMIN -> "관리자"; case SUPPORTER -> "서포터즈"; },

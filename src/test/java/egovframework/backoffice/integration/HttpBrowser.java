@@ -57,7 +57,7 @@ final class HttpBrowser {
                 "confirmPassword", next)), "/login?changed");
     }
     String issued() throws Exception {
-        var response = get("/admin/accounts/issued");
+        var response = get("/admin/legacy/accounts/issued");
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.headers().firstValue("cache-control").orElse("")).contains("no-store");
         return extract(response.body(), "id=\"temporary-password\"[^>]*>([^<]+)</code>");

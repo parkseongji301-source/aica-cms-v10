@@ -15,6 +15,7 @@ import {applyTemplateBlocks} from './templateBlocks';
 import type {TemplateMode} from './templateBlocks';
 import {BlockDialog} from './BlockDialog';
 import {PostsBlockFields,PostsResult} from './PostsBlockFields';
+import {ADMIN_BASE} from './adminBase';
 import './page-editor.css';
 import '../../src/main/resources/static/css/page-blocks.css';
 const fingerprint=(d:PageDocument)=>JSON.stringify({title:d.title,sections:d.sections});
@@ -123,7 +124,7 @@ export function PageEditor({canChangeAddress=false,initial,definitions,categorie
    <div className="block-inspector" ref={inspectorRef} tabIndex={-1} data-testid="block-inspector">
     {identityIssue&&<p className="error-box" role="alert">블록 ID가 없거나 중복되어 저장할 수 없습니다. 기존 데이터 변환 상태를 확인하세요.</p>}
     {missingTarget&&<p className="error-box" role="status">연결된 블록을 찾을 수 없습니다. 현재 페이지의 블록 목록에서 직접 선택하세요.</p>}
-    {selection&&definition?<section className="card section-card" key={epoch+'-'+selection.id} data-block-id={selection.id} aria-label="선택한 블록 편집"><header><div><p className="eyebrow">{selectedIndex+1}번째 블록 · 설정</p><h2>{definition.label}</h2><a className="block-permalink" href={'/admin-next'+pagePath(doc.id,selection.id)+'&view='+viewMode} target="_blank" rel="noopener noreferrer">현재 블록 링크 ↗</a>{!selection.visible&&<span className="block-hidden-note">숨김 블록</span>}</div><label className="block-visible-label"><input type="checkbox" checked={selection.visible} onChange={e=>sectionChange(selection.id,{visible:e.target.checked})}/>표시</label></header>
+    {selection&&definition?<section className="card section-card" key={epoch+'-'+selection.id} data-block-id={selection.id} aria-label="선택한 블록 편집"><header><div><p className="eyebrow">{selectedIndex+1}번째 블록 · 설정</p><h2>{definition.label}</h2><a className="block-permalink" href={ADMIN_BASE+pagePath(doc.id,selection.id)+'&view='+viewMode} target="_blank" rel="noopener noreferrer">현재 블록 링크 ↗</a>{!selection.visible&&<span className="block-hidden-note">숨김 블록</span>}</div><label className="block-visible-label"><input type="checkbox" checked={selection.visible} onChange={e=>sectionChange(selection.id,{visible:e.target.checked})}/>표시</label></header>
      <div className="block-operations"><button type="button" aria-label="블록 위로 이동" disabled={selectedIndex<=0||controlsDisabled} onClick={()=>move(selectedIndex,-1)}>↑ 위로</button><button type="button" aria-label="블록 아래로 이동" disabled={selectedIndex===doc.sections.length-1||controlsDisabled} onClick={()=>move(selectedIndex,1)}>↓ 아래로</button><button type="button" disabled={doc.sections.length>=30||controlsDisabled} onClick={duplicate}>복제</button><button type="button" className="danger" disabled={controlsDisabled} onClick={()=>setRemoving(selection.id)}>삭제</button></div>
      <div className="section-fields">
       <label>블록 배치<select aria-label="블록 배치" value={selection.variation} onChange={e=>sectionChange(selection.id,{variation:e.target.value})}>{definition.variations.map(v=><option key={v.value} value={v.value}>{v.label}</option>)}</select><small>{definition.variations.find(v=>v.value===selection.variation)?.description}</small></label>

@@ -84,11 +84,11 @@ class NextPostIntegrationTest {
         assertThat(post.path("mediaIds").toString()).isEqualTo("["+imageId+","+fileId+"]");
         assertThat(post.path("attachments").get(0).path("alt").asText()).isEqualTo("기존 이미지");
         for(String mode:List.of("manage","structure")) {
-            var shell=b.get("/admin-next/posts/"+publishedId+"/edit?view="+mode);
+            var shell=b.get("/admin/posts/"+publishedId+"/edit?view="+mode);
             assertThat(shell.statusCode()).isEqualTo(200);assertThat(shell.body()).contains("/next-app/assets/");
             assertThat(read(b,publishedId)).isEqualTo(post);
         }
-        assertThat(b.get("/admin/posts/"+publishedId+"/edit").body()).contains("기존 발행 콘텐츠","existing.txt");
+        assertThat(b.get("/admin/legacy/posts/"+publishedId+"/edit").body()).contains("기존 발행 콘텐츠","existing.txt");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM posts",Long.class)).isEqualTo(count);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_log",Long.class)).isEqualTo(activities);
     }
@@ -105,8 +105,8 @@ class NextPostIntegrationTest {
         assertThat(after.path("publishedRevision")).isEqualTo(before.path("publishedRevision"));
         assertThat(after.path("authorId")).isEqualTo(before.path("authorId"));assertThat(after.path("mediaIds")).isEqualTo(before.path("mediaIds"));
         assertThat(read(b,publishedId)).isEqualTo(after);
-        assertThat(b.get("/admin/posts/"+publishedId+"/edit").body()).contains("React 초안 제목","React 일반 본문");
-        assertThat(b.get("/admin/posts/"+publishedId+"/publication").body()).contains("기존 발행 콘텐츠","기존 일반 본문").doesNotContain("React 초안 제목");
+        assertThat(b.get("/admin/legacy/posts/"+publishedId+"/edit").body()).contains("React 초안 제목","React 일반 본문");
+        assertThat(b.get("/admin/legacy/posts/"+publishedId+"/publication").body()).contains("기존 발행 콘텐츠","기존 일반 본문").doesNotContain("React 초안 제목");
         assertThat(jdbc.queryForObject("SELECT category_id FROM post_publications WHERE post_id=?",Long.class,publishedId)).isEqualTo(11L);
         assertThat(read(b,ownId).path("title").asText()).isEqualTo("본인 초안");
     }
@@ -119,7 +119,7 @@ class NextPostIntegrationTest {
         assertThat(view.path("title").asText()).isEqualTo("기존 발행 콘텐츠");
         assertThat(view.path("bodyHtml").asText()).contains("기존 일반 본문").doesNotContain("React");
         assertThat(view.path("attachments").size()).isEqualTo(2);
-        assertThat(b.get("/admin/posts/"+publishedId+"/publication").body()).contains("기존 발행 콘텐츠","기존 일반 본문").doesNotContain("React 초안 제목");
+        assertThat(b.get("/admin/legacy/posts/"+publishedId+"/publication").body()).contains("기존 발행 콘텐츠","기존 일반 본문").doesNotContain("React 초안 제목");
         error(b.get(API+"/"+ownId+"/publication/view"),404,"NOT_FOUND");
         error(b.get(API+"/"+privateId+"/publication/view"),404,"NOT_FOUND");
         error(login("SUPPORTER").get(API+"/"+publishedId+"/publication/view"),403,"FORBIDDEN");
@@ -140,7 +140,7 @@ class NextPostIntegrationTest {
         assertThat(after.path("title")).isEqualTo(before.path("title"));assertThat(after.path("content")).isEqualTo(before.path("content"));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publications WHERE post_id=?",Integer.class,publishedId)).isEqualTo(1);
         error(admin.get(API+"/"+publishedId+"/publication/view"),404,"NOT_FOUND");
-        assertThat(admin.get("/admin/posts/"+publishedId+"/publication").statusCode()).isEqualTo(404);
+        assertThat(admin.get("/admin/legacy/posts/"+publishedId+"/publication").statusCode()).isEqualTo(404);
     }
     @Test void richDraftKeepsImagesFilesFormattingAndExistingPublicationMedia()throws Exception {
         var b=login("ADMIN");var fields=input(read(b,publishedId));fields.put("richContent",richDocument());fields.put("mediaIds",List.of());
@@ -150,11 +150,11 @@ class NextPostIntegrationTest {
         assertThat(after.path("mediaIds").toString()).isEqualTo("["+imageId+","+fileId+"]");
         var preview=ok(b.get(API+"/"+publishedId+"/preview"));
         assertThat(preview.path("bodyHtml").asText()).contains("<strong>","rt-font-serif","rt-width-50","rt-align-right","안내 첨부","<table>","<hr>");
-        assertThat(b.get("/admin/posts/"+publishedId+"/edit").body()).contains("aicaImage","aicaFile","aicaTable");
+        assertThat(b.get("/admin/legacy/posts/"+publishedId+"/edit").body()).contains("aicaImage","aicaFile","aicaTable");
         fields=input(after);fields.put("richContent","{\"ops\":[{\"insert\":\"첨부 없는 초안\\n\"}]}");
         var detached=ok(put(b,publishedId,fields,token(b)));assertThat(detached.path("mediaIds").size()).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publication_media WHERE post_id=?",Integer.class,publishedId)).isEqualTo(2);
-        assertThat(b.get("/admin/posts/"+publishedId+"/publication").body()).contains("existing.txt","/admin/media/"+imageId+"/file");
+        assertThat(b.get("/admin/legacy/posts/"+publishedId+"/publication").body()).contains("existing.txt","/admin/media/"+imageId+"/file");
     }
 
     @Test void previewSharesLegacyRenderingAndNeverWritesDraftOrPublication()throws Exception {
@@ -184,7 +184,7 @@ class NextPostIntegrationTest {
     @Test void ownerPermissionsCsrfAndSessionInvalidationApplyToBothPaths()throws Exception {
         var admin=login("ADMIN");var supporter=login("SUPPORTER");var own=read(supporter,ownId);String csrf=token(supporter);
         for(String mode:List.of("manage","structure")) {
-            assertThat(supporter.get("/admin-next/posts/"+ownId+"/edit?view="+mode).statusCode()).isEqualTo(200);
+            assertThat(supporter.get("/admin/posts/"+ownId+"/edit?view="+mode).statusCode()).isEqualTo(200);
             error(supporter.get(API+"/"+publishedId+"?view="+mode),403,"FORBIDDEN");
         }
         var fields=input(own);fields.put("title","본인 React 초안");ok(put(supporter,ownId,fields,csrf));
@@ -236,7 +236,7 @@ class NextPostIntegrationTest {
         assertThat(published.path("pending").asBoolean()).isFalse();
         assertThat(published.path("authorId")).isEqualTo(before.path("authorId"));
         assertThat(json.readTree(published.path("richContent").asText())).isEqualTo(json.readTree(richDocument()));
-        assertThat(b.get("/admin/posts/"+publishedId+"/publication").body()).contains("최종 게시 제목","<strong>","<table>","안내 첨부");
+        assertThat(b.get("/admin/legacy/posts/"+publishedId+"/publication").body()).contains("최종 게시 제목","<strong>","<table>","안내 첨부");
         assertThat(read(b,ownId).path("title").asText()).isEqualTo("본인 초안");
         var privatePost=ok(publish(b,privateId,input(read(b,privateId)),csrf));
         assertThat(privatePost.path("status").asText()).isEqualTo("PUBLISHED");
@@ -298,6 +298,6 @@ class NextPostIntegrationTest {
             assertThat(saved.path("categoryId").isNull()).isTrue();assertThat(saved.path("publishedRevision")).isEqualTo(before.path("publishedRevision"));
         }
         assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"version\" IS NOT NULL",String.class)).containsExactly("1","2","3","4","5","6","7","8","9","10","11","12");
-        assertThat(b.get("/admin/posts/new").statusCode()).isEqualTo(200);
+        assertThat(b.get("/admin/legacy/posts/new").statusCode()).isEqualTo(200);
     }
 }

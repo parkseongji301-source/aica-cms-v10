@@ -3,10 +3,11 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import type {ViewMode} from './types';
 import {workspaceHome,workspaceView} from './navigation';
 import {rememberPostOrigin} from './contentNavigation';
+import {ADMIN_BASE,routePath} from './adminBase';
 
 export type Route={path:string;query:string};
 type PendingNavigation={path:string;replace:boolean;view:ViewMode;historyIndex:number|null};
-const readRoute=(mode:ViewMode):Route=>({path:location.pathname.replace(/^\/admin-next/,'').replace(/\/$/,'')||workspaceHome(mode),query:location.search});
+const readRoute=(mode:ViewMode):Route=>({path:routePath(location.pathname)||workspaceHome(mode),query:location.search});
 const indexOf=(state:unknown):number|null=>typeof state==='object'&&state!==null&&'aicaNextIndex' in state&&Number.isInteger(state.aicaNextIndex)?state.aicaNextIndex as number:null;
 
 // Keep visited editor instances; only location and selection change during navigation.
@@ -24,8 +25,8 @@ export function useWorkspaceRoutes(mode:ViewMode,setMode:(mode:ViewMode)=>void) 
  },[]);
  const navigate=useCallback((path:string,replace=false,confirmed=false,view=mode)=>{
   view=workspaceView(path,view);
-  const url=new URL('/admin-next'+path,location.origin);url.searchParams.set('view',view);
-  const next={path:url.pathname.replace('/admin-next',''),query:url.search};
+  const url=new URL(ADMIN_BASE+path,location.origin);url.searchParams.set('view',view);
+  const next={path:routePath(url.pathname),query:url.search};
   if(url.href===location.href)return;
   if(!confirmed&&next.path!==current.current.path&&guards.current[current.current.path]&&guards.current[current.current.path]()!==true){setPendingNavigation({path,replace,view,historyIndex:null});return;}
   if(!replace)index.current++;
@@ -41,7 +42,7 @@ export function useWorkspaceRoutes(mode:ViewMode,setMode:(mode:ViewMode)=>void) 
    if(!allow&&next.path!==current.current.path&&guards.current[current.current.path]&&guards.current[current.current.path]()!==true){
     const pending:PendingNavigation={path:next.path+next.query,replace:false,view:workspaceView(next.path,requested),historyIndex:nextIndex};
     if(nextIndex!==null&&nextIndex!==index.current){repairing.current=pending;history.go(index.current-nextIndex);}
-    else {history.pushState({...history.state,aicaNextIndex:index.current},'','/admin-next'+current.current.path+current.current.query);setPendingNavigation({...pending,historyIndex:null});}
+    else {history.pushState({...history.state,aicaNextIndex:index.current},'',ADMIN_BASE+current.current.path+current.current.query);setPendingNavigation({...pending,historyIndex:null});}
     return;
    }
    index.current=nextIndex??0;remember(next);

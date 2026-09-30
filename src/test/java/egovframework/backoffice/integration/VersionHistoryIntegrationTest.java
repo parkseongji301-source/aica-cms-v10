@@ -174,7 +174,7 @@ class VersionHistoryIntegrationTest {
   assertThat(supporter.get(API+"/posts/"+foreign+"/versions").statusCode()).isEqualTo(403);
   var publish=Map.of("id",""+post,"revision",""+revision(),"title","발행 기록","content","본문","action","publish","saveIntent","MANUAL_DRAFT");
   read(admin.post("/admin/posts/save-json",publish));assertThat(latest(POST,post).reason()).isEqualTo("PUBLISH");
-  assertThat(root.get("/admin/posts/"+post+"/delete-confirm").body()).contains("개 버전 이력을 유지합니다.").doesNotContain("함께 삭제할 버전 이력");
+  assertThat(root.get("/admin/legacy/posts/"+post+"/delete-confirm").body()).contains("개 버전 이력을 유지합니다.").doesNotContain("함께 삭제할 버전 이력");
   var before=revision();var res=read(admin.json("POST",API+"/posts/"+post+"/versions/"+version+"/restore","{\"expectedRevision\":"+before+",\"confirmed\":true}",csrf(admin)));
   assertThat(res.path("revision").asLong()).isEqualTo(before+1);
  }

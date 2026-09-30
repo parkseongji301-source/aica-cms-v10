@@ -4,7 +4,7 @@ package egovframework.backoffice.mvp.common;
 public final class ListLocation {
     private ListLocation() {}
     public static String posts(String value) {
-        if(value==null || value.length()>2000 || value.indexOf('#')>=0 || value.indexOf('\\')>=0 || value.chars().anyMatch(Character::isISOControl)) return "/admin/posts";
-        return value.equals("/admin/posts") || value.startsWith("/admin/posts?") ? value : "/admin/posts";
+        if(value==null || value.length()>2000 || value.indexOf('#')>=0 || value.indexOf('\\')>=0 || value.chars().anyMatch(Character::isISOControl)) return "/admin/legacy/posts";
+        return value.equals("/admin/legacy/posts") || value.startsWith("/admin/legacy/posts?") ? value : "/admin/legacy/posts";
     }
 }

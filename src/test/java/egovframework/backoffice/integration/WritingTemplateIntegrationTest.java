@@ -41,7 +41,7 @@ class WritingTemplateIntegrationTest {
  @Test void writersCanUseButOnlyStructureAdministratorCanManageAndCsrfIsRequired()throws Exception {
   var d=ok(browser.json("POST",API+"/manage",input("후기 본문").toString(),csrf));long id=d.path("info").path("id").asLong();
   for(String role:List.of("admin","supporter")){var b=login(role);var t=token(b);ok(b.get(API));ok(b.get(API+"/"+id));ok(b.json("POST",API+"/"+id+"/prepare","{\"revision\":0}",t));
-   assertThat(b.get("/admin-next/design/writing-templates").statusCode()).isEqualTo(403);
+   assertThat(b.get("/admin/design/writing-templates").statusCode()).isEqualTo(200);
    assertThat(b.json("POST",API+"/manage",input("권한 없음").toString(),t).statusCode()).isEqualTo(403);
    assertThat(b.json("PUT",API+"/manage/"+id,input("권한 없음").put("revision",0).toString(),t).statusCode()).isEqualTo(403);
    assertThat(b.json("DELETE",API+"/manage/"+id,"{\"revision\":0,\"confirmed\":true}",t).statusCode()).isEqualTo(403);

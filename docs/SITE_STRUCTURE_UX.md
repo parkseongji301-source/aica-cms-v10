@@ -56,7 +56,26 @@
 
 사본 전용 임시 SUPER_ADMIN #41(v16-rehearsal-root@example.com)은 사본 DB에만 있다. 비밀번호는 남기지 않았다.
 
-## 5. 8095 적용 계획 (승인 필요)
+## 5. 8095 적용 결과 (2026-10-01)
+
+사용자 승인(A 방식: 임시 SUPER_ADMIN으로 기존 관리 API 실행)으로 적용했다.
+
+| 순서 | 결과 |
+|---|---|
+| 적용 전 기록 | 공개 API 9개 응답 저장(`.cache/v16-release/site-ux-apply-20261001/before-*.json`) |
+| V16 RC1 정상 종료 | 통과, `stopped-1790791840209.json`(이력 16, DB `fd65e5ba…`) |
+| 백업 | `.cache/v12-release/backups/aica-local.before-site-ux-20261001-stopped-1790791840209.mv.db` + 검사 파일, 해시 일치 |
+| JAR 교체 | `.cache/v16-release/V16-RC2-20261001/runtime`(JAR `db919f60…`, commit `cad7cde`, DB는 V16 RC1 DB) → `swap-v12-jar.ps1` 통과 → 선택 `{kind:v16, runtime:…/V16-RC2-20261001/runtime}` → 기동 |
+| 교체 직후 공개 API | 9개 모두 바이트 동일 |
+| 운영 데이터 | #98 `교육생 후기`(주소 `page-e91f…`) → `후기`·`reviews`로 다시 게시(03:12, REVIEW 연결 유지, 블록 HERO 그대로) / #97 `dd` 삭제(사용처 0) / `지원` #99(`support`)·`FAQ` #100(`faq`) 초안 추가 / 최상위 순서 홈 #1 · 인사교 소개 #65 · 후기 #98 · 지원 #99 · FAQ #100 |
+| 데이터 뒤 공개 API | `/menus`(구성 게시 전 기존 메뉴)·`/structure`·홈·소개·글 목록·카테고리별 목록·`about` 동일. #98은 의도대로 제목·주소만 변경, `/pages/97` 404, 지원·FAQ는 초안이라 비공개 |
+| 세 역할 | 임시 ADMIN #45·SUPPORTER #46: 화면 200, 페이지 생성·순서·위치·템플릿 403, ADMIN 목록의 최상위 = 1·65·98·99·100, SUPPORTER 페이지 없음 |
+| 정상 종료 → 재시작 | 통과. 공개 API 동일, `/pages/98` = `/pages/by-slug/reviews` |
+| 임시 계정 | #44(site-ux-check-root@example.com, SUPER_ADMIN, 정상 종료 뒤 차가운 DB에 추가·사용 중지 — 재시작 뒤 로그인 401 확인), #45(site-ux-check-admin@example.com), #46(site-ux-check-supporter@example.com) 모두 사용 중지. 비밀번호는 남기지 않았다 |
+
+되돌리기: 화면만 되돌리려면 `select-v12-runtime.ps1 -Runtime .cache/v16-release/V16-RC1-20261001/runtime -AuthorizeSelection`(같은 DB). 데이터까지 되돌리려면 정상 종료 뒤 위 백업으로 DB를 덮어쓴다(#97 삭제 이전 상태).
+
+## 6. 적용 계획 (기록용)
 
 1. 8095(V16 RC1) 정상 종료 → 백업(`before-site-ux-20261001-…`).
 2. 새 runtime `.cache/v16-release/V16-RC2-20261001/runtime`(JAR `db919f60…`, `database`는 V16 RC1 DB) → `swap-v12-jar.ps1 -AuthorizeJarSwap` → 선택 → 기동 → 세 역할·공개 API 동일 확인.

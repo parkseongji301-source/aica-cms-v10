@@ -1,4 +1,4 @@
-# 현재 상태 인수인계 (2026-10-01, V16 사본 검증 뒤)
+# 현재 상태 인수인계 (2026-10-01, 사이트 구조 단순화 적용 뒤)
 
 새 Claude Code 세션이 이 문서만 읽고 이어서 작업할 수 있도록, 과거 일지가 아니라 **지금 상태와 다음 행동**을 적는다. 자세한 근거는 각 절의 링크 문서에 있다.
 
@@ -62,7 +62,7 @@
 | `in_structure` (V15) | FALSE = 구성에서 제거. 작업 중 구성에서 빠지고 다음 구성 게시부터 `/structure`·`/menus`에서 빠진다. 페이지·게시본·글은 남는다. 제거 규칙: 구성에 남은 하위가 있으면 거부, 콘텐츠 작업 연결이 있으면 먼저 해제, 제거된 영역 아래로 이동·추가 금지 |
 
 - 기존 V14 기본값: 모든 기존 페이지는 PAGE·연결 없음·메뉴 숨김·구성 포함.
-- 현재 운영 영역: #1 홈(게시, 첫 화면), #65 인사교 소개(게시, 초안에 미게시 변경 있음), #97 dd(초안). 모두 최상위, 연결 없음, 메뉴 숨김.
+- 현재 운영 영역: 6c절 참고(홈·인사교 소개·후기·지원·FAQ, 모두 최상위, 메뉴 숨김, 후기만 REVIEW 연결).
 
 ### 콘텐츠 작업 사이드바
 
@@ -94,9 +94,9 @@
 
 [V16_CONTENT_WORK_NODES.md](V16_CONTENT_WORK_NODES.md). 최종 검수 범위로 사용자가 정한 것: 유형 연결만으로 사이드바 하위 항목을 만들지 않고, 관리자가 구성 대화상자에서 하위 항목(이름·기존 주제·순서)을 직접 추가·제거한다. 항목에서 목록·새 글 작성, 항목 제거는 글·주제와 무관. 새 표 `content_work_nodes`, `V16PromotionTool`, `promote-v16-runtime.ps1`. 사본 검증 뒤 8095 적용 완료. 5절의 콘텐츠 작업 사이드바 설명은 이제 "연결된 페이지 + 저장된 하위 항목"이다(주제 자동 하위 항목 없음). **범위 고정**: 페이지별 하위 항목 1단계, 항목당 주제 하나. 다단계 탐색 트리·복합 조건 빌더로 확대하지 않는다. 운영 DB에는 사용자가 만든 #98(후기 연결, 게시됨)이 있고 하위 항목은 0개다.
 
-## 6c. 사이트 구조 화면 단순화 (사본 검증 완료, 8095 미적용)
+## 6c. 사이트 구조 화면 단순화 (8095 적용 완료)
 
-[SITE_STRUCTURE_UX.md](SITE_STRUCTURE_UX.md). 최상위는 고정 구획(홈 완전 고정), `+ 하위 페이지`(빈/모음/템플릿), 끌어서 순서·이동. 프런트만(commit `cad7cde`, JAR `db919f60…`). 최상위 생성·삭제 기능은 백엔드에 남기고 UI에서만 숨김. 운영 데이터(#98 후기·reviews, #97 삭제, 지원·FAQ 추가, 순서)와 8095 적용은 승인 대기.
+[SITE_STRUCTURE_UX.md](SITE_STRUCTURE_UX.md). 최상위는 고정 구획(홈 완전 고정), `+ 하위 페이지`(빈/모음/템플릿), 끌어서 순서·이동. 프런트만(commit `cad7cde`, JAR `db919f60…`). 최상위 생성·삭제 기능은 백엔드에 남기고 UI에서만 숨김 — 실제 IA가 확정되면 개발 단계에서 운영 데이터로 세팅한다. **현재 8095: V16 RC2**(`.cache/v16-release/V16-RC2-20261001/runtime`, DB는 V16 RC1 DB). 최상위: 홈 #1 · 인사교 소개 #65 · 후기 #98(`reviews`, 게시, REVIEW 연결) · 지원 #99(`support`, 초안) · FAQ #100(`faq`, 초안). #97은 삭제됨. 되돌리기 대상 V16 RC1(같은 DB) / 데이터는 백업 `before-site-ux-20261001-…`.
 
 ## 7. 아직 하지 않은 것
 
@@ -131,4 +131,4 @@
 - 프런트(`frontend/`): Codex 번들 node(`%LOCALAPPDATA%/OpenAI/Codex/runtimes/cua_node/*/bin/node.exe`)로 `node --experimental-strip-types --test tests/*.test.ts`, `node node_modules/typescript/bin/tsc --noEmit`, `node node_modules/vite/bin/vite.js build`(→ `src/main/resources/static/next-app`, git 제외). 소스 간 값 import는 `.ts` 확장자를 붙인다.
 - 미리보기: JAR를 `--spring.profiles.active=design-preview --server.address=127.0.0.1 --server.port=8081`로 실행(메모리 DB, 로그인 1234/1234).
 - 런타임 스크립트(`scripts/`): `promote-v15-runtime.ps1`(V13/V14 → V15 사본 적용), `swap-v12-jar.ps1`(같은 schema JAR 교체), `relocate-v12-runtime.ps1`(사본 이관), `select-v12-runtime.ps1`, `start-v12-runtime.ps1`. PowerShell 5.1 스크립트는 한글이 있으면 UTF-8 BOM이 필요하다.
-- 비활성화된 임시 계정: #33~#43(각 단계 확인용, #41~#43은 V16 적용 확인).
+- 비활성화된 임시 계정: #33~#46(각 단계 확인용, #41~#43 V16 적용, #44~#46 사이트 구조 적용).

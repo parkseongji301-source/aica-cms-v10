@@ -6,11 +6,11 @@ import static egovframework.backoffice.mvp.cms.CmsModels.Page;
 
 /**
  * Page hierarchy rules. The database only stores a general parent_id; the current operating limits
- * (two levels, a fixed top-level home page) live here so they can change without a migration.
+ * (depth, a fixed top-level home page) live here so they can change without a migration.
  */
 final class PageHierarchy {
- /** Current operating limit: top-level pages and one level of child pages. */
- static final int MAX_DEPTH=2;
+ /** Current operating limit: three levels (for example 인사교 Real Life › 인사교 꿀팁 › 근처 식당). */
+ static final int MAX_DEPTH=3;
  /** Siblings are ordered by sort_order, then id; the SQL list uses the same order. */
  static final Comparator<Page> ORDER=Comparator.comparingInt(Page::sortOrder).thenComparingLong(Page::id);
  private PageHierarchy() {}
@@ -50,7 +50,7 @@ final class PageHierarchy {
   if(pageId!=null && ancestorOrSelf(pages,parentId,pageId))throw new BusinessException("페이지를 자기 자신이나 자기 하위 페이지 아래로 옮길 수 없습니다.");
   int levels=pageId==null?1:height(pages,pageId);
   if(depth(pages,parentId)+levels>MAX_DEPTH)
-   throw new BusinessException(levels>1?"페이지 계층은 최대 "+MAX_DEPTH+"단계입니다. 하위 페이지가 있는 페이지는 다른 페이지 아래로 옮길 수 없습니다."
-    :"페이지 계층은 최대 "+MAX_DEPTH+"단계입니다. 하위 페이지 아래에는 페이지를 둘 수 없습니다.");
+   throw new BusinessException(levels>1?"페이지 계층은 최대 "+MAX_DEPTH+"단계입니다. 이 페이지와 그 하위 페이지를 그 아래로 옮기면 단계를 넘습니다."
+    :"페이지 계층은 최대 "+MAX_DEPTH+"단계입니다. 그 페이지 아래에는 더 둘 수 없습니다.");
  }
 }

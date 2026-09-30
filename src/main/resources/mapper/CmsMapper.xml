@@ -4,7 +4,8 @@
  <select id="lock" resultType="int">SELECT id FROM cms_guard WHERE id=1 FOR UPDATE</select>
  <insert id="audit" useGeneratedKeys="true" keyProperty="id">INSERT INTO activity_log(actor_id,actor_name,action,target,detail) VALUES(#{actorId},#{actorName},#{action},#{target},#{detail})</insert>
  <select id="versionPostIds" resultType="long">SELECT id FROM posts WHERE deleted_at IS NULL ORDER BY id</select>
- <select id="versionPageIds" resultType="long">SELECT id FROM site_pages ORDER BY id</select>
+ <!-- GROUP areas have no document, so they never get a baseline version. -->
+ <select id="versionPageIds" resultType="long">SELECT id FROM site_pages WHERE area_kind='PAGE' ORDER BY id</select>
  <select id="versionTemplateIds" resultType="long">SELECT id FROM page_templates ORDER BY id</select>
  <select id="versionPostPublication" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublicPost">SELECT pp.post_id AS id,pp.title,pp.content,pp.category_id,c.name AS category_name,pp.published_at,pp.rich_content FROM post_publications pp LEFT JOIN categories c ON c.id=pp.category_id WHERE pp.post_id=#{value}</select>
  <select id="activities" resultType="egovframework.backoffice.mvp.cms.CmsModels$Activity">
@@ -115,15 +116,21 @@
   FROM posts p LEFT JOIN post_publications pp ON pp.post_id=p.id
   WHERE p.id IN <foreach collection="postIds" item="postId" open="(" close=")" separator=",">#{postId}</foreach>
  </select>
- <sql id="pageColumns">p.id,p.title,p.slug,p.sections_json,p.status,p.revision,pp.revision AS published_revision,p.author_id,p.updated_at,p.parent_id,p.sort_order</sql>
+ <sql id="pageColumns">p.id,p.title,p.slug,p.sections_json,p.status,p.revision,pp.revision AS published_revision,p.author_id,p.updated_at,p.parent_id,p.sort_order,p.area_kind,p.content_type_code,p.menu_visible,p.menu_label</sql>
  <select id="pages" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id ORDER BY p.sort_order,p.id</select>
  <select id="page" resultType="egovframework.backoffice.mvp.cms.CmsModels$Page">SELECT <include refid="pageColumns"/> FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id WHERE p.id=#{value}</select>
  <!-- A new page goes to the end of its siblings (callers hold the CMS lock). -->
- <insert id="createPage" useGeneratedKeys="true" keyProperty="id">INSERT INTO site_pages(title,slug,sections_json,author_id,parent_id,sort_order) VALUES(#{title},#{slug},#{sectionsJson},#{authorId},#{parentId,jdbcType=BIGINT},
+ <insert id="createPage" useGeneratedKeys="true" keyProperty="id">INSERT INTO site_pages(title,slug,sections_json,author_id,area_kind,parent_id,sort_order) VALUES(#{title},#{slug},#{sectionsJson},#{authorId},#{areaKind},#{parentId,jdbcType=BIGINT},
   (SELECT COALESCE(MAX(sort_order)+1,0) FROM site_pages WHERE parent_id IS NOT DISTINCT FROM #{parentId,jdbcType=BIGINT}))</insert>
  <!-- Hierarchy is structure, not document content: it never changes the page revision. -->
  <update id="placePage">UPDATE site_pages SET parent_id=#{parentId,jdbcType=BIGINT},sort_order=#{sortOrder} WHERE id=#{id}</update>
  <update id="pageSortOrder">UPDATE site_pages SET sort_order=#{sortOrder} WHERE id=#{id}</update>
+ <!-- Site composition: structure attributes, never the document revision. -->
+ <update id="pageComposition">UPDATE site_pages SET content_type_code=#{contentTypeCode,jdbcType=VARCHAR},menu_visible=#{menuVisible},menu_label=#{menuLabel,jdbcType=VARCHAR} WHERE id=#{id}</update>
+ <update id="groupName">UPDATE site_pages SET title=#{title},updated_at=CURRENT_TIMESTAMP WHERE id=#{id} AND area_kind='GROUP'</update>
+ <select id="activeContentTypeName" resultType="string">SELECT name FROM content_types WHERE code=#{value} AND active=TRUE</select>
+ <!-- Only the latest published structure protects the pages it refers to. -->
+ <select id="publishedStructureReferences" resultType="long">SELECT COUNT(*) FROM site_structure_publication_pages WHERE page_id=#{value} AND publication_id=(SELECT MAX(id) FROM site_structure_publications)</select>
  <update id="editPage">UPDATE site_pages SET title=#{title},slug=#{slug},sections_json=#{sectionsJson},revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
  <update id="pageVisibility">UPDATE site_pages SET status=#{status},updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
  <update id="withdrawPage">UPDATE site_pages SET status='PRIVATE',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=#{value}</update>
@@ -133,10 +140,10 @@
  <delete id="clearPageMedia">DELETE FROM page_media WHERE page_id=#{pageId} AND published=#{published}</delete>
  <insert id="attachPageMedia">INSERT INTO page_media(page_id,media_id,published) VALUES(#{pageId},#{mediaId},#{published})</insert>
  <select id="publicPage" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublishedPage">
- SELECT pp.* FROM page_publications pp JOIN site_pages p ON p.id=pp.page_id WHERE pp.slug=#{value} AND p.status='PUBLISHED'
+ SELECT pp.* FROM page_publications pp JOIN site_pages p ON p.id=pp.page_id WHERE pp.slug=#{value} AND p.status='PUBLISHED' AND p.area_kind='PAGE'
  </select>
  <select id="publicPageById" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublishedPage">
- SELECT pp.* FROM page_publications pp JOIN site_pages p ON p.id=pp.page_id WHERE pp.page_id=#{value} AND p.status='PUBLISHED'
+ SELECT pp.* FROM page_publications pp JOIN site_pages p ON p.id=pp.page_id WHERE pp.page_id=#{value} AND p.status='PUBLISHED' AND p.area_kind='PAGE'
  </select>
  <select id="pageUsage" resultType="long">
  SELECT (SELECT COUNT(*) FROM site_menus WHERE kind='PAGE' AND target_id=#{value})+

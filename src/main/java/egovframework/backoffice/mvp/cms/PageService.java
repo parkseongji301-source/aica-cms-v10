@@ -27,7 +27,7 @@ public class PageService {
  public record PageTarget(String kind,String label,long pageId,List<BlockTarget> blocks,String issue) {}
  @Transactional(readOnly=true)
  public List<PageTarget> structure(AccountPrincipal actor) {
-  return list(actor).stream().map(page->{
+  return list(actor).stream().filter(page->!page.group()).map(page->{
    try {
     var blocks=sections(page.sectionsJson());
     if(blocks==null||blocks.stream().anyMatch(Objects::isNull))throw new BusinessException("블록 형식을 확인하세요.");
@@ -106,6 +106,7 @@ public class PageService {
   store.lock();var actor=access.manager(principal);
   if(!Set.of("save","publish").contains(action)) throw new BusinessException("저장 방식을 확인하세요.");
   var existing=id==null?null:required(id);
+  if(existing!=null && existing.group()) throw new BusinessException("묶음은 화면이 없는 구조 항목이라 내용을 저장하거나 게시할 수 없습니다. 이름은 사이트 구성에서 바꿉니다.");
   if(existing==null) access.structure(principal);
   if(existing!=null && parentId!=null) throw new BusinessException("기존 페이지의 위치는 전체 페이지 현황의 위치 변경에서 바꿉니다.");
   if(existing==null) PageHierarchy.requirePlacement(store.all("pages",null),homePageId(),null,parentId);
@@ -134,7 +135,7 @@ public class PageService {
   if(action.equals("publish") && blocks.stream().noneMatch(Section::visible)) throw new BusinessException("발행하려면 표시할 섹션을 하나 이상 추가하세요.");
   try {
    String document=json.writeValueAsString(blocks);
-   var values=values("id",id,"title",name,"slug",path,"sectionsJson",document,"authorId",actor.id(),"parentId",parentId);
+   var values=values("id",id,"title",name,"slug",path,"sectionsJson",document,"authorId",actor.id(),"parentId",parentId,"areaKind","PAGE");
    if(id==null) id=store.create("createPage",values); else store.change("editPage",values);
    identities.synchronize(id,previous,blocks);
    attach(id,blocks,false);
@@ -168,7 +169,9 @@ public class PageService {
  }
  @Transactional
  public void unpublish(AccountPrincipal principal,long id,Long revision) {
-  store.lock();var actor=access.manager(principal);var page=required(id);CmsRules.revision(page.revision(),revision);
+  store.lock();var actor=access.manager(principal);var page=required(id);
+  if(page.group()) throw new BusinessException("묶음은 화면이 없는 구조 항목이라 내용을 저장하거나 게시할 수 없습니다. 이름은 사이트 구성에서 바꿉니다.");
+  CmsRules.revision(page.revision(),revision);
   store.change("withdrawPage",id);
   audit.record(actor,"페이지 비공개","페이지 #"+id,page.title());
  }
@@ -179,6 +182,7 @@ public class PageService {
   long children=PageHierarchy.children(store.all("pages",null),id).size();
   if(children>0) throw new BusinessException("하위 페이지 "+children+"개가 있습니다. 하위 페이지를 먼저 다른 곳으로 옮기거나 삭제하세요.");
   if(store.<Long>one("pageUsage",id)>0) throw new BusinessException("메뉴나 홈페이지 첫 화면에서 사용 중입니다. 연결을 해제한 후 삭제하세요.");
+  if(store.<Long>one("publishedStructureReferences",id)>0) throw new BusinessException("현재 게시된 사이트 구성에서 사용 중입니다. 구성에서 빼거나 숨긴 뒤 구성을 다시 게시하면 삭제할 수 있습니다.");
   store.change("deletePage",id);audit.record(actor,"페이지 삭제","페이지 #"+id,page.title());
  }
  /**
@@ -219,6 +223,67 @@ public class PageService {
  }
  private static String parentLabel(List<Page> all,Long parentId) {
   return parentId==null?"최상위":PageHierarchy.find(all,parentId).map(Page::title).orElse("페이지 #"+parentId);
+ }
+ /** Adds a GROUP area: a structure node with a name and a place, no document, publication or versions. */
+ @Transactional
+ public List<Page> createGroup(AccountPrincipal principal,String name,Long parentId) {
+  store.lock();var actor=access.structure(principal);
+  String title=InputRules.text(name,200,"묶음 이름");
+  PageHierarchy.requirePlacement(store.all("pages",null),homePageId(),null,parentId);
+  long id=store.create("createPage",values("title",title,"slug","group-"+UUID.randomUUID().toString().replace("-",""),"sectionsJson","[]","authorId",actor.id(),"parentId",parentId,"areaKind","GROUP"));
+  audit.record(actor,"묶음 추가","페이지 #"+id,title);
+  return store.all("pages",null);
+ }
+ /**
+  * Site composition of one area: its content-work link (the type's representative work area), menu
+  * visibility and menu label, and a GROUP's name. The link never limits where that type's posts appear.
+  * One representative area per type is the current operating rule, checked here rather than in the DB.
+  */
+ @Transactional
+ public List<Page> compose(AccountPrincipal principal,long id,String contentTypeCode,boolean menuVisible,String menuLabel,String name) {
+  store.lock();var actor=access.structure(principal);
+  List<Page> all=store.all("pages",null);
+  var page=PageHierarchy.find(all,id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"페이지를 찾을 수 없습니다."));
+  String type=contentTypeCode==null||contentTypeCode.isBlank()?null:contentTypeCode.trim();
+  if(type!=null && page.group()) throw new BusinessException("묶음에는 콘텐츠 작업을 연결할 수 없습니다. 실제 화면이 있는 페이지에 연결하세요.");
+  if(type!=null && !type.equals(page.contentTypeCode())) {
+   String typeName=store.one("activeContentTypeName",type);
+   if(typeName==null) throw new BusinessException("사용할 수 있는 콘텐츠 유형을 선택하세요.");
+   var other=all.stream().filter(p->p.id()!=id && type.equals(p.contentTypeCode())).findFirst();
+   if(other.isPresent()) throw new BusinessException("'"+typeName+"' 유형은 이미 '"+other.get().title()+"' 영역이 대표 작업 영역입니다. 그 영역의 연결을 먼저 해제하세요.");
+  }
+  String label=menuLabel==null||menuLabel.isBlank()?null:InputRules.text(menuLabel,80,"메뉴 표시명");
+  String title=page.title();
+  if(page.group()) title=InputRules.text(name,200,"묶음 이름");
+  else if(name!=null && !name.isBlank() && !name.trim().equals(page.title())) throw new BusinessException("페이지 제목은 페이지 편집기에서 바꿉니다.");
+  var changes=new ArrayList<String>();
+  if(!Objects.equals(type,page.contentTypeCode())) changes.add("콘텐츠 작업 연결 "+Objects.toString(page.contentTypeCode(),"없음")+" → "+Objects.toString(type,"없음"));
+  if(menuVisible!=page.menuVisible()) changes.add(menuVisible?"메뉴 노출":"메뉴 숨김");
+  if(!Objects.equals(label,page.menuLabel())) changes.add("메뉴 표시명 "+Objects.toString(label,"제목 사용"));
+  if(!title.equals(page.title())) changes.add("이름 "+page.title()+" → "+title);
+  if(changes.isEmpty()) return all;
+  store.change("pageComposition",values("id",id,"contentTypeCode",type,"menuVisible",menuVisible,"menuLabel",label));
+  if(!title.equals(page.title())) store.change("groupName",values("id",id,"title",title));
+  audit.record(actor,"사이트 구성 변경","페이지 #"+id,title+": "+String.join(", ",changes));
+  return store.all("pages",null);
+ }
+ /** A content type's representative work area as the 콘텐츠 작업 sidebar needs it: no document, no status. */
+ public record ContentArea(long pageId,String typeCode,String label,List<String> groups) {}
+ /** Linked PAGE areas in site-structure order for every signed-in role; groups are the ancestor titles. */
+ @Transactional(readOnly=true)
+ public List<ContentArea> contentAreas(AccountPrincipal principal) {
+  access.actor(principal);
+  List<Page> all=store.all("pages",null);var out=new ArrayList<ContentArea>();
+  collectAreas(all,null,new ArrayList<>(),out,0);
+  return out;
+ }
+ private void collectAreas(List<Page> all,Long parentId,List<String> groups,List<ContentArea> out,int depth) {
+  if(depth>all.size())return;
+  for(Page page:PageHierarchy.children(all,parentId)) {
+   if(!page.group() && page.contentTypeCode()!=null) out.add(new ContentArea(page.id(),page.contentTypeCode(),page.title(),List.copyOf(groups)));
+   var next=new ArrayList<>(groups);next.add(page.title());
+   collectAreas(all,page.id(),next,out,depth+1);
+  }
  }
  /** The first-screen page (site setting homePageId), or null. */
  public Long homePageId() {

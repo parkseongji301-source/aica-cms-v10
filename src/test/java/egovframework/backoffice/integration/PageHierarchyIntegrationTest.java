@@ -91,20 +91,22 @@ class PageHierarchyIntegrationTest {
         assertThat(layout(boot.path("pages"))).contains("71:65:0");assertThat(boot.path("homePageId").asLong()).isEqualTo(1);
     }
 
-    @Test void placementEnforcesTwoLevelsCyclesHomeAndStaleViews()throws Exception {
+    @Test void placementEnforcesDepthCyclesHomeAndStaleViews()throws Exception {
         var root=login("SUPER_ADMIN");String csrf=csrf(root);
         assertThat(place(root,csrf,70,65L,null).statusCode()).isEqualTo(200);
-        assertThat(failure(place(root,csrf,65,72L,null),400)).contains("최대 2단계","하위 페이지가 있는 페이지");
-        assertThat(failure(place(root,csrf,72,70L,null),400)).contains("최대 2단계","하위 페이지 아래");
+        // Current operating limit (V14): three levels; a fourth is refused.
+        assertThat(place(root,csrf,72,70L,null).statusCode()).isEqualTo(200);
+        assertThat(failure(place(root,csrf,71,72L,null),400)).contains("최대 3단계","그 페이지 아래에는 더 둘 수 없습니다");
+        assertThat(failure(place(root,csrf,65,71L,null),400)).contains("최대 3단계","이 페이지와 그 하위 페이지");
         assertThat(failure(place(root,csrf,65,70L,null),400)).contains("자기 하위 페이지");
-        assertThat(failure(place(root,csrf,72,72L,null),400)).contains("자기 자신");
+        assertThat(failure(place(root,csrf,72,72L,70L),400)).contains("자기 자신");
         assertThat(failure(place(root,csrf,1,65L,null),400)).contains("홈(첫 화면) 페이지는 최상위");
-        assertThat(failure(place(root,csrf,72,1L,null),400)).contains("홈(첫 화면) 페이지 아래");
-        assertThat(failure(place(root,csrf,72,9999L,null),400)).contains("상위 페이지를 찾을 수 없습니다");
+        assertThat(failure(place(root,csrf,72,1L,70L),400)).contains("홈(첫 화면) 페이지 아래");
+        assertThat(failure(place(root,csrf,72,9999L,70L),400)).contains("상위 페이지를 찾을 수 없습니다");
         // The operator saw 70 at the top level, but it is already under 65.
         var stale=place(root,csrf,70,71L,null);assertThat(stale.statusCode()).isEqualTo(409);assertThat(body(stale).path("code").asText()).isEqualTo("REVISION_CONFLICT");
         assertThat(failure(place(root,csrf,9999,null,null),404)).isNotBlank();
-        assertThat(jdbc.queryForList("SELECT id FROM site_pages WHERE parent_id IS NOT NULL",Long.class)).containsExactly(70L);
+        assertThat(jdbc.queryForList("SELECT id FROM site_pages WHERE parent_id IS NOT NULL ORDER BY id",Long.class)).containsExactly(70L,72L);
     }
 
     @Test void siblingOrderIsSavedContiguouslyOnlyForTheExactSiblingSet()throws Exception {
@@ -143,10 +145,12 @@ class PageHierarchyIntegrationTest {
         var top=root.post("/admin/pages/save-json",Map.of("title","새 최상위","sectionsJson","[]"));
         assertThat(jdbc.queryForMap("SELECT parent_id,sort_order FROM site_pages WHERE id=?",body(top).path("id").asLong())).containsEntry("PARENT_ID",null).containsEntry("SORT_ORDER",4);
         assertThat(body(root.post("/admin/pages/save-json",Map.of("title","홈 아래","sectionsJson","[]","parentId","1"))).path("error").asText()).contains("홈(첫 화면) 페이지 아래");
-        assertThat(body(root.post("/admin/pages/save-json",Map.of("title","셋째 단계","sectionsJson","[]","parentId","70"))).path("error").asText()).contains("최대 2단계");
+        var third=root.post("/admin/pages/save-json",Map.of("title","셋째 단계","sectionsJson","[]","parentId","70"));
+        assertThat(third.statusCode()).as(third.body()).isEqualTo(200);
+        assertThat(body(root.post("/admin/pages/save-json",Map.of("title","넷째 단계","sectionsJson","[]","parentId",body(third).path("id").asText()))).path("error").asText()).contains("최대 3단계");
         var revision=jdbc.queryForObject("SELECT revision FROM site_pages WHERE id=72",Long.class);
         assertThat(body(root.post("/admin/pages/save-json",Map.of("id","72","revision",""+revision,"title","오시는 길","sectionsJson",sections(72),"parentId","65"))).path("error").asText()).contains("위치 변경");
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages WHERE title IN ('홈 아래','셋째 단계')",Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM site_pages WHERE title IN ('홈 아래','넷째 단계')",Integer.class)).isZero();
     }
 
     @Test void aParentWithChildPagesCannotBeDeletedButSelectedChildrenCanGoFirst()throws Exception {

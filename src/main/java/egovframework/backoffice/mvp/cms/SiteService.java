@@ -61,6 +61,7 @@ public class SiteService {
   else {
    if(targetId==null) throw new BusinessException("연결할 페이지 또는 카테고리를 선택하세요.");
    exists(kind.equals("PAGE")?"page":"category",targetId);
+   if(kind.equals("PAGE") && store.<Page>one("page",targetId).group()) throw new BusinessException("묶음은 메뉴의 페이지 대상으로 연결할 수 없습니다.");
   }
   if(kind.equals("CATEGORY")) label=store.<Category>one("category",targetId).name();
   else if(kind.equals("PAGE")) label=store.<Page>one("page",targetId).title();
@@ -114,7 +115,10 @@ public class SiteService {
     updated.put("contactEmail",email.isEmpty()?"":InputRules.email(email));
     String home=CmsRules.optional(fields.get("homePageId"),20,"첫 화면");
     if(!home.isEmpty()) {
-     long id=positiveId(home); if(store.one("publicPageById",id)==null) throw new BusinessException("발행된 페이지를 첫 화면으로 선택하세요.");
+     long id=positiveId(home);
+     Page candidate=store.one("page",id);
+     if(candidate!=null && candidate.group()) throw new BusinessException("묶음은 첫 화면으로 지정할 수 없습니다. 실제 화면이 있는 페이지를 선택하세요.");
+     if(store.one("publicPageById",id)==null) throw new BusinessException("발행된 페이지를 첫 화면으로 선택하세요.");
      // Current operating rule: the home page is top-level and has no child pages.
      List<Page> all=store.all("pages",null);
      if(PageHierarchy.find(all,id).map(Page::parentId).orElse(null)!=null || !PageHierarchy.children(all,id).isEmpty())

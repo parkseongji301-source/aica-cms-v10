@@ -99,11 +99,11 @@ public class NextPageApi {
     }
     @GetMapping("/pages/{id}/preview")
     public PreviewDocument savedPreview(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {
-        Page page=target(actor,id);return preview(actor,page.title(),pages.sections(page.sectionsJson()));
+        Page page=screen(actor,id);return preview(actor,page.title(),pages.sections(page.sectionsJson()));
     }
     @PostMapping(value="/pages/{id}/preview",consumes="application/json")
     public PreviewDocument draftPreview(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody PreviewRequest input) {
-        target(actor,id);return preview(actor,input.title(),input.sections());
+        screen(actor,id);return preview(actor,input.title(),input.sections());
     }
     @GetMapping("/pages/{id}/publication/preview")
     public PreviewDocument publishedPreview(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {
@@ -119,6 +119,12 @@ public class NextPageApi {
     }
     private Page target(AccountPrincipal actor,long id) {
         return pages.get(actor,id);
+    }
+    /** Preview needs a real screen; a GROUP area is a structure node only. */
+    private Page screen(AccountPrincipal actor,long id) {
+        Page page=target(actor,id);
+        if(page.group())throw new BusinessException("묶음은 화면이 없는 구조 항목이라 미리 볼 수 없습니다.");
+        return page;
     }
     private PageDocument document(Page p) {return new PageDocument(p.id(),p.title(),p.slug(),pages.sections(p.sectionsJson()),p.status(),p.revision(),p.publishedRevision(),p.pending());}
     private String source(List<Section> sections) {

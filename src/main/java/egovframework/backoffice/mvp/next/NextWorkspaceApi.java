@@ -37,7 +37,10 @@ public class NextWorkspaceApi {
 
     /** parentId null = top level. Rows come in sibling order (sortOrder, then id). */
     public record PageRow(long id, String title, String slug, String status, long revision,
-                          boolean pending, LocalDateTime updatedAt, Long parentId, int sortOrder) {}
+                          boolean pending, LocalDateTime updatedAt, Long parentId, int sortOrder,
+                          String areaKind, String contentTypeCode, boolean menuVisible, String menuLabel) {}
+    public record GroupInput(String name, Long parentId) {}
+    public record CompositionInput(String contentTypeCode, boolean menuVisible, String menuLabel, String name) {}
     public record PlacementInput(Long parentId, Long expectedParentId) {}
     public record PageOrderInput(Long parentId, List<Long> pageIds) {}
     public record PostRow(long id, String title, long authorId, String authorName, Long categoryId,
@@ -66,6 +69,8 @@ public class NextWorkspaceApi {
             "pages", manager?pageRows(principal):List.of(),
             // The home page stays top-level without child pages; 0 when no home page is set.
             "homePageId", manager?Objects.requireNonNullElse(pages.homePageId(),0L):0L,
+            // Every role writes in 콘텐츠 작업, so the representative work areas are sent to all of them.
+            "contentAreas", pages.contentAreas(principal),
             "menus", manager?site.menus(principal):List.of(),
             "categories", site.categories(),
             "images", media.list(principal,"").stream().filter(m->m.mime().startsWith("image/")).toList());
@@ -76,11 +81,19 @@ public class NextWorkspaceApi {
         return rows(pages.list(actor));
     }
     private static List<PageRow> rows(List<CmsModels.Page> list) {
-        return list.stream().map(p->new PageRow(p.id(),p.title(),p.slug(),p.status(),p.revision(),p.pending(),p.updatedAt(),p.parentId(),p.sortOrder())).toList();
+        return list.stream().map(p->new PageRow(p.id(),p.title(),p.slug(),p.status(),p.revision(),p.pending(),p.updatedAt(),p.parentId(),p.sortOrder(),p.areaKind(),p.contentTypeCode(),p.menuVisible(),p.menuLabel())).toList();
     }
     @PutMapping("/pages/{id}/placement")
     public List<PageRow> placement(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody PlacementInput input) {
         return rows(pages.place(actor,id,input.parentId(),input.expectedParentId()));
+    }
+    @PostMapping("/page-groups")
+    public List<PageRow> createGroup(@AuthenticationPrincipal AccountPrincipal actor,@RequestBody GroupInput input) {
+        return rows(pages.createGroup(actor,input.name(),input.parentId()));
+    }
+    @PutMapping("/pages/{id}/composition")
+    public List<PageRow> composition(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id,@RequestBody CompositionInput input) {
+        return rows(pages.compose(actor,id,input.contentTypeCode(),input.menuVisible(),input.menuLabel(),input.name()));
     }
     @PutMapping("/page-order")
     public List<PageRow> pageOrder(@AuthenticationPrincipal AccountPrincipal actor,@RequestBody PageOrderInput input) {

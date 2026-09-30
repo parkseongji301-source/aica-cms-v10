@@ -1,7 +1,7 @@
 import {restaurantPayload} from './restaurantFields';
 import {pageDraftForm} from './pageCreation';
 import type {CreatedPage} from './pageCreation';
-import type {Bootstrap, PageDocument, PageRow, PreviewDocument, ImageFile,PostDocument,PostPreview,ClassificationCatalog,PostPublication,ClassificationSelection} from './types';
+import type {Bootstrap, PageDocument, PageRow, PreviewDocument, ImageFile,PostDocument,PostPreview,ClassificationCatalog,PostPublication,ClassificationSelection,StructureStatus,MenuImportPlan} from './types';
 import {classificationSelection} from './classification';
 import {loggedOut} from './logout';
 let csrf: Bootstrap['csrf']|null = null;
@@ -37,6 +37,9 @@ export const createPage=(title:string,slug='',sections:unknown[]=[],parentId:num
 export const placePage=(id:number,parentId:number|null,expectedParentId:number|null)=>request<PageRow[]>(`${base}/pages/${id}/placement`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({parentId,expectedParentId})});
 // Site composition (SUPER_ADMIN): GROUP areas and each area's content-work link, menu visibility and label.
 export const createPageGroup=(name:string,parentId:number|null)=>request<PageRow[]>(`${base}/page-groups`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,parentId})});
+export const publishStructure=(fingerprint:string,expectedLatestId:number|null)=>request<StructureStatus>(`${base}/site-structure/publications`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fingerprint,expectedLatestId})});
+export const republishStructure=(id:number,expectedLatestId:number|null)=>request<{status:StructureStatus;removed:string[]}>(`${base}/site-structure/publications/${id}/republish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expectedLatestId})});
+export const importMenus=(fingerprint:string)=>request<{plan:MenuImportPlan;pages:PageRow[]}>(`${base}/site-structure/menu-import`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fingerprint})});
 export const saveComposition=(id:number,value:{contentTypeCode:string|null;menuVisible:boolean;menuLabel:string|null;name:string|null})=>request<PageRow[]>(`${base}/pages/${id}/composition`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
 export const reorderPages=(parentId:number|null,pageIds:number[])=>request<PageRow[]>(`${base}/page-order`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({parentId,pageIds})});
 // Publishing keeps the page address; address changes stay a separate SUPER_ADMIN action.

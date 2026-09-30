@@ -98,3 +98,21 @@
 .phase-two .page-composition-meta span {padding:1px 6px;border-radius:3px;background:var(--ui-soft);color:var(--ui-ink);}
 .phase-two .status-tag.state-group {background:var(--ui-soft);color:var(--ui-muted);}
 .phase-two .page-create-form .checkbox-row {display:flex;gap:8px;align-items:center;font-weight:600;font-size:13px;}
+/* V14 structure publication: status bar, dialogs and menu previews. */
+.phase-two .structure-publication {margin-bottom:12px;padding:12px 16px;}
+.phase-two .structure-publication-summary {display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;}
+.phase-two .structure-publication-summary > div:first-child {display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;min-width:0;}
+.phase-two .structure-publication-state {font-size:13px;color:var(--ui-ink);overflow-wrap:anywhere;}
+.phase-two .structure-publication .success-box {margin:10px 0 0;font-size:13px;}
+.phase-two .structure-dialog .page-create-form h3 {margin:12px 0 4px;font-size:14px;}
+.phase-two .structure-changes,.phase-two .menu-outline,.phase-two .structure-history {margin:0;padding:0;list-style:none;font-size:13px;}
+.phase-two .structure-changes li,.phase-two .menu-outline li {padding:3px 0;border-bottom:1px solid var(--ui-line);overflow-wrap:anywhere;}
+.phase-two .structure-history li {padding:6px 0;border-bottom:1px solid var(--ui-line);}
+.phase-two .structure-history label {display:flex;gap:8px;align-items:flex-start;}
+.phase-two .structure-menu-compare {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+@media (max-width:680px){.phase-two .structure-menu-compare {grid-template-columns:1fr;}}
+.phase-two .error-box ul,.phase-two .page-hierarchy-warning ul {margin:4px 0 0;padding-left:18px;}
+.phase-two .structure-menu-status {margin:0 0 12px;padding:12px 16px;border:1px solid var(--ui-line);border-radius:3px;background:var(--ui-soft);font-size:13px;}
+.phase-two .structure-menu-status p {margin:0 0 8px;}
+.phase-two .structure-menu-status details {margin-top:8px;}
+.phase-two .location-relocate {display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 12px;}

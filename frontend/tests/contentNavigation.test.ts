@@ -36,19 +36,28 @@ test('area locations resolve real topic IDs by code and never another type\'s sa
 });
 
 test('an unlinked, removed or duplicated location explains itself instead of listing everything',()=>{
-  assert.match(contentContext(new URLSearchParams('area=999'),catalog,areas)!.error,/사이트 구성/);
-  assert.match(contentContext(new URLSearchParams('area=70&faqSection=life'),catalog,areas)!.error,/중복/);
+  const removed=contentContext(new URLSearchParams('area=999'),catalog,areas)!;
+  assert.match(removed.error,/사이트 구성/);assert.equal(removed.relocate,true);
+  assert.equal(contentContext(new URLSearchParams('area=70'),catalog,areas)!.relocate,false);
   assert.equal(contentContext(new URLSearchParams('q=x'),catalog,areas),null);
   assert.equal(hasContentLocation(new URLSearchParams('area=70')),true);
   assert.equal(hasContentLocation(new URLSearchParams('typeCodes=REVIEW')),false);
 });
 
-test('addresses from before V14 open the representative area of the same type',()=>{
-  const life=contentContext(new URLSearchParams('reviewSection=life'),catalog,areas)!;
-  assert.equal(life.error,'');assert.equal(life.pageId,70);assert.equal(life.topicId,71);
-  assert.equal(contentContext(new URLSearchParams('faqSection=preparation'),catalog,areas)!.topicId,301);
-  assert.equal(contentContext(new URLSearchParams('restaurantSection=all'),catalog,areas)!.pageId,90);
-  assert.match(contentContext(new URLSearchParams('reviewSection=life'),catalog,[faq])!.error,/사이트 구성/);
+test('addresses from before V14 are recognized by shape only and lead to 전체 콘텐츠 or the current composition',()=>{
+  // No old section name maps to a type or topic any more, whatever areas exist.
+  for(const query of ['reviewSection=life','faqSection=preparation','anythingSection=all','area=70&reviewSection=life']){
+    const old=contentContext(new URLSearchParams(query),catalog,areas)!;
+    assert.equal(old.relocate,true,query);assert.equal(old.pageId,query.startsWith('area')?70:0,query);assert.match(old.error,/예전 콘텐츠 작업 주소/);
+    assert.equal(sectionPath(areas[0],'all',catalog,areas)?.includes('Section'),false);
+  }
+  assert.equal(hasContentLocation(new URLSearchParams('reviewSection=life')),true);
+  // An old address never filters the list by a guessed type.
+  const params=scopedPostParams(new URLSearchParams('faqSection=life&q=x'),contentContext(new URLSearchParams('faqSection=life'),catalog,areas));
+  assert.equal(params.get('typeCodes'),'');
+  assert.equal(returnSectionPath(new URLSearchParams('reviewSection=life'),catalog,areas),null);
+  // Words that merely contain "Section" in other parameters are not locations.
+  assert.equal(contentContext(new URLSearchParams('q=Section&status=DRAFT'),catalog,areas),null);
 });
 
 test('an area list keeps search, status and page and drops hidden advanced filters',()=>{

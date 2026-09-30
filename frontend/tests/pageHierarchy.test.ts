@@ -38,6 +38,8 @@ test('a published child under a non-public parent is only a warning',()=>{
   assert.equal(parentWarning(pages,pages[1]),'상위 페이지 비공개');
   assert.equal(parentWarning(pages,page(73,'초안',65,2,'DRAFT')),null);
   assert.equal(parentWarning(pages,pages[4]),null);
+  // A GROUP parent (always DRAFT, no screen) never makes a published child look hidden.
+  assert.equal(parentWarning([page(90,'묶음',null,3,'DRAFT','GROUP')],page(91,'안내',90,0)),null);
   assert.equal(publishedChildren(pages,65),2);
 });
 

@@ -33,7 +33,7 @@ export function depthOf(pages:PageRow[],id:number){
 export function heightOf(pages:PageRow[],id:number):number{
   return 1+Math.max(0,...childrenOf(pages,id).map(child=>heightOf(pages,child.id)));
 }
-/** "인사교 소개 › 후기" */
+/** "상위 › 페이지" */
 export function pageLocation(pages:PageRow[],id:number){
   const index=byId(pages),names:string[]=[];let current=index.get(id);
   while(current&&names.length<=pages.length){names.unshift(current.title);current=current.parentId==null?undefined:index.get(current.parentId);}
@@ -63,7 +63,8 @@ function isWithin(pages:PageRow[],candidate:number,ancestor:number){
 export function parentWarning(pages:PageRow[],page:PageRow):string|null {
   if(page.status!=='PUBLISHED'||page.parentId==null)return null;
   const parent=pages.find(p=>p.id===page.parentId);
-  return parent&&parent.status!=='PUBLISHED'?'상위 페이지 비공개':null;
+  // A GROUP has no screen or publication of its own, so it never makes a child look hidden.
+  return parent&&parent.areaKind!=='GROUP'&&parent.status!=='PUBLISHED'?'상위 페이지 비공개':null;
 }
 export const publishedChildren=(pages:PageRow[],id:number)=>childrenOf(pages,id).filter(p=>p.status==='PUBLISHED').length;
 

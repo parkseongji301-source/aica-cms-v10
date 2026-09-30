@@ -4,7 +4,9 @@ import type {ClassificationCatalog,ClassificationSelection,ContentArea} from './
 // type's representative work area, and the type's allowed topics (dictionary order) are its sub-navigation.
 // Locations only filter posts; they never create pages or classification terms.
 export type ContentNode={key:string;label:string;topicId:number|null};
-export type ContentContext={pageId:number;type:string;param:'area';key:string;label:string;areaLabel:string;groups:string[];topicId:number|null;error:string};
+// relocate: the address points to a location that no longer exists (an old address, or an area removed from
+// the composition). The screen then offers 전체 콘텐츠 and the current composition instead of guessing.
+export type ContentContext={pageId:number;type:string;param:'area';key:string;label:string;areaLabel:string;groups:string[];topicId:number|null;error:string;relocate:boolean};
 
 /** 'all' is the area itself; the other nodes are the active topics allowed for its type. */
 export function contentNodes(area:ContentArea,catalog:ClassificationCatalog|null):ContentNode[] {
@@ -13,13 +15,10 @@ export function contentNodes(area:ContentArea,catalog:ClassificationCatalog|null
     if(topic.active&&catalog.allowedTopics.some(a=>a.typeCode===area.typeCode&&a.topicId===topic.id))nodes.push({key:topic.code,label:topic.name,topicId:topic.id});
   return nodes;
 }
-// Addresses from before V14 (the demo sections) still open the representative area of the same type.
-const legacyLocations:Record<string,{type:string;keys:Record<string,string>}>={
-  reviewSection:{type:'REVIEW',keys:{life:'REVIEW_LIFE',class:'REVIEW_CLASS',project:'REVIEW_PROJECT'}},
-  faqSection:{type:'FAQ',keys:{preparation:'FAQ_PREPARATION',application:'FAQ_APPLICATION',class:'FAQ_CLASS',life:'FAQ_LIFE',employment:'FAQ_EMPLOYMENT',allowance:'FAQ_ALLOWANCE',project:'FAQ_PROJECT'}},
-  restaurantSection:{type:'RESTAURANT',keys:{}},
-};
-const locationParams=(search:URLSearchParams)=>['area',...Object.keys(legacyLocations)].filter(key=>search.has(key));
+// Addresses from before V14 used a fixed section parameter per demo area (for example ?somethingSection=key).
+// They are recognized only by that shape and never mapped to a type: the composition decides locations now.
+const oldLocation=(key:string)=>/^[a-z][A-Za-z0-9]*Section$/.test(key);
+const locationParams=(search:URLSearchParams)=>[...new Set([...search.keys()])].filter(key=>key==='area'||oldLocation(key));
 export const hasContentLocation=(search:URLSearchParams)=>locationParams(search).length>0;
 export const contentLocationLabel=(scope:ContentContext)=>scope.key==='all'?scope.areaLabel:`${scope.label} ${scope.areaLabel}`;
 export function rememberPostOrigin(origins:Record<string,string>,previous:{path:string;query:string},next:{path:string;query:string}) {
@@ -29,12 +28,10 @@ export const filterValues=(search:URLSearchParams,key:string)=>[...new Set(searc
 
 export function contentContext(search:URLSearchParams,catalog:ClassificationCatalog|null,areas:ContentArea[]):ContentContext|null {
   const params=locationParams(search);if(!params.length)return null;
-  let area:ContentArea|undefined,key='all';
-  if(params[0]==='area'){area=areas.find(a=>String(a.pageId)===search.get('area'));key=search.get('topic')||'all';}
-  else{const legacy=legacyLocations[params[0]];area=areas.find(a=>a.typeCode===legacy.type);const old=search.get(params[0])||'';key=old==='all'?'all':legacy.keys[old]??old;}
-  const base={pageId:area?.pageId??0,type:area?.typeCode??'',param:'area' as const,key,label:area?.label??'',areaLabel:area?.label??'',groups:area?.groups??[],topicId:null};
-  if(params.length>1)return {...base,error:'콘텐츠 탐색 위치가 중복되었습니다. 한 위치를 선택하세요.'};
-  if(!area)return {...base,error:'이 콘텐츠 작업 위치를 찾을 수 없습니다. 사이트 구성에서 콘텐츠 작업 연결을 확인하세요.'};
+  const area=params.includes('area')?areas.find(a=>String(a.pageId)===search.get('area')):undefined,key=search.get('topic')||'all';
+  const base={pageId:area?.pageId??0,type:area?.typeCode??'',param:'area' as const,key,label:area?.label??'',areaLabel:area?.label??'',groups:area?.groups??[],topicId:null,relocate:false};
+  if(params.some(oldLocation))return {...base,relocate:true,error:'예전 콘텐츠 작업 주소입니다. 콘텐츠 작업 위치는 이제 사이트 구성에서 정합니다. 전체 콘텐츠에서 찾거나 현재 구성에서 위치를 다시 선택하세요.'};
+  if(!area)return {...base,relocate:true,error:'이 콘텐츠 작업 위치를 찾을 수 없습니다. 사이트 구성에서 빠졌거나 연결이 바뀌었을 수 있습니다. 글은 그대로 있으니 전체 콘텐츠에서 찾거나 현재 구성에서 위치를 다시 선택하세요.'};
   if(!catalog)return {...base,error:'분류 사전을 불러오는 중입니다.'};
   if(!catalog.types.some(t=>t.code===area!.typeCode&&t.active))return {...base,error:`${area.label}에 연결된 유형을 사용할 수 없습니다.`};
   if(key==='all')return {...base,error:''};

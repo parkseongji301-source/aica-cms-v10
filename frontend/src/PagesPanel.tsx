@@ -10,6 +10,8 @@ import {pagePath} from './navigation';
 import {childrenAllSelected,deletionOrder,isGroup,movedSiblings,pageLocation,pageTree,parentOptions,parentWarning} from './pageHierarchy';
 import type {PageTreeRow} from './pageHierarchy';
 import {date,Empty,Heading,messageOf,Status,useRemote} from './ui';
+import {StructurePublicationBar} from './StructurePublication';
+import type {StructureStatus} from './types';
 
 type Props={registerGuard?:(path:string,guard:EditorGuard|null)=>void;active:boolean;data:Bootstrap;go:Go;onOverview:(id:number)=>void;refresh:()=>void};
 const homeOf=(data:Bootstrap)=>data.homePageId&&data.homePageId>0?data.homePageId:null;
@@ -26,6 +28,10 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
   useEffect(()=>{registerGuard?.('/pages',()=>deleting.current||moving.current||creationState.current.busy?'busy':!creationState.current.dirty);return()=>registerGuard?.('/pages',null);},[registerGuard]);
   useEffect(()=>{if(!active){setCreating(false);setPlacing(null);setGrouping(false);setComposing(null);}},[active]);
   const structure=!!data.permissions.structure,canDelete=!!data.permissions.permanentDelete,home=homeOf(data);
+  // 구성 게시 (V14 step 2): the status reloads whenever the composition (bootstrap pages) changes.
+  const [structureVersion,setStructureVersion]=useState(0);
+  useEffect(()=>setStructureVersion(v=>v+1),[data.pages]);
+  const structureStatus=useRemote<StructureStatus>('/site-structure',active&&structure,structureVersion),published=structureStatus.data?.latest!=null;
   const [q,setQ]=useState(''),[status,setStatus]=useState('');
   const filtered=!!q||!!status;
   // Without a filter the list follows the site structure; a filter shows matches flat with their parent named.
@@ -53,7 +59,7 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
     finally{moving.current=false;setOrdering(false);}
   }
   const row=({page,depth,parent,children}:PageTreeRow)=>{
-    const links=data.menus.filter(m=>m.kind==='PAGE'&&m.targetId===page.id),warning=parentWarning(data.pages,page);
+    const links=published?[]:data.menus.filter(m=>m.kind==='PAGE'&&m.targetId===page.id),warning=parentWarning(data.pages,page);
     const siblings=data.pages.filter(p=>(p.parentId??null)===(page.parentId??null)),index=siblings.findIndex(p=>p.id===page.id);
     return <tr key={page.id} className={depth>1&&!filtered?'page-child-row':undefined} data-page-depth={depth}>
       {canDelete&&<td className="bulk-cell">{deletion.checkbox(page)}</td>}
@@ -64,7 +70,8 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
         {warning&&<small className="page-hierarchy-warning" title="게시된 하위 페이지는 상위 페이지 상태와 관계없이 자기 주소로 공개됩니다.">{warning}</small>}
       </div></div></td>
       <td>{isGroup(page)?<span className="status-tag state-group">묶음</span>:<Status value={page.status} pending={page.pending} pageWording/>}</td>
-      <td>{links.length?links.map(m=><span className="page-menu-label" key={m.id}>{m.label}{!m.visible&&<small> · 메뉴 숨김</small>}</span>):<span className="muted">메뉴 미연결</span>}</td>
+      <td>{published?(page.menuVisible?<span className="page-menu-label">{page.menuLabel||page.title}<small> · 구성</small></span>:<span className="muted">메뉴 숨김</span>)
+        :links.length?links.map(m=><span className="page-menu-label" key={m.id}>{m.label}{!m.visible&&<small> · 메뉴 숨김</small>}</span>):<span className="muted">메뉴 미연결</span>}</td>
       <td>{date(page.updatedAt)}</td>
       <td><div className="page-row-actions">
         {structure&&!filtered&&<div className="order-buttons"><button type="button" aria-label={`${page.title} 위로`} disabled={ordering||index<=0} onClick={()=>void move(page,-1)}>↑</button><button type="button" aria-label={`${page.title} 아래로`} disabled={ordering||index<0||index>=siblings.length-1} onClick={()=>void move(page,1)}>↓</button></div>}
@@ -76,6 +83,7 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
     </tr>;
   };
   return <section className="pages-workspace"><Heading title="전체 페이지 현황" note="페이지 상태와 연결된 메뉴를 확인하고 내용을 편집합니다. 하위 페이지는 상위 페이지 아래에 들여써서 보여 줍니다." actions={<>{structure&&<button type="button" onClick={()=>setGrouping(true)}>＋ 묶음</button>}{structure&&<button type="button" className="primary" onClick={()=>setCreating(true)}>＋ 새 페이지</button>}</>}/>
+    {structure&&<StructurePublicationBar active={active} status={structureStatus} onChanged={refresh} onBusy={busy=>{moving.current=busy;}}/>}
     {grouping&&active&&structure&&<GroupDialog active={active} pages={data.pages} homePageId={home} onClose={()=>setGrouping(false)} onBusy={busy=>{moving.current=busy;}} onDone={()=>{setGrouping(false);refresh();}}/>}
     {composing&&active&&structure&&<CompositionDialog active={active} page={composing} pages={data.pages} catalog={catalog.data} onClose={()=>setComposing(null)} onBusy={busy=>{moving.current=busy;}} onDone={()=>{setComposing(null);refresh();}} onStale={refresh}/>}
     {creating&&active&&structure&&<CreatePageDraft active={active} pages={data.pages} homePageId={home} onStateChange={onCreationState} onClose={()=>setCreating(false)} onCheckList={()=>{setCreating(false);setQ('');setStatus('');refresh();}} onCreated={page=>{setCreating(false);refresh();go(pagePath(page.id));}}/>}
@@ -83,9 +91,9 @@ export function PagesPanel({active,data,go,onOverview,refresh,registerGuard}:Pro
     <section className="card"><div className="search-bar"><input aria-label="페이지 검색" value={q} onChange={e=>setQ(e.target.value)} placeholder="페이지 이름 검색"/><select aria-label="페이지 상태" value={status} onChange={e=>setStatus(e.target.value)}><option value="">전체 상태</option><option value="DRAFT">임시보관</option><option value="PUBLISHED">게시됨</option><option value="PRIVATE">비공개</option></select><span>{items.length}개</span>{deletion.action}</div>
       {orderError&&<p className="error-box" role="alert">{orderError}</p>}
       {deletion.feedback}{deletion.dialog}
-      <div className="table-scroll"><table className="data-table pages-table"><thead><tr>{canDelete&&<th className="bulk-cell">{deletion.selectAll}</th>}<th>페이지</th><th>상태</th><th>연결된 메뉴</th><th>최근 수정</th><th>작업</th></tr></thead><tbody>{rows.map(row)}</tbody></table>
+      <div className="table-scroll"><table className="data-table pages-table"><thead><tr>{canDelete&&<th className="bulk-cell">{deletion.selectAll}</th>}<th>페이지</th><th>상태</th><th>{published?'메뉴(구성)':'연결된 메뉴'}</th><th>최근 수정</th><th>작업</th></tr></thead><tbody>{rows.map(row)}</tbody></table>
       {!items.length&&<Empty>{filtered?'조건에 맞는 페이지가 없습니다. 검색어나 상태를 바꿔보세요.':'등록된 페이지가 없습니다.'}</Empty>}</div></section>
-    <p className="muted page-list-note">메뉴 연결과 게시 상태를 함께 확인하세요. 내용 저장만으로 현재 공개본이 바뀌지는 않습니다. 페이지 위치(상위 페이지)는 메뉴와 따로 관리되며, 위치를 바꿔도 주소와 메뉴는 바뀌지 않습니다.</p>
+    <p className="muted page-list-note">내용 저장만으로 현재 공개본이 바뀌지는 않습니다. 페이지 내용은 페이지 게시로, 위치·순서·메뉴 노출·표시명·묶음은 구성 게시로 홈페이지에 반영됩니다. 위치를 바꿔도 페이지 주소는 바뀌지 않습니다.{!published&&' 첫 구성 게시 전까지 홈페이지 메뉴는 메뉴 관리의 메뉴를 씁니다.'}</p>
   </section>;
 }
 
@@ -112,7 +120,7 @@ function PagePlacementDialog({active,page,pages,homePageId,onClose,onBusy,onDone
         </select>
       </label>
       {topLevelOnly&&<p className="page-create-help">홈(첫 화면) 페이지는 최상위에 고정됩니다.</p>}
-      <p className="page-create-help">페이지는 최대 2단계(최상위와 하위 페이지)까지 둘 수 있습니다. 옮긴 페이지는 새 위치의 맨 끝에 놓이고, 주소·메뉴·게시 상태는 바뀌지 않습니다.</p>
+      <p className="page-create-help">페이지와 묶음은 최대 3단계까지 둘 수 있습니다. 옮긴 항목은 새 위치의 맨 끝에 놓이고, 주소와 게시 상태는 바뀌지 않습니다. 홈페이지 메뉴는 구성 게시 뒤에 바뀝니다.</p>
       {error&&<p className="error-box" role="alert">{error}</p>}
       <div className="dialog-actions"><button type="button" disabled={busy} onClick={onClose}>취소</button><button type="submit" className="primary" disabled={busy||parent===current}>{busy?'저장 중…':'위치 저장'}</button></div>
     </form>
@@ -133,7 +141,7 @@ function GroupDialog({active,pages,homePageId,onClose,onBusy,onDone}:{active:boo
   }
   return <BlockDialog active={active} title="묶음 추가" onClose={()=>{if(!pending.current)onClose();}}>
     <form className="page-create-form" onSubmit={e=>{e.preventDefault();void save();}}>
-      <p className="muted">화면 없이 여러 영역을 묶는 이름입니다(예: 선배들의 SSUL). 실제 화면이 필요하면 새 페이지를 만드세요. 묶음은 게시·첫 화면·메뉴 대상이 되지 않고, 메뉴에서는 하위 영역의 이름으로만 쓰입니다.</p>
+      <p className="muted">화면 없이 여러 영역을 묶는 이름입니다. 실제 화면이 필요하면 새 페이지를 만드세요. 묶음은 게시·첫 화면·메뉴 대상이 되지 않고, 메뉴에서는 하위 영역의 이름으로만 쓰입니다.</p>
       <label htmlFor="group-name"><span>묶음 이름 <span aria-hidden="true">*</span></span><input id="group-name" required maxLength={200} value={name} disabled={busy} onChange={e=>setName(e.target.value)}/></label>
       <label htmlFor="group-parent"><span>상위 <small>선택</small></span><select id="group-parent" value={parent??''} disabled={busy} onChange={e=>setParent(e.target.value?Number(e.target.value):null)}><option value="">상위 없음</option>{parents.map(option=><option key={option.id} value={option.id}>{option.title}</option>)}</select></label>
       {error&&<p className="error-box" role="alert">{error}</p>}
@@ -145,7 +153,7 @@ function GroupDialog({active,pages,homePageId,onClose,onBusy,onDone}:{active:boo
 /**
  * Site composition of one area. The content-work link makes this page its type's representative work
  * area (one per type, an operating rule) and never limits where that type's posts appear; the menu
- * settings take effect on the homepage only after a structure publication (V14 step 2).
+ * settings take effect on the homepage only after a structure publication.
  */
 function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onStale}:{active:boolean;page:PageRow;pages:PageRow[];catalog:ClassificationCatalog|null;onClose:()=>void;onBusy:(busy:boolean)=>void;onDone:()=>void;onStale:()=>void}) {
   const group=isGroup(page);
@@ -179,7 +187,7 @@ function CompositionDialog({active,page,pages,catalog,onClose,onBusy,onDone,onSt
       {missingBlock&&<p className="page-hierarchy-warning" role="note">이 페이지에는 이 유형의 콘텐츠 목록 블록이 없습니다. 홈페이지에 글을 보여 주려면 편집기에서 콘텐츠 목록 블록을 추가하세요(연결은 저장할 수 있습니다).</p>}
       <label className="checkbox-row"><input type="checkbox" checked={visible} disabled={busy} onChange={e=>setVisible(e.target.checked)}/> 홈페이지 메뉴에 노출</label>
       <label htmlFor="composition-label"><span>메뉴 표시명 <small>선택</small></span><input id="composition-label" maxLength={80} value={label} placeholder={page.title} disabled={busy} onChange={e=>setLabel(e.target.value)}/></label>
-      <p className="page-create-help">메뉴 노출과 표시명은 구성 게시 뒤 홈페이지에 반영됩니다(구성 게시는 다음 단계). 비워 두면 {group?'묶음 이름':'게시된 페이지 제목'}을 씁니다. 메뉴에서 숨겨도 게시된 페이지는 주소로 계속 열립니다.</p>
+      <p className="page-create-help">메뉴 노출과 표시명은 구성 게시 뒤 홈페이지에 반영됩니다. 비워 두면 {group?'묶음 이름':'게시된 페이지 제목'}을 씁니다. 메뉴에서 숨겨도 게시된 페이지는 주소로 계속 열립니다.</p>
       {error&&<p className="error-box" role="alert">{error}</p>}
       <div className="dialog-actions"><button type="button" disabled={busy} onClick={onClose}>취소</button><button type="submit" className="primary" disabled={busy||unchanged||group&&!name.trim()}>{busy?'저장 중…':'구성 저장'}</button></div>
     </form>

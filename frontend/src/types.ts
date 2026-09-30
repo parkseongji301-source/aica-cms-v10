@@ -13,6 +13,14 @@ export type PageRow = {id:number;title:string;slug:string;status:string;revision
   areaKind:'PAGE'|'GROUP';contentTypeCode:string|null;menuVisible:boolean;menuLabel:string|null};
 // Sent to every role: the 콘텐츠 작업 sidebar follows the site composition. groups are the ancestor titles.
 export type ContentArea = {pageId:number;typeCode:string;label:string;groups:string[]};
+/** 구성 게시 (V14). key is unique per list; parentKey links an item to its parent (null at the top level). */
+export type PublicMenuItem = {id:number;label:string;kind:'PAGE'|'CATEGORY'|'LINK'|'GROUP';pageId:number|null;slug:string|null;categoryId:number|null;url:string|null;apiHref:string|null;key:string;parentKey:string|null};
+export type StructureIssue = {areaId:number|null;message:string};
+export type StructureChange = {areaId:number|null;label:string;detail:string};
+export type StructurePublication = {id:number;reason:'PUBLISH'|'REPUBLISH';sourcePublicationId:number|null;publisherName:string;publishedAt:string;areas:number;menuAreas:number};
+export type StructureStatus = {latest:StructurePublication|null;draftFingerprint:string;changed:boolean;changes:StructureChange[];errors:StructureIssue[];warnings:StructureIssue[];
+  publicMenus:PublicMenuItem[];draftMenus:PublicMenuItem[];managedMenusLeaving:PublicMenuItem[]};
+export type MenuImportPlan = {draftFingerprint:string;changes:StructureChange[];notes:string[]};
 export type ImageFile = {id:number;name:string;alt:string;mime:string;byteSize?:number;ownerName?:string;createdAt?:string};
 export type Category = {id:number;name:string};
 export type Menu = {id:number;label:string;kind:'PAGE'|'CATEGORY'|'LINK';targetId:number|null;url:string;sortOrder:number;visible:boolean};

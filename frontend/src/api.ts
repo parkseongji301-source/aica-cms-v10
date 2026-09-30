@@ -53,6 +53,7 @@ export const createPost=(title:string,classification:ClassificationSelection,cat
 });
 export const getClassifications=(signal?:AbortSignal)=>get<ClassificationCatalog>('/classifications',signal);
 export const getPublication=(id:number,signal?:AbortSignal)=>get<PostPublication>(`/posts/${id}/publication`,signal);
+export const getPublicationView=(id:number,signal?:AbortSignal)=>get<PostPreview>(`/posts/${id}/publication/view`,signal);
 const postPayload=(post:PostDocument)=>({
   revision:post.revision,title:post.title,content:post.content,richContent:post.richContent,categoryId:post.categoryId,mediaIds:post.mediaIds,classification:classificationSelection(post.classification),...restaurantPayload(post)
 });

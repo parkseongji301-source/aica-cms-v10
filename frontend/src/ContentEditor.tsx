@@ -14,6 +14,7 @@ import {contentPresentation} from './contentPresentation';
 import {restaurantProblem} from './restaurantFields';
 import {RichEditor} from './RichEditor';
 import {date,messageOf} from './ui';
+import {PublicationViewDialog} from './PublicationViewDialog';
 import './content-editor.css';
 
 type Props={onGuard:GuardRegistration;canPublish:boolean;canDelete:boolean;onTrashed:(id:number)=>void;initial:PostDocument;catalog:ClassificationCatalog;categories:Category[];active:boolean;onList:()=>void;
@@ -22,6 +23,7 @@ type Props={onGuard:GuardRegistration;canPublish:boolean;canDelete:boolean;onTra
 export function ContentEditor({initial,catalog,categories,active,onList,onSaved,onMediaChange,onGuard,canPublish,canDelete,onTrashed}:Props) {
   const documentVisible=useDocumentVisible();
  const [historyOpen,setHistoryOpen]=useState(()=>historyRequested()),[historyBusy,setHistoryBusy]=useState(false);
+ const [publicationOpen,setPublicationOpen]=useState(false);
  const [doc,setDoc]=useState(()=>editablePost(initial));
   const [saved,setSaved]=useState(()=>fingerprint(editablePost(initial)));
   const [busy,setBusy]=useState(false),[uploading,setUploading]=useState(false),[blocked,setBlocked]=useState(false);
@@ -149,7 +151,7 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
     <div className={'writer-publication-state'+(unpublished?' has-changes':'')}>
       <div><div className="writer-state-labels"><strong>{doc.status==='PUBLISHED'?'게시됨':doc.status==='PRIVATE'?'비공개':'임시보관'}</strong>{unpublished&&<span>미게시 수정 있음</span>}</div>
         <p>{doc.status==='PUBLISHED'?(unpublished?'현재 공개본은 유지됩니다. 수정한 내용은 게시 권한이 있는 관리자가 다시 게시해야 공개됩니다.':'현재 공개본과 저장된 작성 내용이 같습니다.'):doc.status==='PRIVATE'?'현재 비공개 상태입니다. 저장만으로 공개되지 않습니다.':'아직 게시되지 않은 콘텐츠입니다. 저장만으로 공개되지 않습니다.'}</p>
-      </div>{doc.status==='PUBLISHED'&&doc.publishedRevision!==null&&<a href={'/admin/posts/'+doc.id+'/publication'} target="_blank" rel="noopener noreferrer">현재 공개본 보기 ↗</a>}
+      </div>{doc.status==='PUBLISHED'&&doc.publishedRevision!==null&&<button type="button" className="text-link" onClick={()=>setPublicationOpen(true)}>현재 공개본 보기</button>}
     </div>
     {(error||publishError)&&<div className="error-box" role="alert">{publishError&&<p>게시 실패: {publishError}</p>}{error}{authError&&<div><a href="/login" target="_blank" rel="noopener">새 탭에서 로그인</a><button onClick={()=>void bootstrap().then(()=>{setBlocked(false);setAuthError(false);setError('');}).catch(e=>setError(messageOf(e)))}>로그인 상태 다시 확인</button></div>}</div>}
     <div className="writer-layout"><div className="card content-canvas writer-canvas">
@@ -189,6 +191,7 @@ export function ContentEditor({initial,catalog,categories,active,onList,onSaved,
         {preview?.attachments.map(file=>file.mime.startsWith('image/')?<img key={file.id} src={'/admin/media/'+file.id+'/file'} alt={file.alt}/>:<a key={file.id} href={'/admin/media/'+file.id+'/file'} download>{file.name}</a>)}
       </article></div>
     </aside></div>
+    {publicationOpen&&active&&<PublicationViewDialog id={doc.id} active={active} onClose={()=>setPublicationOpen(false)}/>}
     {historyOpen&&<VersionHistoryDialog kind="posts" id={doc.id} active={active} onClose={()=>setHistoryOpen(false)} onRestored={restored} onBusy={setHistoryBusy}/>}
     {trashOpen&&<BlockDialog active={active} title="휴지통으로 이동" onClose={()=>{if(!inFlight.current)setTrashOpen(false);}}><p><strong>{doc.title}</strong></p><p>게시물이 목록과 공개 화면에서 사라집니다. 본문·첨부·분류·버전 이력은 보관하며 휴지통에서 임시보관으로 복원할 수 있습니다.</p><div className="dialog-actions"><button disabled={trashing} onClick={()=>setTrashOpen(false)}>취소</button><button className="danger" disabled={trashing} onClick={()=>void trash()}>{trashing?'이동 중…':'휴지통으로 이동'}</button></div></BlockDialog>}
   </section>;

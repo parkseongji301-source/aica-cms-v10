@@ -111,6 +111,22 @@ class NextPostIntegrationTest {
         assertThat(read(b,ownId).path("title").asText()).isEqualTo("본인 초안");
     }
 
+    @Test void publicationViewShowsOnlyTheCurrentPublicCopyWithTheSameAccessAsTheLegacyPage()throws Exception {
+        var b=login("ADMIN");var fields=input(read(b,publishedId));
+        fields.put("title","React 초안 제목");fields.put("content","React 일반 본문");ok(put(b,publishedId,fields,token(b)));
+        int publications=jdbc.queryForObject("SELECT COUNT(*) FROM post_publications",Integer.class);
+        var view=ok(b.get(API+"/"+publishedId+"/publication/view"));
+        assertThat(view.path("title").asText()).isEqualTo("기존 발행 콘텐츠");
+        assertThat(view.path("bodyHtml").asText()).contains("기존 일반 본문").doesNotContain("React");
+        assertThat(view.path("attachments").size()).isEqualTo(2);
+        assertThat(b.get("/admin/posts/"+publishedId+"/publication").body()).contains("기존 발행 콘텐츠","기존 일반 본문").doesNotContain("React 초안 제목");
+        error(b.get(API+"/"+ownId+"/publication/view"),404,"NOT_FOUND");
+        error(b.get(API+"/"+privateId+"/publication/view"),404,"NOT_FOUND");
+        error(login("SUPPORTER").get(API+"/"+publishedId+"/publication/view"),403,"FORBIDDEN");
+        error(new HttpBrowser(port).get(API+"/"+publishedId+"/publication/view"),401,"AUTH_REQUIRED");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_publications",Integer.class)).isEqualTo(publications);
+        assertThat(read(b,publishedId).path("title").asText()).isEqualTo("React 초안 제목");
+    }
     @Test void richDraftKeepsImagesFilesFormattingAndExistingPublicationMedia()throws Exception {
         var b=login("ADMIN");var fields=input(read(b,publishedId));fields.put("richContent",richDocument());fields.put("mediaIds",List.of());
         var after=ok(put(b,publishedId,fields,token(b)));

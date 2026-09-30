@@ -259,6 +259,13 @@ public class PostService extends EgovAbstractServiceImpl {
         return new Publication(post,classification,restaurants.published(id,classification.typeCode()));
     }
     public record Preview(String title,String bodyHtml,List<CmsModels.Media> attachments,Classification classification,Details restaurant) {}
+    /** The current public copy rendered exactly like the existing publication page; never writes. */
+    @Transactional(readOnly=true)
+    public Preview publicationView(AccountPrincipal actor,long id) {
+        var publication=publication(actor,id);var post=publication.post();
+        List<CmsModels.Media> attachments=post.richContent()==null?cms.all("publishedPostMedia",id):List.of();
+        return new Preview(post.title(),rich.html(post.richContent(),post.content()),attachments,publication.classification(),publication.restaurant());
+    }
     /** Both administrator UIs render the same validated document without writing a draft. */
     @Transactional(readOnly=true)
     public Preview preview(AccountPrincipal actor,Long id,String title,String content,String richContent,List<Long> mediaIds) {

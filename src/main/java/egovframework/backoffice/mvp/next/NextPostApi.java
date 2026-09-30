@@ -111,6 +111,11 @@ public class NextPostApi {
         return posts.publication(actor,id);
     }
 
+    @GetMapping("/{id}/publication/view")
+    public PostService.Preview publicationView(@AuthenticationPrincipal AccountPrincipal actor,@PathVariable long id) {
+        return posts.publicationView(actor,id);
+    }
+
     private PostDocument document(AccountPrincipal actor,Post p) {
         var attachments=posts.attachments(actor,p.id());
         return new PostDocument(p.id(),p.title(),p.content(),p.richContent(),p.categoryId(),p.revision(),

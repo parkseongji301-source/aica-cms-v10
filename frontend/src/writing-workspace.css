@@ -87,3 +87,5 @@
   .phase-two .focused-rich .ql-editor { min-height:340px; padding:18px 12px; }
   .phase-two .focused-rich .rich-toolbar { padding:8px; gap:4px; }
 }
+.phase-two .publication-view-dialog {width:min(860px,calc(100vw - 32px));max-width:calc(100vw - 32px);}
+.phase-two .publication-view-dialog .preview-paper {max-height:min(62vh,640px);overflow:auto;margin:12px 0 16px;}

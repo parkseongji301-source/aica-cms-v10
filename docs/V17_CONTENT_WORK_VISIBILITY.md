@@ -18,4 +18,28 @@
 
 ## 3. 검증
 
-(사본 검증 뒤 채운다.)
+코드 commit `55d6b6d`, JAR sha256 `442977c41aff2ba9f975658caceb807294768fade227304ce3a211ea6bc931e9`(서버 전체 테스트 뒤 같은 실행에서 package).
+
+- 서버 전체 235개, 실패 0, 환경 조건 제외 6. `ContentWorkVisibilityMigrationTest`(2): V16 파일 DB 사본 plan/migrate, 원본 불변, 기존 행·게시본 불변, 모든 행 FALSE, NULL 거부, V16 receipt 거부, 바뀐 사본·V15 DB 거부. 기존 시험: Flyway 이력 17, 승인 migration 목록, 구성 요청에 `contentWorkVisible`(연결 시 true), Page 레코드 필드. 첫 실행에서 메뉴 가져오기 저장이 새 열을 빠뜨려 500이 났고 `SiteStructureService`에 열을 더해 고쳤다.
+- 프런트 82개, 타입 검사·빌드 통과.
+
+### 사본 검증 (8097)
+
+`.cache/site-ux-rehearsal-20261001/rc3/runtime`(V16, 정상 정지) → `promote-v17-runtime.ps1` → `v17/runtime`(`MIGRATED_V17`, 이력 17, 원본 불변). 공개 API 5개 동일. 이관 직후 모든 페이지 FALSE, 사이드바 비어 있음 → 후기·FAQ 켬 → 사이드바에 두 항목(FAQ는 글 종류 없이 단순 항목) → 지원 켬/끔 → 후기 끄면 사이드바에서 빠지되 REVIEW 연결·하위 항목 유지 → 다시 켬. 활동 이력 "콘텐츠 작업에 보이기/숨기기".
+
+## 4. 8095 적용 결과 (2026-10-01)
+
+사용자 승인으로 적용했다.
+
+| 순서 | 결과 |
+|---|---|
+| 적용 전 기록 | 공개 API 9개 저장(`.cache/v17-release/apply-20261001/before-*.json`) |
+| V16 RC3 정상 종료 | `stopped-1790795907978.json`(이력 16, DB `552d9241…`) |
+| 백업 | `.cache/v12-release/backups/aica-local.before-V17-20261001-stopped-1790795907978.mv.db` + 검사 파일, 해시 일치 |
+| `promote-v17-runtime.ps1` | `.cache/v17-release/V17-RC1-20261001/runtime`(JAR `442977c4…`, commit `55d6b6d`, 자기 DB) `MIGRATED_V17`, 이력 17. V16 RC1 DB 해시 `552d9241…` 불변 |
+| 선택·기동 | `current-ui.json` = `{kind:v17, runtime:.cache/v17-release/V17-RC1-20261001/runtime}` |
+| 공개 API | 9개 교체 전후·재시작 후 동일 |
+| 운영 데이터 | 이관 직후 모든 페이지 FALSE(사이드바 비어 있음) → 후기(#98)·FAQ(#100) "콘텐츠 작업에 보이기" 켬 → 사이드바 후기 › 생활·수업·프로젝트, FAQ › 준비사항·수업·프로젝트 |
+| 정상 종료 → 재시작 | 통과, 사이드바·공개 API 동일 |
+
+되돌리기: V16 RC3 선택(V16 RC1 DB 그대로). V17 이후 운영 변경은 잃는다.

@@ -98,7 +98,7 @@
 
 화면 이름은 이제 **사이트 구조**(옛 전체 페이지 현황)이고, 버튼은 내용 편집·블록 보기·옮기기·설정, 반영은 "홈페이지에 반영 (구성 게시)"이다([SITE_STRUCTURE_UX.md](SITE_STRUCTURE_UX.md) 7절). 이 문서의 다른 절에서 "전체 페이지 현황"은 같은 화면이다. 후기(#98, REVIEW)에는 하위 항목 생활·수업·프로젝트, FAQ(#100, FAQ 연결)에는 준비사항·수업·프로젝트가 있다.
 
-[SITE_STRUCTURE_UX.md](SITE_STRUCTURE_UX.md). 최상위는 고정 구획(홈 완전 고정), `+ 하위 페이지`(빈/모음/템플릿), 끌어서 순서·이동. 프런트만(commit `cad7cde`, JAR `db919f60…`). 최상위 생성·삭제 기능은 백엔드에 남기고 UI에서만 숨김 — 실제 IA가 확정되면 개발 단계에서 운영 데이터로 세팅한다. **현재 8095: V16 RC3**(`.cache/v16-release/V16-RC3-20261001/runtime`, JAR `5c29fc97…`, DB는 V16 RC1 DB; RC2는 되돌리기 대상). 최상위: 홈 #1 · 인사교 소개 #65 · 후기 #98(`reviews`, 게시, REVIEW 연결) · 지원 #99(`support`, 초안) · FAQ #100(`faq`, 초안). #97은 삭제됨. 되돌리기 대상 V16 RC1(같은 DB) / 데이터는 백업 `before-site-ux-20261001-…`.
+[SITE_STRUCTURE_UX.md](SITE_STRUCTURE_UX.md). 최상위는 고정 구획(홈 완전 고정), `+ 하위 페이지`(빈/모음/템플릿), 끌어서 순서·이동. 프런트만(commit `cad7cde`, JAR `db919f60…`). 최상위 생성·삭제 기능은 백엔드에 남기고 UI에서만 숨김 — 실제 IA가 확정되면 개발 단계에서 운영 데이터로 세팅한다. **현재 8095: V17 RC1**(`.cache/v17-release/V17-RC1-20261001/runtime`, JAR `442977c4…`, 자기 DB, Flyway V1~V17; 되돌리기 대상 V16 RC3 + V16 RC1 DB). [V17_CONTENT_WORK_VISIBILITY.md](V17_CONTENT_WORK_VISIBILITY.md): 페이지 설정의 "콘텐츠 작업에 보이기"를 켠 페이지만 콘텐츠 작업 사이드바에 보인다(글 종류 없어도 됨). 후기·FAQ만 켜져 있다. 최상위: 홈 #1 · 인사교 소개 #65 · 후기 #98(`reviews`, 게시, REVIEW 연결) · 지원 #99(`support`, 초안) · FAQ #100(`faq`, 초안). #97은 삭제됨. 되돌리기 대상 V16 RC1(같은 DB) / 데이터는 백업 `before-site-ux-20261001-…`.
 
 ## 7. 아직 하지 않은 것
 
@@ -133,4 +133,4 @@
 - 프런트(`frontend/`): Codex 번들 node(`%LOCALAPPDATA%/OpenAI/Codex/runtimes/cua_node/*/bin/node.exe`)로 `node --experimental-strip-types --test tests/*.test.ts`, `node node_modules/typescript/bin/tsc --noEmit`, `node node_modules/vite/bin/vite.js build`(→ `src/main/resources/static/next-app`, git 제외). 소스 간 값 import는 `.ts` 확장자를 붙인다.
 - 미리보기: JAR를 `--spring.profiles.active=design-preview --server.address=127.0.0.1 --server.port=8081`로 실행(메모리 DB, 로그인 1234/1234).
 - 런타임 스크립트(`scripts/`): `promote-v15-runtime.ps1`(V13/V14 → V15 사본 적용), `swap-v12-jar.ps1`(같은 schema JAR 교체), `relocate-v12-runtime.ps1`(사본 이관), `select-v12-runtime.ps1`, `start-v12-runtime.ps1`. PowerShell 5.1 스크립트는 한글이 있으면 UTF-8 BOM이 필요하다.
-- 비활성화된 임시 계정: #33~#46(각 단계 확인용, #41~#43 V16 적용, #44~#46 사이트 구조 적용).
+- 비활성화된 임시 계정: #33~#46(각 단계 확인용). 이후 확인은 사용자가 제공한 SUPER_ADMIN 계정으로 했다(비밀번호는 기록하지 않음).

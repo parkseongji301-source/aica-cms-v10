@@ -17,5 +17,16 @@ public final class PublicDocuments {
                        String sourceMode,Posts posts) {}
     public record Block(String id,int schemaVersion,String type,String variation,boolean visible,Data data) {}
     public record Page(int apiVersion,long id,String title,String slug,LocalDateTime publishedAt,List<Block> blocks) {}
-    public record Menu(long id,String label,String kind,Long pageId,String slug,Long categoryId,String url,String apiHref) {}
+    /**
+     * key is unique within one response; parentKey is the key of the parent item (null at the top level).
+     * Before the first site structure publication the list is the managed menus (flat, id = menu id). After it,
+     * PAGE/GROUP items come from the published structure (id = area id) and LINK items (id = menu id) follow at
+     * the end of the top level. kind GROUP is a label without a link.
+     */
+    public record Menu(long id,String label,String kind,Long pageId,String slug,Long categoryId,String url,String apiHref,String key,String parentKey) {}
+    /** publishedAt is null until the first structure publication; items is then empty. */
+    public record Structure(int apiVersion,LocalDateTime publishedAt,List<StructureNode> items) {}
+    /** kind GROUP is a label without a link: a group, or a page that is not public now but has public areas below. */
+    public record StructureNode(long id,String kind,String title,String label,Long pageId,String slug,String apiHref,
+                                boolean menuVisible,String contentTypeCode,List<StructureNode> children) {}
 }

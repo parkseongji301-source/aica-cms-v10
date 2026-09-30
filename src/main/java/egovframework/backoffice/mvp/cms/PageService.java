@@ -182,7 +182,7 @@ public class PageService {
   long children=PageHierarchy.children(store.all("pages",null),id).size();
   if(children>0) throw new BusinessException("하위 페이지 "+children+"개가 있습니다. 하위 페이지를 먼저 다른 곳으로 옮기거나 삭제하세요.");
   if(store.<Long>one("pageUsage",id)>0) throw new BusinessException("메뉴나 홈페이지 첫 화면에서 사용 중입니다. 연결을 해제한 후 삭제하세요.");
-  if(store.<Long>one("publishedStructureReferences",id)>0) throw new BusinessException("현재 게시된 사이트 구성에서 사용 중입니다. 구성에서 빼거나 숨긴 뒤 구성을 다시 게시하면 삭제할 수 있습니다.");
+  if(store.<Long>one("publishedStructureReferences",id)>0) throw new BusinessException("현재 게시된 사이트 구성의 메뉴에 있습니다. 전체 페이지 현황에서 메뉴 숨김으로 바꾼 뒤 구성을 다시 게시하면 삭제할 수 있습니다.");
   store.change("deletePage",id);audit.record(actor,"페이지 삭제","페이지 #"+id,page.title());
  }
  /**

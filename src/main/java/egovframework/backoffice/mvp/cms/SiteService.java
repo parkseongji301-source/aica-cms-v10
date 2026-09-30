@@ -12,9 +12,9 @@ import org.springframework.http.HttpStatus;
 @Service
 public class SiteService {
  private final CmsStore store;private final CmsAccess access;private final MediaService media;
- private final PageService pages;private final ActivityService audit;
- public SiteService(CmsStore store,CmsAccess access,MediaService media,PageService pages,ActivityService audit) {
-  this.store=store;this.access=access;this.media=media;this.pages=pages;this.audit=audit;
+ private final PageService pages;private final ActivityService audit;private final SiteStructureService structure;
+ public SiteService(CmsStore store,CmsAccess access,MediaService media,PageService pages,ActivityService audit,SiteStructureService structure) {
+  this.structure=structure;this.store=store;this.access=access;this.media=media;this.pages=pages;this.audit=audit;
  }
  public List<Category> categories() {return store.all("categories",null);}
  public List<Menu> menus(AccountPrincipal actor) {access.manager(actor);return store.all("menus",null);}
@@ -50,6 +50,12 @@ public class SiteService {
  public void menu(AccountPrincipal principal,Long id,String label,String kind,Long targetId,String url,boolean visible) {
   store.lock();var actor=access.structure(principal);
   if(!Set.of("PAGE","CATEGORY","LINK").contains(kind)) throw new BusinessException("메뉴 종류를 선택하세요.");
+  // After the first structure publication, page menus derive from the site structure; only external links are edited here.
+  if(structure.published()) {
+   Menu current=id==null?null:store.one("menu",id);
+   if(!kind.equals("LINK") || current!=null && !"LINK".equals(current.kind()))
+    throw new BusinessException("사이트 구성이 게시된 뒤에는 페이지 메뉴를 전체 페이지 현황의 구성에서 관리합니다. 여기서는 외부 링크만 추가·수정할 수 있습니다.");
+  }
   // Content collections are pages with POSTS query blocks. Only menus that already point to a category keep that link until migration.
   if(kind.equals("CATEGORY")) {
    Menu current=id==null?null:store.one("menu",id);

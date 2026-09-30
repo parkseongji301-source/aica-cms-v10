@@ -80,7 +80,7 @@ public class NextWorkspaceApi {
     public List<PageRow> pageRows(@AuthenticationPrincipal AccountPrincipal actor) {
         return rows(pages.list(actor));
     }
-    private static List<PageRow> rows(List<CmsModels.Page> list) {
+    static List<PageRow> rows(List<CmsModels.Page> list) {
         return list.stream().map(p->new PageRow(p.id(),p.title(),p.slug(),p.status(),p.revision(),p.pending(),p.updatedAt(),p.parentId(),p.sortOrder(),p.areaKind(),p.contentTypeCode(),p.menuVisible(),p.menuLabel())).toList();
     }
     @PutMapping("/pages/{id}/placement")

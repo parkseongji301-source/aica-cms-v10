@@ -131,6 +131,18 @@
  <select id="activeContentTypeName" resultType="string">SELECT name FROM content_types WHERE code=#{value} AND active=TRUE</select>
  <!-- Only the latest published structure protects the pages it refers to. -->
  <select id="publishedStructureReferences" resultType="long">SELECT COUNT(*) FROM site_structure_publication_pages WHERE page_id=#{value} AND publication_id=(SELECT MAX(id) FROM site_structure_publications)</select>
+ <!-- Site structure publications (V14). The latest row is the published structure; none means site_menus are still used. -->
+ <sql id="structurePublicationColumns">id,snapshot_json,fingerprint,reason,source_publication_id,published_by,publisher_name,published_at</sql>
+ <select id="latestStructurePublication" resultType="egovframework.backoffice.mvp.cms.CmsModels$StructurePublication">SELECT <include refid="structurePublicationColumns"/> FROM site_structure_publications ORDER BY id DESC LIMIT 1</select>
+ <select id="structurePublication" resultType="egovframework.backoffice.mvp.cms.CmsModels$StructurePublication">SELECT <include refid="structurePublicationColumns"/> FROM site_structure_publications WHERE id=#{value}</select>
+ <select id="structurePublications" resultType="egovframework.backoffice.mvp.cms.CmsModels$StructurePublication">SELECT <include refid="structurePublicationColumns"/> FROM site_structure_publications ORDER BY id DESC LIMIT 50</select>
+ <insert id="createStructurePublication" useGeneratedKeys="true" keyProperty="id">INSERT INTO site_structure_publications(snapshot_json,fingerprint,reason,source_publication_id,published_by,publisher_name) VALUES(#{snapshotJson},#{fingerprint},#{reason},#{sourcePublicationId,jdbcType=BIGINT},#{publishedBy},#{publisherName})</insert>
+ <insert id="structurePublicationPage">INSERT INTO site_structure_publication_pages(publication_id,page_id) VALUES(#{publicationId},#{pageId})</insert>
+ <!-- Pages that are public now: the only ones a published structure links to. -->
+ <select id="publishedPageHeads" resultType="egovframework.backoffice.mvp.cms.SiteStructure$PublishedHead">SELECT pp.page_id,pp.title,pp.slug FROM page_publications pp JOIN site_pages p ON p.id=pp.page_id WHERE p.status='PUBLISHED' AND p.area_kind='PAGE'</select>
+ <!-- Label for a PAGE that is not public now but still has public areas below it: its last published title, else its title. -->
+ <select id="structureLabels" resultType="egovframework.backoffice.mvp.cms.CmsModels$StructureLabel">SELECT p.id,COALESCE(pp.title,p.title) AS title FROM site_pages p LEFT JOIN page_publications pp ON pp.page_id=p.id</select>
+ <select id="publicLinkMenus" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublicMenuRow">SELECT m.id,m.label,m.kind,CAST(NULL AS BIGINT) AS page_id,CAST(NULL AS VARCHAR) AS slug,CAST(NULL AS BIGINT) AS category_id,m.url,CAST(NULL AS VARCHAR) AS api_href FROM site_menus m WHERE m.visible=TRUE AND m.kind='LINK' ORDER BY m.sort_order,m.id</select>
  <update id="editPage">UPDATE site_pages SET title=#{title},slug=#{slug},sections_json=#{sectionsJson},revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
  <update id="pageVisibility">UPDATE site_pages SET status=#{status},updated_at=CURRENT_TIMESTAMP WHERE id=#{id}</update>
  <update id="withdrawPage">UPDATE site_pages SET status='PRIVATE',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=#{value}</update>
@@ -151,7 +163,7 @@
  </select>
  <sql id="menuView">SELECT m.id,CASE WHEN m.kind='CATEGORY' THEN c.name WHEN m.kind='PAGE' THEN p.title ELSE m.label END AS label,m.kind,m.target_id,m.url,m.sort_order,m.visible FROM site_menus m LEFT JOIN categories c ON m.kind='CATEGORY' AND c.id=m.target_id LEFT JOIN site_pages p ON m.kind='PAGE' AND p.id=m.target_id</sql>
  <select id="menus" resultType="egovframework.backoffice.mvp.cms.CmsModels$Menu"><include refid="menuView"/> ORDER BY m.sort_order,m.id</select>
- <select id="publicMenus" resultType="egovframework.backoffice.mvp.publicapi.PublicDocuments$Menu">
+ <select id="publicMenus" resultType="egovframework.backoffice.mvp.cms.CmsModels$PublicMenuRow">
  SELECT m.id,CASE WHEN m.kind='PAGE' THEN pp.title WHEN m.kind='CATEGORY' THEN c.name ELSE m.label END AS label,
  m.kind,pp.page_id,pp.slug,c.id AS category_id,CASE WHEN m.kind='LINK' THEN m.url ELSE NULL END AS url,
  CASE WHEN m.kind='PAGE' THEN '/api/public/v1/pages/' || CAST(pp.page_id AS VARCHAR)

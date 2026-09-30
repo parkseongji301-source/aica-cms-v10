@@ -9,7 +9,7 @@ import static egovframework.backoffice.mvp.cms.CmsModels.Page;
  * (depth, a fixed top-level home page) live here so they can change without a migration.
  */
 final class PageHierarchy {
- /** Current operating limit: three levels (for example 인사교 Real Life › 인사교 꿀팁 › 근처 식당). */
+ /** Current operating limit: three levels (for example a group › a page › its sub-page). */
  static final int MAX_DEPTH=3;
  /** Siblings are ordered by sort_order, then id; the SQL list uses the same order. */
  static final Comparator<Page> ORDER=Comparator.comparingInt(Page::sortOrder).thenComparingLong(Page::id);

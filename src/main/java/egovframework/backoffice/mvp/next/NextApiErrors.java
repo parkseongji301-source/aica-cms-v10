@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 @Order(-100)
-@RestControllerAdvice(assignableTypes={NextPageApi.class,NextWorkspaceApi.class,NextPostApi.class,NextClassificationApi.class,NextWritingTemplateApi.class})
+@RestControllerAdvice(assignableTypes={NextPageApi.class,NextWorkspaceApi.class,NextPostApi.class,NextClassificationApi.class,NextWritingTemplateApi.class,NextStructureApi.class})
 public class NextApiErrors {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<?> business(BusinessException error) {

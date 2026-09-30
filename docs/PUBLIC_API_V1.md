@@ -16,7 +16,8 @@
 
 | GET 경로 | 응답 | 규칙 |
 |---|---|---|
-| `/api/public/v1/menus` | `PublicMenu[]` | visible 메뉴만, 페이지는 현재 공개 상태와 발행본이 모두 필요 |
+| `/api/public/v1/menus` | `PublicMenu[]` | 첫 사이트 구성 게시 전: visible 메뉴(site_menus)만, 페이지는 현재 공개 상태와 발행본이 모두 필요. 첫 구성 게시 후: 게시된 구성의 메뉴 노출 영역 + 외부 링크(최상위 끝). V14 |
+| `/api/public/v1/structure` | `PublicStructure` | 게시된 사이트 구성 전체(메뉴에서 숨긴 공개 페이지 포함). 게시 전에는 `publishedAt:null, items:[]`. V14 |
 | `/api/public/v1/pages/{pageId}` | `PublicPage` | 페이지 발행 snapshot만 |
 | `/api/public/v1/pages/by-slug/{slug}` | `PublicPage` | 발행 당시 slug로 조회. `home`, `about` 등 영문·숫자·하이픈 |
 | `/api/public/v1/pages/{pageId}/blocks/{blockId}/posts` | `PublicPosts` | 그 페이지 **발행본**의 표시 중 POSTS 블록만. 요청자가 query/manual 설정을 넘기지 않음 |
@@ -31,6 +32,15 @@
 - 5B-2A부터 `publishedAt` 등 LocalDateTime API 값은 `backoffice.time-zone`(기본 Asia/Seoul)으로 해석하여 `2026-09-27T17:46:00+09:00` 형식으로 반환한다. 기존 DB timestamp 값은 변환하지 않았다. 과거 값의 실제 시간대가 다르다면 원본 전환 전에 별도 검토가 필요하다.
 - `menus.apiHref`는 **데이터 조회 주소**다. 방문자용 화면 경로가 아니다. 홈페이지가 pageId/slug/categoryId를 자기 라우터에 연결해야 한다. LINK 메뉴만 `url`을 직접 사용한다.
 - 메뉴 순서·노출·외부 링크와 기존 category 이름은 현 구조에서 별도 발행 snapshot이 없는 즉시 설정이다. 페이지 메뉴의 이름과 slug는 페이지 발행본에서만 읽는다. 전체 메뉴 발행 정책은 추가하지 않았다.
+
+## 사이트 구성과 메뉴 (V14, 2026-09-30)
+
+- **구성 게시.** 관리자 전체 페이지 현황의 구성(영역·묶음·상하위·순서·메뉴 노출·표시명·콘텐츠 작업 연결)은 작업 중 구성이고, "구성 게시"를 해야 공개 API에 반영된다. 게시본은 영역을 pageId로만 참조하고 주소·페이지 제목은 저장하지 않는다.
+- **fallback.** 구성을 한 번도 게시하지 않았으면 `/menus`는 위 기존 규칙(site_menus) 그대로다. 첫 구성 게시 뒤부터 `/menus`는 게시된 구성에서 만든다. 기존 CATEGORY 메뉴는 그때부터 나오지 않는다(카테고리 이관은 별도 단계).
+- **읽을 때 해석.** PAGE 항목의 링크·기본 이름은 요청 시점의 페이지 발행본(`status=PUBLISHED`)으로 정한다. 페이지를 다시 발행하면 구성을 다시 게시하지 않아도 새 slug·제목이 나온다. 공개되지 않은 페이지는 공개된 하위가 있으면 `kind:'GROUP'`(링크 없는 이름), 없으면 빠진다. 묶음(GROUP)도 공개된 하위가 없으면 빠진다.
+- **메뉴 트리.** `/menus` 항목은 `key`·`parentKey`로 트리를 이룬다(최대 3단계). 메뉴에서 숨긴 영역은 그 하위와 함께 메뉴에서 빠지지만, 게시된 페이지는 `/pages/by-slug`로 계속 열린다. `/structure`에는 남는다.
+- `id`는 구성 항목이면 영역 id(=pageId), LINK면 메뉴 id다. 응답 안에서 고유한 값은 `key`다(`menu:<id>`, `area:<id>`).
+- 공개 응답에는 작업 중 구성, 게시 이력, 게시자, 초안 제목을 내보내지 않는다. 단, 공개되지 않은 페이지가 이름만 나올 때는 그 페이지의 마지막 발행 제목(없으면 현재 제목)이나 게시된 메뉴 표시명을 쓴다.
 
 ## 발행본과 응답 경계
 

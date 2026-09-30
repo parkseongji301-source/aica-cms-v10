@@ -28,6 +28,12 @@ public final class CmsModels {
     public record PublishedPage(long pageId, String title, String slug, String sectionsJson, long revision,
                                 LocalDateTime publishedAt) {}
     public record Menu(long id, String label, String kind, Long targetId, String url, int sortOrder, boolean visible) {}
+    /** A public menu row read from site_menus (before the first structure publication, and LINK rows after it). */
+    public record PublicMenuRow(long id, String label, String kind, Long pageId, String slug, Long categoryId, String url, String apiHref) {}
+    /** A published site structure (V14). snapshotJson is a SiteStructure.Snapshot. */
+    public record StructurePublication(long id, String snapshotJson, String fingerprint, String reason, Long sourcePublicationId,
+                                       long publishedBy, String publisherName, LocalDateTime publishedAt) {}
+    public record StructureLabel(long id, String title) {}
     public record Link(long id, String label, String url, int sortOrder) {}
     public record Setting(String settingKey, String settingValue) {}
     public record Activity(long id, long actorId, String actorName, String action, String target,

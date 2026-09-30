@@ -12,6 +12,7 @@ public class PublicSiteApi {
     private final PublicSiteService site;
     public PublicSiteApi(PublicSiteService site){this.site=site;}
     @GetMapping("/menus") public List<Menu> menus(){return site.menus();}
+    @GetMapping("/structure") public Structure structure(){return site.structure();}
     @GetMapping("/pages/{id}") public Page page(@PathVariable long id){return site.page(id);}
     @GetMapping("/pages/by-slug/{slug}") public Page slug(@PathVariable String slug){return site.page(slug);}
     @GetMapping("/pages/{id}/blocks/{blockId}/posts")

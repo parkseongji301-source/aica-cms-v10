@@ -21,11 +21,14 @@ public class PublicSiteService {
     private final ClassificationService classifications;
     private final RestaurantDetailsService restaurants;
     private final RichTextService rich;
+    private final SiteStructureService structure;
     public PublicSiteService(CmsStore store,PageService pages,PublishedPostQueryService queries,
-                             ClassificationService classifications,RestaurantDetailsService restaurants,RichTextService rich) {
-        this.store=store;this.pages=pages;this.queries=queries;this.classifications=classifications;this.restaurants=restaurants;this.rich=rich;
+                             ClassificationService classifications,RestaurantDetailsService restaurants,RichTextService rich,SiteStructureService structure) {
+        this.structure=structure;this.store=store;this.pages=pages;this.queries=queries;this.classifications=classifications;this.restaurants=restaurants;this.rich=rich;
     }
-    public List<Menu> menus(){return store.all("publicMenus",null);}
+    /** site_menus until the first site structure publication, then the published structure plus LINK menus. */
+    public List<Menu> menus(){return structure.menus();}
+    public Structure structure(){return structure.structure();}
     public Page page(long id){return document(requiredPage(id));}
     public Page page(String slug) {
         if(slug==null||slug.length()>100||!slug.matches("[a-z0-9]+(?:-[a-z0-9]+)*"))throw missing();

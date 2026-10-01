@@ -58,7 +58,7 @@ public class RichTextService {
                         case "bold","italic","underline","strike","blockquote" -> { if(!v.isBoolean()) fail(); }
                         case "header" -> { if(!v.isIntegralNumber() || v.asInt()<1 || v.asInt()>3) fail(); }
                         case "indent" -> { if(!v.isIntegralNumber() || v.asInt()<1 || v.asInt()>4) fail(); }
-                        case "font" -> choice(attrs,k,Set.of("sans","serif","mono"));
+                        case "font" -> choice(attrs,k,Set.of("sans","serif","mono","nanumgothic","nanummyeongjo","gowundodum","gowunbatang","ibmplexsanskr","nanumpenscript","jua","dohyeon"));
                         case "size" -> choice(attrs,k,Set.of("small","large","huge"));
                         case "color","background" -> choice(attrs,k,COLORS);
                         case "align" -> choice(attrs,k,Set.of("left","center","right","justify"));

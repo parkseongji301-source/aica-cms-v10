@@ -5,7 +5,7 @@ import {PostTemplateTool} from './PostTemplateTool';
 
 type ImageValue = {id:number;width:string;align:string;alt:string;caption:string};
 const BlockEmbed = Quill.import('blots/block/embed') as typeof Parchment.EmbedBlot;
-const Font = Quill.import('attributors/class/font') as Parchment.ClassAttributor;Font.whitelist=['sans','serif','mono'];Quill.register(Font,true);
+const Font = Quill.import('attributors/class/font') as Parchment.ClassAttributor;Font.whitelist=['sans','serif','mono','nanumgothic','nanummyeongjo','gowundodum','gowunbatang','ibmplexsanskr','nanumpenscript','jua','dohyeon'];Quill.register(Font,true);
 const colors=['navy','blue','teal','red','purple','gray','yellow','white'];
 Quill.register(new Parchment.ClassAttributor('color','rt-color',{scope:Parchment.Scope.INLINE,whitelist:colors}),true);
 Quill.register(new Parchment.ClassAttributor('background','rt-background',{scope:Parchment.Scope.INLINE,whitelist:colors}),true);
@@ -52,7 +52,7 @@ export function RichEditor({document:source,plain,label,onChange,advanced=false,
  return <div className={'rich-field'+(focusedLayout?' focused-rich':'')+(more?' show-more':'')}>
   <div className="rich-toolbar" role="toolbar" aria-label={label+' 서식'}>
    <select aria-label={label+' 문단'} value={selected('header')} onChange={e=>format('header',e.target.value?Number(e.target.value):false)}><option value="">본문</option><option value="1">제목 1</option><option value="2">제목 2</option><option value="3">제목 3</option></select>
-   <select data-secondary="true" aria-label={label+' 글꼴'} value={selected('font')} onChange={e=>format('font',e.target.value||false)}><option value="">고딕</option><option value="serif">명조</option><option value="mono">고정폭</option></select>
+   <select aria-label={label+' 글꼴'} value={selected('font')} onChange={e=>format('font',e.target.value||false)}><option value="">고딕</option><option value="serif">명조</option><option value="mono">고정폭</option><option value="nanumgothic">나눔고딕</option><option value="nanummyeongjo">나눔명조</option><option value="gowundodum">고운돋움</option><option value="gowunbatang">고운바탕</option><option value="ibmplexsanskr">IBM Plex Sans KR</option><option value="nanumpenscript">나눔손글씨 펜</option><option value="jua">주아</option><option value="dohyeon">도현</option></select>
    <select data-secondary="true" aria-label={label+' 크기'} value={selected('size')} onChange={e=>format('size',e.target.value||false)}><option value="small">14</option><option value="">16</option><option value="large">20</option><option value="huge">28</option></select>
    {(['bold','italic','underline','strike'] as const).map((key,i)=><button key={key} data-secondary={key==='underline'||key==='strike'} type="button" aria-label={['굵게','기울임','밑줄','취소선'][i]} aria-pressed={activeFormat[key]===true} onMouseDown={e=>e.preventDefault()} onClick={()=>format(key,!quill.current?.getFormat()[key])}>{['B','I','U','S'][i]}</button>)}
    <select data-secondary="true" aria-label={label+' 글자색'} value={selected('color')} onChange={e=>format('color',e.target.value||false)}><option value="">글자색</option>{['navy','blue','teal','red','purple','gray','white'].map((c,i)=><option key={c} value={c}>{['남색','파랑','청록','빨강','보라','회색','흰색'][i]}</option>)}</select>

@@ -402,12 +402,16 @@ class BackofficeIntegrationTest {
             Map.of("insert","중간 문단\n","attributes",Map.of("font","serif","size","large")),
             Map.of("insert",Map.of("aicaFile",Map.of("id",pdf,"label","수업 자료 다운로드"))),
             Map.of("insert",Map.of("aicaTable",Map.of("rows",List.of(List.of("과정","일시"),List.of("AI <img onerror=x>","내일"))))),
+            Map.of("insert","손글씨 문단\n","attributes",Map.of("font","nanumpenscript")),
             Map.of("insert","마지막 문단\n"))));
         var created=browser.post("/admin/posts/save-json",Map.of("title","서식 있는 글","richContent",document,"action","publish"));
         assertThat(created.statusCode()).isEqualTo(200);long id=json.readTree(created.body()).get("id").asLong();
         assertThat(posts.get(actor,id).richContent()).isEqualTo(document);
         var view=browser.get("/admin/legacy/posts/"+id+"/publication").body();
-        assertThat(view).contains("rt-color-blue","<strong>앞 문단 &lt;script&gt;</strong>","rt-width-50","rt-font-serif","rt-size-large","수업 자료 다운로드","<table>","AI &lt;img onerror=x&gt;");
+        assertThat(view).contains("rt-color-blue","<strong>앞 문단 &lt;script&gt;</strong>","rt-width-50","rt-font-serif","rt-font-nanumpenscript","rt-size-large","수업 자료 다운로드","<table>","AI &lt;img onerror=x&gt;");
+        // Only the registered open-licence fonts are accepted.
+        String unknownFont=json.writeValueAsString(Map.of("ops",List.of(Map.of("insert","글꼴\n","attributes",Map.of("font","comic-sans")))));
+        assertThat(browser.post("/admin/posts/save-json",Map.of("title","허용되지 않은 글꼴","richContent",unknownFont,"action","save")).body()).doesNotContain("\"id\"");
         assertThat(view.indexOf("앞 문단")).isLessThan(view.indexOf("rt-width-50"));
         assertThat(view.indexOf("rt-width-50")).isLessThan(view.indexOf("중간 문단"));
         assertThat(view).doesNotContain("<img onerror=x>","/site/");

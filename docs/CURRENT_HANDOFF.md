@@ -102,7 +102,7 @@
 
 ## 6d. 관리 화면 시각 정돈 (8095 적용 완료)
 
-[ADMIN_VISUAL_REFINEMENT.md](ADMIN_VISUAL_REFINEMENT.md). `refined.css` 테마 층(종이색 캔버스·둥근 작업면·굵기 정리)과 메뉴 이름(홈페이지/템플릿·블록/자료/운영/설정), 글 라벨(전체 글·새 글 작성·글 편집·글 종류). 프런트만, commit `1b247fa`, JAR `40327cb2…`. **현재 8095: V17 RC2**(`.cache/v17-release/V17-RC2-20261001/runtime`, JAR `40327cb2…`, DB는 V17 RC1 DB; 되돌리기 대상 V17 RC1).
+[ADMIN_VISUAL_REFINEMENT.md](ADMIN_VISUAL_REFINEMENT.md). `refined.css` 테마 층(종이색 캔버스·둥근 작업면·굵기 정리)과 메뉴 이름(홈페이지/템플릿·블록/자료/운영/설정), 글 라벨(전체 글·새 글 작성·글 편집·글 종류). 프런트만, commit `1b247fa`, JAR `40327cb2…`. **현재 8095: V17 RC3**(`.cache/v17-release/V17-RC3-20261001/runtime`, JAR `b059601a…`, DB는 V17 RC1 DB; 되돌리기 대상 V17 RC2). 하위 페이지 창도 정돈됨(ADMIN_VISUAL_REFINEMENT.md 5절).
 
 ## 7. 아직 하지 않은 것
 

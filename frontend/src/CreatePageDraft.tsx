@@ -63,35 +63,39 @@ export function CreatePageDraft({active,parent,templateUse=false,onCreated,onClo
     // Navigation runs only after creation has completed; no follow-up fetch can create a retry.
     if(created)onCreated(created);
   }
-  return <BlockDialog active={active} title={`‘${parent.title}’ 하위 페이지 만들기`} onClose={close}>
+  const kinds=[
+    {value:'blank' as const,label:'빈 페이지',note:'블록을 직접 추가해 만듭니다'},
+    {value:'collection' as const,label:'글 목록 페이지',note:'조건에 맞는 게시 글을 자동으로 보여 줍니다'},
+    ...(templateUse?[{value:'template' as const,label:'템플릿에서 시작',note:'저장해 둔 페이지 구성을 복사합니다'}]:[])];
+  return <BlockDialog active={active} title={`‘${parent.title}’ 아래에 새 페이지`} className="page-create-dialog" onClose={close}>
     <form className="page-create-form" onSubmit={event=>{event.preventDefault();void create();}}>
-      <p className="page-create-parent"><span>상위 항목</span><strong>{parent.title}</strong></p>
-      <p className="muted">‘{parent.title}’ 아래 맨 끝에 임시보관 페이지로 만들어집니다. 순서는 목록에서 끌어서 바꿀 수 있습니다.</p>
-      <fieldset className="page-create-kind" disabled={busy||uncertain}><legend>시작 방법</legend>
-        <label><input type="radio" name="new-page-kind" checked={kind==='blank'} onChange={()=>setKind('blank')}/>빈 페이지</label>
-        <label><input type="radio" name="new-page-kind" checked={kind==='collection'} onChange={()=>setKind('collection')}/>글 모음 페이지 <small>글 종류·기수·주제로 게시된 글을 모아 보여 줍니다</small></label>
-        {templateUse&&<label><input type="radio" name="new-page-kind" checked={kind==='template'} onChange={()=>setKind('template')}/>저장된 템플릿으로 시작 <small>페이지 템플릿의 블록 구성을 복사해 시작합니다</small></label>}
+      <p className="page-create-intro">‘{parent.title}’ 맨 끝에 임시보관으로 만들어집니다. 게시하기 전에는 홈페이지에 보이지 않습니다.</p>
+      <label htmlFor="new-page-title"><span>페이지 제목 <span aria-hidden="true">*</span></span><input ref={titleInput} id="new-page-title" required maxLength={200} value={title} disabled={busy||uncertain} onChange={event=>setTitle(event.target.value)} placeholder="제목을 입력하세요"/></label>
+      <fieldset className="page-create-kind" disabled={busy||uncertain}><legend>어떻게 시작할까요</legend>
+        <div className="page-kind-options">{kinds.map(k=><label key={k.value} className={'page-kind-option'+(kind===k.value?' is-selected':'')}>
+          <input type="radio" name="new-page-kind" checked={kind===k.value} onChange={()=>setKind(k.value)}/>
+          <span className="page-kind-copy"><span className="page-kind-label">{k.label}</span><small>{k.note}</small></span>
+        </label>)}</div>
       </fieldset>
-      {kind==='collection'&&<fieldset className="page-create-collection" disabled={busy||uncertain}><legend>모을 글</legend>
+      {kind==='collection'&&<fieldset className="page-create-collection" disabled={busy||uncertain}><legend>보여 줄 글</legend>
         {catalog.loading&&!terms&&<p role="status">분류를 불러오는 중…</p>}<Feedback error={catalog.error}/>
         {terms&&<>
-          <label>글 종류 <span aria-hidden="true">*</span><select required value={preset.typeCode} onChange={e=>choose({...preset,typeCode:e.target.value,topicId:null})}><option value="">선택하세요</option>{types.map(t=><option key={t.code} value={t.code}>{t.name}</option>)}</select></label>
-          <label>기수 <small>선택</small><select value={preset.cohortId??''} onChange={e=>choose({...preset,cohortId:e.target.value?Number(e.target.value):null})}><option value="">전체 기수</option>{cohorts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-          <label>주제 <small>선택</small><select value={preset.topicId??''} disabled={!preset.typeCode||!topics.length} onChange={e=>choose({...preset,topicId:e.target.value?Number(e.target.value):null})}><option value="">{preset.typeCode&&!topics.length?'이 글 종류에는 주제가 없습니다':'전체 주제'}</option>{topics.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
-          <label>표시 개수<select value={preset.limit} onChange={e=>setPreset({...preset,limit:Number(e.target.value)})}>{Array.from({length:COLLECTION_LIMITS.max},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}개</option>)}</select></label>
+          <label><span>글 종류 <span aria-hidden="true">*</span></span><select required value={preset.typeCode} onChange={e=>choose({...preset,typeCode:e.target.value,topicId:null})}><option value="">선택하세요</option>{types.map(t=><option key={t.code} value={t.code}>{t.name}</option>)}</select></label>
+          <label><span>기수 <small>선택</small></span><select value={preset.cohortId??''} onChange={e=>choose({...preset,cohortId:e.target.value?Number(e.target.value):null})}><option value="">전체 기수</option>{cohorts.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+          <label><span>주제 <small>선택</small></span><select value={preset.topicId??''} disabled={!preset.typeCode||!topics.length} onChange={e=>choose({...preset,topicId:e.target.value?Number(e.target.value):null})}><option value="">{preset.typeCode&&!topics.length?'이 글 종류에는 주제가 없습니다':'전체 주제'}</option>{topics.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+          <label><span>보여 줄 개수</span><select value={preset.limit} onChange={e=>setPreset({...preset,limit:Number(e.target.value)})}>{Array.from({length:COLLECTION_LIMITS.max},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}개</option>)}</select></label>
         </>}
-        <p className="page-create-help">게시된 글 중 조건에 맞는 글이 최신순으로 보입니다. 새 글은 게시되는 즉시 목록에 반영됩니다. 조건을 바꾸면 페이지를 다시 게시해야 공개본에 반영됩니다. 조건은 만든 뒤 글 목록 블록에서 바꿀 수 있습니다.</p>
+        <p className="page-create-help">게시된 글 중 조건에 맞는 글이 최신순으로 보입니다. 조건은 만든 뒤에도 글 목록 블록에서 바꿀 수 있습니다.</p>
       </fieldset>}
-      {kind==='template'&&<fieldset className="page-create-template" disabled={busy||uncertain}><legend>템플릿</legend>
+      {kind==='template'&&<fieldset className="page-create-template" disabled={busy||uncertain}><legend>사용할 템플릿</legend>
         {templates.loading&&!templates.data&&<p role="status">템플릿을 불러오는 중…</p>}<Feedback error={templates.error||templateError}/>
-        {templates.data&&(usable.length?<label>사용할 템플릿 <span aria-hidden="true">*</span><select required value={templateId} onChange={e=>setTemplateId(e.target.value)}><option value="">선택하세요</option>{usable.map(t=><option key={t.id} value={t.id}>{t.name} · 블록 {t.blockCount}개</option>)}</select></label>
+        {templates.data&&(usable.length?<label className="page-create-select"><span>템플릿 <span aria-hidden="true">*</span></span><select required value={templateId} onChange={e=>setTemplateId(e.target.value)}><option value="">선택하세요</option>{usable.map(t=><option key={t.id} value={t.id}>{t.name} · 블록 {t.blockCount}개</option>)}</select></label>
           :<p className="muted">사용할 수 있는 페이지 템플릿이 없습니다. 페이지 편집에서 ‘현재 구성을 템플릿으로 저장’으로 만들 수 있습니다.</p>)}
         {template&&<><p className="muted">{template.info.description||'설명 없음'}</p><TemplateContents document={template}/></>}
-        <p className="page-create-help">템플릿의 복사본으로 시작합니다. 만든 뒤 템플릿을 바꾸거나 사용 중지해도 이 페이지는 바뀌지 않습니다.</p>
+        <p className="page-create-help">템플릿을 복사해서 시작합니다. 원본 템플릿이 바뀌어도 이 페이지는 그대로입니다.</p>
       </fieldset>}
-      <label htmlFor="new-page-title"><span>페이지 제목 <span aria-hidden="true">*</span></span><input ref={titleInput} id="new-page-title" required maxLength={200} value={title} disabled={busy||uncertain} onChange={event=>setTitle(event.target.value)} placeholder="예: 프로젝트 후기"/></label>
-      <label htmlFor="new-page-slug"><span>페이지 주소 <small>선택</small></span><input id="new-page-slug" maxLength={100} pattern="[a-z0-9]+(-[a-z0-9]+)*" title="영문 소문자·숫자와 단어 사이 하이픈으로 입력하세요." value={slug} disabled={busy||uncertain} onChange={event=>setSlug(event.target.value.toLowerCase())} placeholder="예: project-reviews · 비워두면 자동 생성" aria-describedby="new-page-slug-help" autoCapitalize="none" spellCheck={false}/></label>
-      <p id="new-page-slug-help" className="page-create-help">영문 소문자·숫자·하이픈을 사용할 수 있습니다. 이미 사용 중인 주소는 사용할 수 없습니다. 주소와 메뉴는 상위 항목과 따로 정합니다.</p>
+      <label htmlFor="new-page-slug"><span>주소 <small>선택</small></span><input id="new-page-slug" maxLength={100} pattern="[a-z0-9]+(-[a-z0-9]+)*" title="영문 소문자·숫자와 단어 사이 하이픈으로 입력하세요." value={slug} disabled={busy||uncertain} onChange={event=>setSlug(event.target.value.toLowerCase())} placeholder="예: project-reviews" aria-describedby="new-page-slug-help" autoCapitalize="none" spellCheck={false}/></label>
+      <p id="new-page-slug-help" className="page-create-help">비워 두면 자동으로 정해집니다. 영문 소문자·숫자·하이픈(-)만 쓸 수 있습니다.</p>
       <Feedback error={error}/>
       <div className="dialog-actions"><button type="button" disabled={busy} onClick={close}>취소</button>{uncertain?<button type="button" className="primary" onClick={onCheckList}>목록에서 확인</button>:<button type="submit" className="primary" disabled={busy||!title.trim()||!ready}>{busy?'페이지 만드는 중…':'만들고 편집하기'}</button>}</div>
     </form>

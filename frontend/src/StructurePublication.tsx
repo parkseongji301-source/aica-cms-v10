@@ -22,7 +22,7 @@ export function StructurePublicationBar({active,status,onChanged,onBusy}:Props) 
         {status.error&&<span className="error-box" role="alert">{status.error}</span>}
         {s&&(s.latest
           ?<span className="structure-publication-state">마지막 반영 {date(s.latest.publishedAt)} · {s.latest.publisherName}{s.latest.reason==='REPUBLISH'?` · 반영본 #${s.latest.sourcePublicationId} 다시 반영`:''}</span>
-          :<span className="structure-publication-state">아직 반영한 적 없음 · 지금 홈페이지 메뉴는 메뉴 관리의 기존 메뉴를 씁니다</span>)}
+          :<span className="structure-publication-state">아직 반영 전 · 홈페이지는 메뉴 관리의 기존 메뉴를 씁니다</span>)}
         {s&&<small className="row-meta">{s.changed?`반영하지 않은 변경 ${s.changes.length}건`:'홈페이지와 같음'}{s.errors.length?` · 반영할 수 없는 문제 ${s.errors.length}건`:''}{s.warnings.length?` · 확인할 점 ${s.warnings.length}건`:''}</small>}
       </div>
       <div className="heading-actions">

@@ -85,7 +85,6 @@ class ContentWorkNodeIntegrationTest {
         assertThat(failure(send(admin,"POST","/pages/70/content-nodes",node("준비사항",301L),csrf),400)).contains("허용되지");
         assertThat(failure(send(admin,"POST","/pages/70/content-nodes",node("폐지",99L),csrf),400)).contains("사용 중지");
         assertThat(failure(send(admin,"POST","/pages/70/content-nodes",node("없는 주제",12345L),csrf),400)).contains("주제를 다시");
-        assertThat(failure(send(admin,"POST","/pages/70/content-nodes",node("주제 없음",null),csrf),400)).contains("주제를 선택");
         assertThat(failure(send(admin,"POST","/pages/70/content-nodes",node("생활 후기",95L),csrf),400)).contains("같은 이름");
         assertThat(failure(send(admin,"POST","/pages/70/content-nodes",node("또 생활",71L),csrf),400)).contains("이미 '생활 후기'");
         assertThat(failure(send(admin,"POST","/pages/70/content-nodes",node("  ",95L),csrf),400)).contains("하위 항목 이름");
@@ -111,6 +110,131 @@ class ContentWorkNodeIntegrationTest {
             assertThat(send(b,"DELETE","/content-nodes/"+project,null,token).statusCode()).as(role).isEqualTo(403);
             // The editor's read endpoint follows pages/** (ALL_POSTS); every role still gets the nodes through bootstrap.
             assertThat(b.get(API+"/pages/70/content-nodes").statusCode()).as(role).isEqualTo(role.equals("ADMIN")?200:403);}
+    }
+
+    @Test void workItemFiltersUseExactConnectionsAndKeepOtherCriteriaAndRoleScope()throws Exception {
+        var admin=login("SUPER_ADMIN");String token=csrf(admin);
+        ok(send(admin,"PUT","/pages/70/composition",composition("REVIEW"),token));
+        ok(send(admin,"PUT","/pages/72/composition",composition("FAQ"),token));
+        long review=ok(send(admin,"POST","/pages/70/content-nodes",node("생활 이야기",71L),token)).get(0).path("id").asLong();
+        long faq=ok(send(admin,"POST","/pages/72/content-nodes",node("준비 이야기",301L),token)).get(0).path("id").asLong();
+        // Both topics are valid in both types: a cross-product of selected type/topic ids would include decoys.
+        jdbc.update("INSERT INTO content_type_topics(type_code,topic_id) VALUES('FAQ',71),('REVIEW',301)");
+        for(int i=0;i<12;i++) {
+            jdbc.update("INSERT INTO posts(id,title,content,author_id,status,content_type_code) VALUES(?,?,'필터 확인',?,'DRAFT','REVIEW')",8100+i,"생활 기록 "+i,root);
+            jdbc.update("INSERT INTO post_topics(post_id,topic_id) VALUES(?,71)",8100+i);
+        }
+        jdbc.update("INSERT INTO posts(id,title,content,author_id,status,content_type_code) VALUES(8200,'FAQ 기록','본문',?,'PRIVATE','FAQ'),(8201,'제외할 FAQ','본문',?,'DRAFT','FAQ'),(8202,'제외할 후기','본문',?,'DRAFT','REVIEW'),(8203,'내 생활 기록','본문',?,'DRAFT','REVIEW')",root,root,root,accounts.findByEmail(email("SUPPORTER")).id());
+        jdbc.update("INSERT INTO post_topics(post_id,topic_id) VALUES(8200,301),(8201,71),(8202,301),(8203,71),(8100,301)");
+        String path=API+"/posts?workNodeIds="+review+","+faq;
+        var first=ok(admin.get(path));var second=ok(admin.get(path+"&page=1"));
+        assertThat(first.path("total").asInt()).isEqualTo(14);assertThat(first.path("items").size()).isEqualTo(10);assertThat(second.path("items").size()).isEqualTo(4);
+        var ids=new HashSet<Long>();for(var response:List.of(first,second))for(var post:response.path("items"))ids.add(post.path("id").asLong());
+        assertThat(ids).hasSize(14).doesNotContain(8201L,8202L);
+        assertThat(ok(admin.get(path+"&typeCodes=FAQ")).path("total").asInt()).isEqualTo(1);
+        assertThat(ok(admin.get(path+"&status=PRIVATE&q=FAQ")).path("items").get(0).path("id").asLong()).isEqualTo(8200);
+        assertThat(ok(admin.get(path+"&status=DRAFT&q=FAQ")).path("total").asInt()).isZero();
+        long cohort=701L;
+        jdbc.update("INSERT INTO cohorts(id,code,name) VALUES(701,'WORK_FILTER_COHORT','확인용 기수')");
+        jdbc.update("INSERT INTO post_cohorts(post_id,cohort_id) VALUES(8100,?)",cohort);
+        assertThat(ok(admin.get(path+"&cohortIds="+cohort)).path("total").asInt()).isEqualTo(1);
+        jdbc.update("DELETE FROM post_cohorts WHERE cohort_id=?",cohort);
+        jdbc.update("DELETE FROM cohorts WHERE id=?",cohort);
+        assertThat(ok(login("SUPPORTER").get(path)).path("items").get(0).path("id").asLong()).isEqualTo(8203);
+        assertThat(ok(login("SUPPORTER").get(path)).path("total").asInt()).isEqualTo(1);
+        ok(send(admin,"PUT","/content-nodes/"+review,Map.of("name","바뀐 항목 이름"),token));
+        assertThat(ok(admin.get(path)).path("total").asInt()).isEqualTo(14);
+        assertThat(ok(admin.get(API+"/posts?topicIds=71")).path("total").asInt()).isEqualTo(14); // old topic URLs retain their meaning
+        var hidden=composition("FAQ");hidden.put("contentWorkVisible",false);
+        ok(send(admin,"PUT","/pages/72/composition",hidden,token));
+        assertThat(failure(admin.get(path),400)).contains("작업 항목");
+        ok(send(admin,"PUT","/pages/72/composition",composition("FAQ"),token));
+        jdbc.update("UPDATE topics SET active=FALSE WHERE id=71");
+        assertThat(failure(admin.get(path),400)).contains("작업 항목");
+        jdbc.update("UPDATE topics SET active=TRUE WHERE id=71");
+        ok(send(admin,"DELETE","/content-nodes/"+review,null,token));
+        assertThat(failure(admin.get(path),400)).contains("작업 항목");
+        assertThat(ok(admin.get(API+"/posts")).path("total").asInt()).isEqualTo(16);
+        assertThat(failure(admin.get(API+"/posts?workNodeIds=-1"),400)).contains("필터");
+    }
+
+    @Test void nameOnlyCreationReusesTopicsAndPreservesTheConnectionOnRenameAndRemoval()throws Exception {
+        var admin=login("SUPER_ADMIN");String csrf=csrf(admin);
+        ok(send(admin,"PUT","/pages/70/composition",composition("REVIEW"),csrf));
+        String menus=new HttpBrowser(port).get("/api/public/v1/menus").body();
+        String structure=new HttpBrowser(port).get("/api/public/v1/structure").body();
+        String page=new HttpBrowser(port).get("/api/public/v1/pages/70").body();
+        var nodes=ok(send(admin,"POST","/pages/70/content-nodes",Map.of("name","  생활  "),csrf));
+        long life=nodes.get(0).path("id").asLong();
+        assertThat(nodes.get(0).path("topicId").asLong()).isEqualTo(71L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM topics",Integer.class)).isEqualTo(5);
+        // An omitted topic never infers a new connection from the new label (even an existing topic name).
+        nodes=ok(send(admin,"PUT","/content-nodes/"+life,Map.of("name","수업"),csrf));
+        assertThat(names(nodes)).containsExactly("수업:71");
+        assertThat(jdbc.queryForObject("SELECT name FROM topics WHERE id=71",String.class)).isEqualTo("생활");
+
+        nodes=ok(send(admin,"POST","/pages/70/content-nodes",Map.of("name","취업 준비"),csrf));
+        long item=nodes.get(1).path("id").asLong(),topic=nodes.get(1).path("topicId").asLong();
+        assertThat(jdbc.queryForObject("SELECT name FROM topics WHERE id=?",String.class,topic)).isEqualTo("취업 준비");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM content_type_topics WHERE type_code='REVIEW' AND topic_id=?",Integer.class,topic)).isEqualTo(1);
+        assertThat(failure(send(admin,"POST","/pages/70/content-nodes",Map.of("name","취업 준비"),csrf),400)).contains("같은 이름");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM topics",Integer.class)).isEqualTo(6);
+        for(String role:List.of("SUPER_ADMIN","ADMIN","SUPPORTER"))
+            assertThat(areas(role).get(0).path("nodes").get(1).path("topicId").asLong()).as(role).isEqualTo(topic);
+        assertThat(body(admin.get(API+"/classifications")).path("topics").findValuesAsText("name")).contains("취업 준비");
+        var created=send(admin,"POST","/posts",Map.of("saveIntent","AUTOSAVE","title","취업 준비 기록","content","","mediaIds",List.of(),"classification",Map.of("typeCode","REVIEW","cohortIds",List.of(),"topicIds",List.of(topic))),csrf);
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);long post=body(created).path("id").asLong();
+        assertThat(body(admin.get(API+"/posts?typeCodes=REVIEW&topicIds="+topic)).path("items").get(0).path("id").asLong()).isEqualTo(post);
+        assertThat(body(admin.get(API+"/posts?typeCodes=REVIEW&topicIds=71")).path("total").asLong()).isZero();
+        ok(send(admin,"DELETE","/content-nodes/"+item,null,csrf));
+        assertThat(jdbc.queryForObject("SELECT topic_id FROM post_topics WHERE post_id=?",Long.class,post)).isEqualTo(topic);
+        nodes=ok(send(admin,"POST","/pages/70/content-nodes",Map.of("name","취업 준비"),csrf));
+        assertThat(nodes.get(1).path("topicId").asLong()).isEqualTo(topic);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM topics",Integer.class)).isEqualTo(6);
+        assertThat(jdbc.queryForObject("SELECT revision FROM site_pages WHERE id=70",Long.class)).isEqualTo(2L);
+        assertThat(new HttpBrowser(port).get("/api/public/v1/menus").body()).isEqualTo(menus);
+        assertThat(new HttpBrowser(port).get("/api/public/v1/structure").body()).isEqualTo(structure);
+        assertThat(new HttpBrowser(port).get("/api/public/v1/pages/70").body()).isEqualTo(page);
+    }
+
+    @Test void nameResolutionIsScopedAndDoesNotReviveOrGuessTopics()throws Exception {
+        var admin=login("SUPER_ADMIN");String csrf=csrf(admin);
+        ok(send(admin,"PUT","/pages/70/composition",composition("REVIEW"),csrf));
+        // The FAQ topic with the same label must not be shared or reclassified automatically.
+        var nodes=ok(send(admin,"POST","/pages/70/content-nodes",Map.of("name","준비사항"),csrf));
+        assertThat(nodes.get(0).path("topicId").asLong()).isNotEqualTo(301L);
+        assertThat(jdbc.queryForList("SELECT type_code FROM content_type_topics WHERE topic_id=301",String.class)).containsExactly("FAQ");
+        // A linked content type with no topics can create its first item.
+        ok(send(admin,"PUT","/pages/72/composition",composition("GENERAL"),csrf));
+        ok(send(admin,"POST","/pages/72/content-nodes",Map.of("name","새 소식"),csrf));
+        int count=jdbc.queryForObject("SELECT COUNT(*) FROM topics",Integer.class);
+        assertThat(failure(send(admin,"POST","/pages/70/content-nodes",Map.of("name","폐지"),csrf),400)).contains("사용 중지");
+        assertThat(failure(send(admin,"POST","/pages/80/content-nodes",Map.of("name","잘못된 위치"),csrf),400)).contains("묶음");
+        assertThat(failure(send(admin,"POST","/pages/70/content-nodes",Map.of("name"," "),csrf),400)).contains("항목 이름");
+        for(String role:List.of("ADMIN","SUPPORTER")){
+            var user=login(role);
+            assertThat(send(user,"POST","/pages/70/content-nodes",Map.of("name","권한 없는 생성"),csrf(user)).statusCode()).isEqualTo(403);
+            assertThat(send(user,"PUT","/content-nodes/"+nodes.get(0).path("id").asLong(),Map.of("name","권한 없는 변경"),csrf(user)).statusCode()).isEqualTo(403);
+        }
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM topics",Integer.class)).isEqualTo(count);
+        jdbc.update("INSERT INTO topics(id,code,name) VALUES(601,'AMBIGUOUS_LIFE','생활')");
+        jdbc.update("INSERT INTO content_type_topics(type_code,topic_id) VALUES('REVIEW',601)");
+        assertThat(failure(send(admin,"POST","/pages/70/content-nodes",Map.of("name","생활"),csrf),400)).contains("여러 개");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM content_work_nodes WHERE page_id=70",Integer.class)).isEqualTo(1);
+    }
+
+    @Test void nodeFailureRollsBackTheNewTopicTypeLinkAndAudit()throws Exception {
+        var admin=login("SUPER_ADMIN");String csrf=csrf(admin);
+        ok(send(admin,"PUT","/pages/70/composition",composition("REVIEW"),csrf));
+        long audit=jdbc.queryForObject("SELECT COUNT(*) FROM activity_log",Long.class);
+        jdbc.execute("ALTER TABLE content_work_nodes ADD CONSTRAINT reject_test_node CHECK(name <> '저장 실패')");
+        try{
+            assertThat(send(admin,"POST","/pages/70/content-nodes",Map.of("name","저장 실패"),csrf).statusCode()).isEqualTo(500);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM topics",Integer.class)).isEqualTo(5);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM content_type_topics",Integer.class)).isEqualTo(5);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM content_work_nodes",Integer.class)).isZero();
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_log",Long.class)).isEqualTo(audit);
+        }finally{jdbc.execute("ALTER TABLE content_work_nodes DROP CONSTRAINT reject_test_node");}
     }
 
     @Test void changingTheLinkRemovesTheNodesAndDeletingThePageCascades()throws Exception {

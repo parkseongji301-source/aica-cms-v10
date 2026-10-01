@@ -9,7 +9,7 @@ import {TemplateContents} from './PageTemplates';
 
 export type PageCreationState={busy:boolean;dirty:boolean};
 /**
- * "+ 하위 페이지": a new page is always created under the top-level item it was opened from (the server still
+ * "+ 비노출 페이지": a new page is always created under the top-level item it was opened from (the server still
  * checks the placement). It starts blank, as a content collection, or as a copy of a saved page template
  * (the existing template prepare API returns fresh block copies, which become the new draft's blocks).
  */
@@ -67,9 +67,9 @@ export function CreatePageDraft({active,parent,templateUse=false,onCreated,onClo
     {value:'blank' as const,label:'빈 페이지',note:'블록을 직접 추가해 만듭니다'},
     {value:'collection' as const,label:'글 목록 페이지',note:'조건에 맞는 게시 글을 자동으로 보여 줍니다'},
     ...(templateUse?[{value:'template' as const,label:'템플릿에서 시작',note:'저장해 둔 페이지 구성을 복사합니다'}]:[])];
-  return <BlockDialog active={active} title={`‘${parent.title}’ 아래에 새 페이지`} className="page-create-dialog" onClose={close}>
+  return <BlockDialog active={active} title={`‘${parent.title}’ 비노출 페이지 추가`} className="page-create-dialog" onClose={close}>
     <form className="page-create-form" onSubmit={event=>{event.preventDefault();void create();}}>
-      <p className="page-create-intro">‘{parent.title}’ 맨 끝에 임시보관으로 만들어집니다. 게시하기 전에는 홈페이지에 보이지 않습니다.</p>
+      <p className="page-create-intro">‘{parent.title}’ 아래에 임시보관으로 만들어집니다. 게시 전에는 공개되지 않으며, 만든 뒤 게시와 메뉴 설정으로 홈페이지 노출을 정합니다.</p>
       <label htmlFor="new-page-title"><span>페이지 제목 <span aria-hidden="true">*</span></span><input ref={titleInput} id="new-page-title" required maxLength={200} value={title} disabled={busy||uncertain} onChange={event=>setTitle(event.target.value)} placeholder="제목을 입력하세요"/></label>
       <fieldset className="page-create-kind" disabled={busy||uncertain}><legend>어떻게 시작할까요</legend>
         <div className="page-kind-options">{kinds.map(k=><label key={k.value} className={'page-kind-option'+(kind===k.value?' is-selected':'')}>

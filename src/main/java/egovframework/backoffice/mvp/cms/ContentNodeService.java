@@ -1,5 +1,6 @@
 package egovframework.backoffice.mvp.cms;
 import egovframework.backoffice.mvp.classification.ClassificationService;
+import egovframework.backoffice.mvp.classification.VocabularyService;
 import egovframework.backoffice.mvp.classification.ClassificationModels.Catalog;
 import egovframework.backoffice.mvp.classification.ClassificationModels.Term;
 import egovframework.backoffice.mvp.common.*;
@@ -14,8 +15,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 콘텐츠 작업 하위 항목 (V16). An operator builds the sub-navigation under a linked page by hand: each node
- * is a name, an order and one topic of the page's content type. Nothing is derived from the topic
- * dictionary, a page without nodes still lists and writes its type's posts, and removing a node deletes
+ * is a name, an order and one topic of the page's content type. Name-only creation resolves or creates
+ * that topic in the same transaction. A page without nodes still lists and writes its type's posts, and removing a node deletes
  * only that row (posts and topics stay). Nodes are admin navigation only: never a page, never published,
  * never part of the public structure. "One representative area per type" applies to the page link, not here.
  */
@@ -23,9 +24,9 @@ import org.springframework.web.server.ResponseStatusException;
 public class ContentNodeService {
  /** Current operating limit per page, checked here rather than in the DB. */
  static final int MAX_NODES=20;
- private final CmsStore store; private final CmsAccess access; private final ActivityService audit; private final ClassificationService classifications;
- public ContentNodeService(CmsStore store,CmsAccess access,ActivityService audit,ClassificationService classifications) {
-  this.store=store;this.access=access;this.audit=audit;this.classifications=classifications;
+ private final CmsStore store; private final CmsAccess access; private final ActivityService audit; private final ClassificationService classifications; private final VocabularyService vocabulary;
+ public ContentNodeService(CmsStore store,CmsAccess access,ActivityService audit,ClassificationService classifications,VocabularyService vocabulary) {
+  this.store=store;this.access=access;this.audit=audit;this.classifications=classifications;this.vocabulary=vocabulary;
  }
  @Transactional(readOnly=true)
  public List<ContentNode> ofPage(AccountPrincipal principal,long pageId) {access.actor(principal);return store.all("contentNodesOfPage",pageId);}
@@ -36,7 +37,7 @@ public class ContentNodeService {
   List<ContentNode> existing=store.all("contentNodesOfPage",pageId);
   if(existing.size()>=MAX_NODES) throw new BusinessException("하위 항목은 페이지당 최대 "+MAX_NODES+"개까지 둘 수 있습니다.");
   String title=InputRules.text(name,80,"하위 항목 이름");
-  Term topic=topic(page,topicId);
+  Term topic=topicId==null?vocabulary.resolveWorkTopic(principal,page.contentTypeCode(),title):topic(page,topicId);
   unique(existing,null,title,topic);
   long id=store.create("createContentNode",values("pageId",pageId,"name",title,"topicId",topic.id()));
   audit.record(actor,"콘텐츠 작업 하위 항목 추가","페이지 #"+pageId,page.title()+": "+title+" (주제 "+topic.name()+")");
@@ -47,11 +48,12 @@ public class ContentNodeService {
   store.lock();var actor=access.structure(principal);
   ContentNode node=required(id);Page page=linked(node.pageId());
   String title=InputRules.text(name,80,"하위 항목 이름");
-  Term topic=topic(page,topicId);
-  unique(store.all("contentNodesOfPage",node.pageId()),id,title,topic);
-  if(title.equals(node.name()) && Objects.equals(topic.id(),node.topicId())) return store.all("contentNodesOfPage",node.pageId());
-  store.change("editContentNode",values("id",id,"name",title,"topicId",topic.id()));
-  audit.record(actor,"콘텐츠 작업 하위 항목 변경","페이지 #"+node.pageId(),page.title()+": "+node.name()+" → "+title+" (주제 "+topic.name()+")");
+  // Omitted topicId means rename only, including a legacy item whose topic is no longer active.
+  Long targetTopic=topicId==null?node.topicId():topic(page,topicId).id();
+  unique(store.all("contentNodesOfPage",node.pageId()),id,title,targetTopic);
+  if(title.equals(node.name()) && Objects.equals(targetTopic,node.topicId())) return store.all("contentNodesOfPage",node.pageId());
+  store.change("editContentNode",values("id",id,"name",title,"topicId",targetTopic));
+  audit.record(actor,"콘텐츠 작업 하위 항목 변경","페이지 #"+node.pageId(),page.title()+": "+node.name()+" → "+title+" (주제 #"+targetTopic+")");
   return store.all("contentNodesOfPage",node.pageId());
  }
  /** Saves the order of one page's nodes; the ids must be exactly that page's nodes. */
@@ -100,10 +102,13 @@ public class ContentNodeService {
   return topic;
  }
  private static void unique(List<ContentNode> existing,Long self,String title,Term topic) {
+  unique(existing,self,title,topic.id());
+ }
+ private static void unique(List<ContentNode> existing,Long self,String title,Long topicId) {
   for(ContentNode other:existing) {
    if(self!=null && other.id()==self) continue;
    if(other.name().equals(title)) throw new BusinessException("같은 이름의 하위 항목이 이미 있습니다: "+title);
-   if(Objects.equals(other.topicId(),topic.id())) throw new BusinessException("'"+topic.name()+"' 주제는 이미 '"+other.name()+"' 항목이 보여 줍니다.");
+   if(topicId!=null&&Objects.equals(other.topicId(),topicId)) throw new BusinessException("이 주제의 글은 이미 '"+other.name()+"' 항목이 보여 줍니다.");
   }
  }
 }

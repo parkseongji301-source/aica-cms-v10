@@ -14,6 +14,11 @@
         <foreach collection="classification.topicIds" item="id" open="(" close=")" separator=",">#{id}</foreach>)
       </if>
     </if>
+    <if test="workTopics != null and !workTopics.isEmpty()">AND
+      <foreach collection="workTopics" item="item" open="(" close=")" separator=" OR ">
+        (p.content_type_code=#{item.typeCode} AND EXISTS(SELECT 1 FROM post_topics wt WHERE wt.post_id=p.id AND wt.topic_id=#{item.topicId}))
+      </foreach>
+    </if>
   </sql>
   <sql id="columns">p.id, p.title, p.content, p.author_id, u.display_name AS author_name, p.created_at, p.updated_at, p.deleted_at, p.category_id, p.status, p.revision, p.rich_content, (SELECT pp.revision FROM post_publications pp WHERE pp.post_id=p.id) AS published_revision</sql>
   <select id="find" resultType="egovframework.backoffice.mvp.post.Post">

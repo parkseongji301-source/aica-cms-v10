@@ -43,12 +43,12 @@ export function PostsPanel({active,version,data,go,search,onChanged,registerGuar
   const [creating,setCreating]=useState(false);
   const change=(values:Record<string,string>)=>{const p=new URLSearchParams(params);Object.entries({page:'0',...values}).forEach(([k,v])=>v?p.set(k,v):p.delete(k));if(scope)Object.entries(locationQuery(scope)).forEach(([k,v])=>p.set(k,v));go('/posts?'+p);};
   const toggle=(key:string,value:string)=>change({[key]:(multi(key).includes(value)?multi(key).filter(v=>v!==value):[...multi(key),value]).join(',')});
-  const selectTypes=(types:string[])=>{if(catalog.data&&!scope)change(postTypeFilterChange(params,types,catalog.data));};
+  const selectTypes=(types:string[])=>{if(catalog.data&&!scope)change(postTypeFilterChange(params,types,catalog.data,data.contentAreas??[]));};
   const categoryName=data.categories.find(c=>String(c.id)===category)?.name;
   const listTitle=scope?.relocate?'콘텐츠 작업 위치 확인':scope?contentLocationLabel(scope):categoryName?`글 목록 · ${categoryName}`:'전체 글';
-  const resetFilters=()=>{setTerm('');change({q:'',status:'',categoryId:'',typeCodes:scope?.type||'',cohortIds:'',topicIds:scope?.topicId?String(scope.topicId):''});};
-  const filtered=!!(q||status||!scope&&category||!scope&&selectedTypes.length||multi('cohortIds').length||scope?.topicId==null&&multi('topicIds').length);
-  const filters={params,scope,catalog:catalog.data,categories:data.categories,change,selectTypes,toggle};
+  const resetFilters=()=>{setTerm('');change({q:'',status:'',categoryId:'',typeCodes:scope?.type||'',cohortIds:'',topicIds:scope?.topicId?String(scope.topicId):'',workNodeIds:''});};
+  const filtered=!!(q||status||!scope&&category||!scope&&selectedTypes.length||multi('cohortIds').length||scope?.topicId==null&&multi('topicIds').length||multi('workNodeIds').length);
+  const filters={params,scope,catalog:catalog.data,categories:data.categories,areas:data.contentAreas??[],change,selectTypes,toggle};
   // Inside a location the new-post button and dialog name the place itself (the area, or its saved sub-navigation entry).
   const placeLabel=scope&&!scope.relocate?(scope.key==='all'?scope.areaLabel:scope.label):undefined;
   return <section className="content-workspace posts-workspace"><Heading title={listTitle} note={scope?.relocate?'이 주소의 위치가 지금 사이트 구성에 없습니다. 글은 그대로 있습니다.':scope?`${scope.areaLabel}${scope.key==='all'?'':` · 하위 항목: ${scope.label}`} · 저장된 작성본 기준`:'필요한 글을 찾고, 이어 쓰고, 게시하세요.'} actions={<button className="primary" disabled={!!scope?.error||!catalog.data||!!catalog.error||catalog.loading} onClick={()=>setCreating(true)}>＋ 새 {placeLabel??'글'} 작성</button>}/>

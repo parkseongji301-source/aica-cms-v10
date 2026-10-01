@@ -108,6 +108,7 @@ public class NextWorkspaceApi {
     }
     // 콘텐츠 작업 하위 항목 (V16): operator-made sub-navigation under a linked page. SUPER_ADMIN structure actions;
     // every response is that page's node list in its saved order. ContentNodeService holds the rules.
+    // topicId omitted: POST resolves/creates a same-name topic; PUT preserves the existing topic.
     public record ContentNodeInput(String name, Long topicId) {}
     public record ContentNodeOrderInput(List<Long> nodeIds) {}
     @GetMapping("/pages/{id}/content-nodes")
@@ -140,8 +141,8 @@ public class NextWorkspaceApi {
         @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="") String q,
         @RequestParam(defaultValue="") String status, @RequestParam(required=false) Long categoryId,
         @RequestParam(required=false) List<String> typeCodes,@RequestParam(required=false) List<Long> cohortIds,
-        @RequestParam(required=false) List<Long> topicIds) {
-        var result=posts.list(actor,page,q,status,categoryId,typeCodes,cohortIds,topicIds);
+        @RequestParam(required=false) List<Long> topicIds,@RequestParam(required=false) List<Long> workNodeIds) {
+        var result=posts.list(actor,page,q,status,categoryId,typeCodes,cohortIds,topicIds,workNodeIds);
         return Map.of("items",result.items().stream().map(p->postRow(actor,p)).toList(),"page",result.page(),
             "pageSize",result.pageSize(),"total",result.total(),"totalPages",result.totalPages());
     }

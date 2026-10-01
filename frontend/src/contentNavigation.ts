@@ -58,10 +58,10 @@ export function sectionPath(area:ContentArea,key:string,catalog:ClassificationCa
 export function scopedPostParams(search:URLSearchParams,scope:ContentContext|null):URLSearchParams {
   const result=new URLSearchParams({q:search.get('q')||'',status:search.get('status')||'',page:String(Math.max(0,Number(search.get('page'))||0))});
   if(search.get('categoryId'))result.set('categoryId',search.get('categoryId')!);
-  for(const key of ['typeCodes','cohortIds','topicIds'])if(filterValues(search,key).length)result.set(key,filterValues(search,key).join(','));
+  for(const key of ['typeCodes','cohortIds','topicIds','workNodeIds'])if(filterValues(search,key).length)result.set(key,filterValues(search,key).join(','));
   // Area lists use the sidebar location, search and status only. Old URLs must
   // not silently keep advanced filters that can no longer be seen or cleared.
-  if(scope){result.set('typeCodes',scope.type);result.delete('categoryId');result.delete('cohortIds');result.delete('topicIds');if(scope.topicId!==null)result.set('topicIds',String(scope.topicId));}
+  if(scope){result.set('typeCodes',scope.type);result.delete('categoryId');result.delete('cohortIds');result.delete('topicIds');result.delete('workNodeIds');if(scope.topicId!==null)result.set('topicIds',String(scope.topicId));}
   return result;
 }
 export const draftSelection=(scope:ContentContext):ClassificationSelection=>({typeCode:scope.type,cohortIds:[],topicIds:scope.topicId===null?[]:[scope.topicId]});

@@ -45,8 +45,8 @@ export const saveComposition=(id:number,value:{contentTypeCode:string|null;menuV
 export const reorderPages=(parentId:number|null,pageIds:number[])=>request<PageRow[]>(`${base}/page-order`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({parentId,pageIds})});
 // 콘텐츠 작업 하위 항목 (V16, SUPER_ADMIN): operator-made sub-navigation under a linked page; every call returns that page's nodes.
 export const getContentNodes=(pageId:number)=>request<ContentNodeRow[]>(`${base}/pages/${pageId}/content-nodes`);
-export const addContentNode=(pageId:number,value:{name:string;topicId:number})=>request<ContentNodeRow[]>(`${base}/pages/${pageId}/content-nodes`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
-export const editContentNode=(id:number,value:{name:string;topicId:number})=>request<ContentNodeRow[]>(`${base}/content-nodes/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
+export const addContentNode=(pageId:number,value:{name:string;topicId?:number})=>request<ContentNodeRow[]>(`${base}/pages/${pageId}/content-nodes`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
+export const editContentNode=(id:number,value:{name:string;topicId?:number})=>request<ContentNodeRow[]>(`${base}/content-nodes/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
 export const reorderContentNodes=(pageId:number,nodeIds:number[])=>request<ContentNodeRow[]>(`${base}/pages/${pageId}/content-node-order`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nodeIds})});
 export const deleteContentNode=(id:number)=>request<ContentNodeRow[]>(`${base}/content-nodes/${id}`,{method:'DELETE'});
 // Publishing keeps the page address; address changes stay a separate SUPER_ADMIN action.

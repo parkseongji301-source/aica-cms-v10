@@ -31,6 +31,10 @@
 .phase-two .posts-filter-options button { padding:8px 12px; }
 .phase-two .posts-filter-options button[aria-pressed=true] { background:#edf2ff; border-color:#8da6ec; color:#244bb8; }
 .phase-two .posts-filter-note { color:#536783; font-size:13px; margin:12px 0 0; line-height:1.6; }
+.phase-two .posts-work-topic-help { margin:0 0 16px; color:#536783; font-size:13px; line-height:1.6; }
+.phase-two .posts-work-topic-group { min-width:0; margin:0 0 16px; padding:0; border:0; }
+.phase-two .posts-work-topic-group legend { margin-bottom:8px; padding:0; color:#40516b; font-size:13px; font-weight:650; }
+.phase-two .posts-filter-options label:has(input:disabled) { color:#718097; background:#f2f4f8; cursor:default; }
 .phase-two .posts-filter-panel-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:12px; border-top:1px solid #dce4f1; padding-top:12px; }
 .phase-two .posts-filter-panel-footer p { margin:0; color:#536783; font-size:13px; line-height:1.6; }
 .phase-two .posts-filter-panel-footer button { white-space:nowrap; font-size:13px; }

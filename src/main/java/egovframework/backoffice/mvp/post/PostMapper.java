@@ -3,6 +3,7 @@ package egovframework.backoffice.mvp.post;
 import java.util.*;
 import java.time.LocalDate;
 import egovframework.backoffice.mvp.classification.ClassificationModels.Filter;
+import egovframework.backoffice.mvp.classification.ClassificationModels.AllowedTopic;
 import org.egovframe.rte.psl.dataaccess.EgovAbstractMapper;
 import org.springframework.stereotype.Repository;
 
@@ -29,8 +30,12 @@ public class PostMapper extends EgovAbstractMapper {
         return list(authorId,limit,offset,query,status,categoryId,null);
     }
     public List<Post> list(Long authorId,int limit,int offset,String query,String status,Long categoryId,Filter classification) {
+        return list(authorId,limit,offset,query,status,categoryId,classification,List.of());
+    }
+    public List<Post> list(Long authorId,int limit,int offset,String query,String status,Long categoryId,Filter classification,List<AllowedTopic> workTopics) {
         var values = searchValues(authorId, query);
         values.put("classification",classification);
+        values.put("workTopics",workTopics);
         values.put("status", status); values.put("categoryId", categoryId);
         values.put("authorId", authorId); values.put("limit", limit); values.put("offset", offset);
         return selectList("Post.list", values);
@@ -45,8 +50,12 @@ public class PostMapper extends EgovAbstractMapper {
         return count(authorId,query,status,categoryId,null);
     }
     public long count(Long authorId,String query,String status,Long categoryId,Filter classification) {
+        return count(authorId,query,status,categoryId,classification,List.of());
+    }
+    public long count(Long authorId,String query,String status,Long categoryId,Filter classification,List<AllowedTopic> workTopics) {
         var values = searchValues(authorId, query);
         values.put("classification",classification);
+        values.put("workTopics",workTopics);
         values.put("status", status); values.put("categoryId", categoryId);
         return selectOne("Post.count", values);
     }

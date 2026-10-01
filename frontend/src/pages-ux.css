@@ -8,7 +8,6 @@
 .phase-two .page-row-actions button { white-space: nowrap; border-radius: 3px; min-height: 36px; font-size: 13px; }
 .phase-two .page-menu-label { display: block; line-height: 1.7; }
 .phase-two .page-menu-label small { color: var(--ui-muted); }
-.phase-two .pages-table th:first-child { width: 30%; }
 .phase-two .page-list-note,.phase-two .page-save-explainer { font-size: 13px; color: var(--ui-muted); line-height: 1.8; margin: 16px 0 24px; }
 .phase-two .page-overview-block-list>li { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--ui-line); }
 .phase-two .page-overview-block { flex: 1; min-width: 0; border: 0; }
@@ -65,7 +64,6 @@
   .phase-two .pages-editor-workspace .block-navigator ol { max-height: 240px; }
 }
 @media(max-width:680px) {
-  .phase-two .pages-table { min-width: 680px; }
   .phase-two .pages-editor-workspace .editor-actions { position: static; }
   .phase-two .pages-editor-workspace :is(.title-card,.section-fields,.section-card>header) { padding: 18px; }
   .phase-two .pages-editor-workspace .action-buttons { justify-content: flex-start; }
@@ -82,17 +80,11 @@
 .phase-two .page-address {display:flex;gap:10px;align-items:center;margin:6px 0 0;font-size:13px;color:var(--ui-muted);} .phase-two .page-address code {font-size:13px;}
 /* V13 page hierarchy: child pages are indented under their parent; warnings never block. */
 .phase-two .page-title-cell {display:flex;gap:6px;align-items:flex-start;}
-.phase-two .page-title-child {padding-left:22px;}
-.phase-two .page-child-mark {color:var(--ui-muted);line-height:1.6;}
-.phase-two .page-child-row td {background:var(--ui-soft);}
 .phase-two .page-hierarchy-warning {display:block;margin-top:4px;color:#8a4b00;font-size:12px;}
 .phase-two .page-location {margin:0 0 4px;font-size:13px;color:var(--ui-muted);}
 .phase-two .page-location strong {color:var(--ui-ink);}
 .phase-two .page-row-actions .order-buttons {display:inline-flex;flex-direction:row;gap:4px;}
 .phase-two .page-row-actions .order-buttons button {min-width:32px;min-height:32px;padding:0 6px;}
-/* With the selection column first, keep it narrow and give the page title the 30% width. */
-.phase-two .pages-table th.bulk-cell:first-child {width:44px;}
-.phase-two .pages-table th.bulk-cell + th {width:30%;}
 /* V14 site composition: GROUP areas and each area's content-work link / menu settings. */
 .phase-two .page-composition-meta {display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:12px;}
 .phase-two .page-composition-meta span {padding:1px 6px;border-radius:3px;background:var(--ui-soft);color:var(--ui-ink);}
@@ -128,11 +120,11 @@
 .phase-two .content-node-name small {font-weight:400;}
 .phase-two .content-node-actions {display:inline-flex;gap:4px;}
 .phase-two .content-node-actions button {min-width:32px;min-height:32px;padding:0 8px;}
-.phase-two .content-node-form {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;}
+.phase-two .content-node-form {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;}
 .phase-two .content-node-form label {display:flex;flex-direction:column;gap:4px;margin:0;font-size:13px;}
 .phase-two .content-node-form-actions {display:inline-flex;gap:6px;}
 @media (max-width:680px){.phase-two .content-node-form {grid-template-columns:1fr;}}
-/* 사이트 구조 (검수 전 UX): fixed top level, "+ 하위 페이지", drag and drop. */
+/* 사이트 구조: fixed top level, "+ 비노출 페이지", drag and drop. */
 .phase-two .pages-table tr.page-top-row > td {background:var(--ui-soft);}
 .phase-two .pages-table tr.page-top-row .text-link {font-weight:700;}
 .phase-two .pages-table tr[draggable="true"] {cursor:grab;}

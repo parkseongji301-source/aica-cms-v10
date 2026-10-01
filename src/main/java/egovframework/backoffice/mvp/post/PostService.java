@@ -31,7 +31,9 @@ public class PostService extends EgovAbstractServiceImpl {
     private final ClassificationService classifications;
     private final RestaurantDetailsService restaurants;
     private final VersionHistoryService history;
-    public PostService(PostMapper posts, CurrentAccount current, AccessPolicy policy, CmsStore cms, MediaService media, ActivityService audit, RichTextService rich, ClassificationService classifications, RestaurantDetailsService restaurants,java.time.Clock clock,VersionHistoryService history) {
+    private final WorkTopicFilter workTopics;
+    public PostService(PostMapper posts, CurrentAccount current, AccessPolicy policy, CmsStore cms, MediaService media, ActivityService audit, RichTextService rich, ClassificationService classifications, RestaurantDetailsService restaurants,java.time.Clock clock,VersionHistoryService history,WorkTopicFilter workTopics) {
+        this.workTopics=workTopics;
         this.history=history;
         this.clock=clock;
         this.posts = posts; this.current = current; this.policy = policy;
@@ -53,6 +55,11 @@ public class PostService extends EgovAbstractServiceImpl {
     @Transactional(readOnly = true)
     public PostPage list(AccountPrincipal principal,int page,String query,String status,Long categoryId,
                          List<String> typeCodes,List<Long> cohortIds,List<Long> topicIds) {
+        return list(principal,page,query,status,categoryId,typeCodes,cohortIds,topicIds,null);
+    }
+    @Transactional(readOnly = true)
+    public PostPage list(AccountPrincipal principal,int page,String query,String status,Long categoryId,
+                         List<String> typeCodes,List<Long> cohortIds,List<Long> topicIds,List<Long> workNodeIds) {
         if (status == null || !Set.of("", "DRAFT", "PUBLISHED", "PRIVATE").contains(status)) throw new BusinessException("콘텐츠 상태를 확인하세요.");
         String filter = status.isEmpty() ? null : status;
         var actor = current.require(principal, false);
@@ -62,7 +69,8 @@ public class PostService extends EgovAbstractServiceImpl {
         String search = query == null ? "" : query.strip();
         if (search.length() > 100) throw new BusinessException("검색어는 100자 이하로 입력하세요.");
         var taxonomy=classifications.filter(typeCodes,cohortIds,topicIds);
-        return new PostPage(posts.list(author, PAGE_SIZE, page * PAGE_SIZE, search, filter, categoryId,taxonomy), page, PAGE_SIZE, posts.count(author, search, filter, categoryId,taxonomy));
+        var workFilter=workTopics.resolve(principal,workNodeIds);
+        return new PostPage(posts.list(author, PAGE_SIZE, page * PAGE_SIZE, search, filter, categoryId,taxonomy,workFilter), page, PAGE_SIZE, posts.count(author, search, filter, categoryId,taxonomy,workFilter));
     }
     @Transactional(readOnly = true)
     public DashboardOverview dashboard(AccountPrincipal principal) {

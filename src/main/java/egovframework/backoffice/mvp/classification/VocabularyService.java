@@ -23,6 +23,25 @@ public class VocabularyService {
     public VocabularyService(ClassificationMapper mapper,ClassificationService classifications,CmsStore store,CmsAccess access,ActivityService audit){
         this.mapper=mapper;this.classifications=classifications;this.store=store;this.access=access;this.audit=audit;
     }
+    /** Joins work-item creation's transaction and never changes existing topics. */
+    @Transactional
+    public Term resolveWorkTopic(AccountPrincipal principal,String typeCode,String name){
+        store.lock();access.structure(principal);
+        String label=InputRules.text(name,80,"항목 이름");
+        var catalog=classifications.catalog();
+        if(catalog.types().stream().noneMatch(t->t.code().equals(typeCode)&&t.active())||!ClassificationService.REGISTERED_TYPES.contains(typeCode))
+            throw new BusinessException("사용 중인 글 종류에만 항목을 추가할 수 있습니다.");
+        var allowed=catalog.allowedTopics().stream().filter(a->a.typeCode().equals(typeCode)).map(AllowedTopic::topicId).toList();
+        var matches=catalog.topics().stream().filter(t->allowed.contains(t.id())&&t.name().equals(label)).toList();
+        if(matches.size()>1)throw new BusinessException("이 글 종류에 같은 이름의 주제가 여러 개 있습니다. 관리자에게 연결 확인을 요청하세요.");
+        if(!matches.isEmpty()){
+            var topic=matches.get(0);
+            if(!topic.active())throw new BusinessException("같은 이름의 주제가 사용 중지되어 있습니다. 다른 항목 이름을 입력하세요.");
+            return topic;
+        }
+        String code="WORK_"+UUID.randomUUID().toString().replace("-","").toUpperCase(Locale.ROOT);
+        return addTopic(principal,typeCode,code,label,"").topics().stream().filter(t->t.code().equals(code)).findFirst().orElseThrow();
+    }
     @Transactional
     public Catalog addTopic(AccountPrincipal principal,String typeCode,String code,String name,String description){
         store.lock();var actor=access.structure(principal);

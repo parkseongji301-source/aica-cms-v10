@@ -69,12 +69,13 @@ test('addresses from before V14 are recognized by shape only and lead to 전체 
 });
 
 test('an area list keeps search, status and page and drops hidden advanced filters',()=>{
-  const input=new URLSearchParams('area=70&node=3&typeCodes=FAQ&topicIds=99&cohortIds=6,7&categoryId=2&q=test&status=DRAFT&page=1');
+  const input=new URLSearchParams('area=70&node=3&typeCodes=FAQ&topicIds=99&workNodeIds=9&cohortIds=6,7&categoryId=2&q=test&status=DRAFT&page=1');
   const params=scopedPostParams(input,contentContext(input,catalog,areas));
   assert.equal(params.get('typeCodes'),'REVIEW');assert.equal(params.get('topicIds'),'71');
   assert.equal(params.has('cohortIds'),false);assert.equal(params.has('categoryId'),false);assert.equal(params.get('page'),'1');
   assert.equal(params.get('q'),'test');assert.equal(params.get('status'),'DRAFT');assert.equal(params.has('area'),false);
   const unscoped=scopedPostParams(input,null);
+  assert.equal(params.has('workNodeIds'),false);assert.equal(unscoped.get('workNodeIds'),'9');
   assert.equal(unscoped.get('cohortIds'),'6,7');assert.equal(unscoped.get('categoryId'),'2');
 });
 

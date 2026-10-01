@@ -94,6 +94,18 @@ export function homeCandidates(pages:PageRow[],current:string){
 export const isTopLevel=(page:PageRow)=>page.parentId==null;
 /** Top-level items that take "+ 하위 페이지": every one except the home page and areas removed from the structure. */
 export const childHost=(page:PageRow,homePageId:number|null)=>isTopLevel(page)&&page.id!==homePageId&&page.inStructure!==false;
+/** The row a page is listed under at the top: itself for a top-level page or one whose parent is missing. */
+export function topAncestorId(pages:PageRow[],id:number):number {
+  const index=byId(pages),seen=new Set<number>();
+  let current=index.get(id);
+  while(current&&current.parentId!=null&&index.has(current.parentId)&&!seen.has(current.id)){seen.add(current.id);current=index.get(current.parentId);}
+  return current?.id??id;
+}
+/** Rows still shown while some top-level items are folded: a folded item keeps its own row and hides everything under it. */
+export function unfoldedRows(rows:PageTreeRow[],pages:PageRow[],folded:ReadonlySet<number>):PageTreeRow[] {
+  if(!folded.size)return rows;
+  return rows.filter(r=>{const top=topAncestorId(pages,r.page.id);return top===r.page.id||!folded.has(top);});
+}
 /** Rows the screen lets the operator drag: top-level items except home, and second-level pages. */
 export function draggable(pages:PageRow[],page:PageRow,homePageId:number|null){
   if(page.id===homePageId)return false;

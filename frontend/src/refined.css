@@ -196,3 +196,17 @@
 .phase-two .page-create-collection label>span, .phase-two .page-create-select>span { font-size: 13px; font-weight: 500; color: #4f5560; }
 .phase-two .page-create-collection label>span small, .phase-two .page-create-form>label>span small { font-weight: 400; color: var(--ui-muted); margin-left: 2px; }
 .phase-two .page-create-collection label { align-content: start; }
+
+/* ---- 사이트 구조: folding top-level items and 콘텐츠 작업 항목 rows (admin sub-navigation, not homepage pages). */
+.phase-two .page-fold, .phase-two .page-fold-space { flex: 0 0 22px; width: 22px; height: 22px; margin-top: 1px; }
+.phase-two .pages-table .page-fold { display: inline-flex; align-items: center; justify-content: center; min-height: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #5d636e; font-size: 14px; line-height: 1; cursor: pointer; }
+.phase-two .pages-table .page-fold:hover { background: #ecebe5; color: var(--ui-ink); }
+.phase-two .pages-table .page-fold:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
+.phase-two .pages-table tr.page-node-row > td { background: var(--ui-surface); border-top-style: dashed; }
+.phase-two .page-title-node { padding-left: 28px; }
+.phase-two .page-title-node.page-title-node-deep { padding-left: 46px; }
+.phase-two .page-node-mark { color: #b3b0a7; line-height: 1.6; }
+.phase-two .page-node-name { display: block; font-size: 13.5px; font-weight: 500; color: var(--ui-ink); overflow-wrap: anywhere; }
+.phase-two .status-tag.state-work { background: var(--ui-accent-soft); color: var(--ui-accent-ink); white-space: nowrap; }
+.phase-two .sidebar .nav-kind { flex: none; font-size: 10.5px; font-weight: 450; color: #8a8f99; border: 1px solid #dedbd3; border-radius: 999px; padding: 0 6px; line-height: 1.6; white-space: nowrap; }
+.phase-two .sidebar nav button.selected .nav-kind { color: var(--ui-accent-ink); border-color: #cdd5f3; }

@@ -112,3 +112,19 @@ test('second-level pages reorder in their parent or move under another top-level
   // Keyboard alternative: parents are the top-level items except home.
   assert.deepEqual(childParentOptions(site,66,1).map(o=>o.id),[65,98,81,90]);
 });
+
+import {topAncestorId,unfoldedRows} from '../src/pageHierarchy.ts';
+
+test('folding a top-level item hides every row under it and keeps its own row',()=>{
+  const tree=[page(1,'홈',null,0),page(65,'인사교 소개',null,1),page(70,'후기',65,0),page(80,'세부',70,0),page(72,'FAQ',null,2),page(73,'질문',72,0),page(5,'고아',99,3)];
+  assert.equal(topAncestorId(tree,80),65);
+  assert.equal(topAncestorId(tree,65),65);
+  assert.equal(topAncestorId(tree,5),5);
+  const rows=pageTree(tree);
+  assert.deepEqual(unfoldedRows(rows,tree,new Set()).map(r=>r.page.id),rows.map(r=>r.page.id));
+  assert.deepEqual(unfoldedRows(rows,tree,new Set([65])).map(r=>r.page.id),[1,65,72,73,5]);
+  assert.deepEqual(unfoldedRows(rows,tree,new Set([65,72,5])).map(r=>r.page.id),[1,65,72,5]);
+  // A parent cycle never loops.
+  const cycle=[page(7,'a',8,0),page(8,'b',7,0)];
+  assert.ok([7,8].includes(topAncestorId(cycle,7)));
+});

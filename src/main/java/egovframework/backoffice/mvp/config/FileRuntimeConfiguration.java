@@ -29,13 +29,9 @@ public class FileRuntimeConfiguration {
             require(!"always".equals(env.getProperty("spring.sql.init.mode")),"file SQL initialization is disabled");
             require(FileDatabaseSafety.LOCATION.equals(env.getProperty("spring.flyway.locations",FileDatabaseSafety.LOCATION)),"unapproved Flyway migration location");
             require(!env.getProperty("AICA_CUTOVER_ENABLED","false").equalsIgnoreCase("true"),"cutover mode must not be used by the web server");
-            require(!env.getProperty("AICA_V11_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
-            require(!env.getProperty("AICA_V12_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
-            require(!env.getProperty("AICA_V13_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
-            require(!env.getProperty("AICA_V14_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
-            require(!env.getProperty("AICA_V15_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
-            require(!env.getProperty("AICA_V16_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
-            require(!env.getProperty("AICA_V17_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
+            // Every promotion tool so far (V11 up to the current schema) has its own flag; none may reach the web server.
+            for(int version=11;version<=Integer.parseInt(CURRENT_VERSION);version++)
+                require(!env.getProperty("AICA_V"+version+"_PROMOTION_ENABLED","false").equalsIgnoreCase("true"),"promotion mode must not be used by the web server");
             Path db=requireWriter(ds.getJdbcUrl());
             boolean original=db.toString().replace('\\','/').toLowerCase(Locale.ROOT).contains("/.local-data/");
             String receipt=env.getProperty("AICA_RUNTIME_RECEIPT","");

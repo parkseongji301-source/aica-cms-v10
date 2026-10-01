@@ -69,7 +69,7 @@ class PageTemplateIntegrationTest {
   assertThat(browser.json("POST",API+"/"+id+"/prepare","{\"revision\":2}",csrf).statusCode()).isEqualTo(400);
  }
  @Test void staleRevisionBadVariationAndDuplicateManualIdsCannotOverwriteTemplate()throws Exception {
-  var d=create();var id=d.path("info").path("id").asLong();var input=request().put("revision",-1);assertThat(browser.json("PUT",API+"/"+id,input.toString(),csrf).statusCode()).isEqualTo(409);
+  var d=create();var id=d.path("info").path("id").asLong();var input=request().put("revision",-1);var stale=browser.json("PUT",API+"/"+id,input.toString(),csrf);assertThat(stale.statusCode()).isEqualTo(409);assertThat(json.readTree(stale.body()).path("code").asText()).isEqualTo("REVISION_CONFLICT");
   assertThat(browser.json("POST",API+"/"+id+"/prepare","{\"revision\":-1}",csrf).statusCode()).isEqualTo(409);
   input.put("revision",0);((ObjectNode)input.path("blocks").get(0)).put("variation","unregistered");assertThat(browser.json("PUT",API+"/"+id,input.toString(),csrf).statusCode()).isEqualTo(400);
   input=request().put("revision",0);((ObjectNode)input.path("blocks").get(3)).set("manual",json.valueToTree(Map.of("postIds",List.of(published,published))));assertThat(browser.json("PUT",API+"/"+id,input.toString(),csrf).statusCode()).isEqualTo(400);assertThat(ok(browser.get(API+"/"+id))).isEqualTo(d);

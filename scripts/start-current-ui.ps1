@@ -6,7 +6,7 @@ if(-not(Test-Path -LiteralPath $taskConfigPath)){throw 'This PC has no current-u
 $taskConfig=Get-Content -LiteralPath $taskConfigPath -Raw -Encoding utf8 | ConvertFrom-Json
 $taskRuntime=(Resolve-Path -LiteralPath (Join-Path $taskRoot $taskConfig.runtime)).Path
 # V12 to V16 runtimes (development copy or RC) share one launcher that validates hashes and the receipt-bound DB.
-if($taskConfig.kind -in @('development-v12','v12','v13','v14','v15','v16','v17')){
+if($taskConfig.kind -match '^(v\d+|development-v12)$'){
     if($Stop){
         & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'start-v12-runtime.ps1') -Runtime $taskRuntime -Stop
     }else{

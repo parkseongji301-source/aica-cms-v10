@@ -197,7 +197,7 @@ class VersionHistoryIntegrationTest {
   templates.save(a,id,t.info().revision(),"다른 이름","",false,List.of());var before=templates.get(a,id);long count=versions.count(TEMPLATE,id);
   var b=login("SUPER_ADMIN");String token=csrf(b),url=API+"/page-templates/"+id+"/versions/"+source;
   read(b.json("POST",url+"/prepare-restore","{}",token));assertThat(templates.get(a,id)).isEqualTo(before);assertThat(versions.count(TEMPLATE,id)).isEqualTo(count);
-  assertThat(b.json("POST",url+"/restore","{\"expectedRevision\":"+before.info().revision()+"}",token).statusCode()).isEqualTo(400);
+  var unconfirmed=b.json("POST",url+"/restore","{\"expectedRevision\":"+before.info().revision()+"}",token);assertThat(unconfirmed.statusCode()).isEqualTo(400);assertThat(new com.fasterxml.jackson.databind.ObjectMapper().readTree(unconfirmed.body()).path("code").asText()).isEqualTo("VALIDATION_ERROR");
   read(b.json("POST",url+"/restore","{\"expectedRevision\":"+before.info().revision()+",\"confirmed\":true}",token));
   assertThat(templates.get(a,id).info().name()).isEqualTo("복구할 템플릿");assertThat(versions.count(TEMPLATE,id)).isEqualTo(count+2);
  }

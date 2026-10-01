@@ -46,7 +46,11 @@ $taskStamp=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 $taskLog=Join-Path $taskRuntime ('server-'+$taskStamp)
 $taskUrl='jdbc:h2:file:'+($taskDb.Substring(0,$taskDb.Length-6).Replace('\','/'))+';IFEXISTS=TRUE;DB_CLOSE_ON_EXIT=FALSE;AUTO_COMPACT_FILL_RATE=0'
 $taskAssets=([Uri]((Join-Path $taskRuntime 'assets')+'\')).AbsoluteUri
-$taskArgs=@('-Dfile.encoding=UTF-8','-jar',('"'+$taskJar+'"'),'--spring.profiles.active=dev','--server.address=127.0.0.1',('--server.port='+$taskConfig.port),('"--spring.datasource.url='+$taskUrl+'"'),'--backoffice.bootstrap.enabled=false','--AICA_CUTOVER_ENABLED=false','--AICA_V11_PROMOTION_ENABLED=false','--AICA_V12_PROMOTION_ENABLED=false','--AICA_V13_PROMOTION_ENABLED=false','--AICA_V14_PROMOTION_ENABLED=false','--AICA_V15_PROMOTION_ENABLED=false','--AICA_V16_PROMOTION_ENABLED=false','--AICA_V17_PROMOTION_ENABLED=false',('"--AICA_RUNTIME_RECEIPT='+$taskReceipt+'"'),('"--spring.web.resources.static-locations='+$taskAssets+',classpath:/static/"'))
+# Every promotion flag up to the receipt's schema version is passed off explicitly (the server refuses them anyway).
+$taskSchemaMatch=[regex]::Match((Get-Content -LiteralPath $taskReceipt -Raw -Encoding utf8 | ConvertFrom-Json).status,'^MIGRATED_V(\d+)$')
+if(-not $taskSchemaMatch.Success){throw 'Receipt status is not a completed MIGRATED_V<n> receipt.'}
+$taskPromotionFlags=@(11..([int]$taskSchemaMatch.Groups[1].Value) | ForEach-Object { '--AICA_V'+$_+'_PROMOTION_ENABLED=false' })
+$taskArgs=@('-Dfile.encoding=UTF-8','-jar',('"'+$taskJar+'"'),'--spring.profiles.active=dev','--server.address=127.0.0.1',('--server.port='+$taskConfig.port),('"--spring.datasource.url='+$taskUrl+'"'),'--backoffice.bootstrap.enabled=false','--AICA_CUTOVER_ENABLED=false')+$taskPromotionFlags+@(('"--AICA_RUNTIME_RECEIPT='+$taskReceipt+'"'),('"--spring.web.resources.static-locations='+$taskAssets+',classpath:/static/"'))
 $taskServer=Start-Process -FilePath $taskJava -ArgumentList $taskArgs -WorkingDirectory $taskRuntime -WindowStyle Hidden -RedirectStandardOutput ($taskLog+'.stdout.log') -RedirectStandardError ($taskLog+'.stderr.log') -PassThru
 $taskActive=[ordered]@{status='RUNNING';pid=$taskServer.Id;startedTicks=$taskServer.StartTime.ToUniversalTime().Ticks.ToString();jar=$taskJar;database=$taskDb;log=$taskLog;port=$taskConfig.port}
 Save-TaskJson $taskActive $taskActivePath
